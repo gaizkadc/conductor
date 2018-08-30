@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "config.go",
+        "service.go",
+    ],
+    importpath = "github.com/daishogroup/conductor/server",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//asm:go_default_library",
+        "//logger:go_default_library",
+        "//server/apps:go_default_library",
+        "//vendor/github.com/daishogroup/dhttp:go_default_library",
+        "//vendor/github.com/daishogroup/system-model/client:go_default_library",
+        "//vendor/github.com/daishogroup/system-model/entities:go_default_library",
+        "//vendor/github.com/gorilla/handlers:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)

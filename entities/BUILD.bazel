@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "log.go",
+        "request.go",
+    ],
+    importpath = "github.com/daishogroup/conductor/entities",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//errors:go_default_library",
+        "//vendor/github.com/daishogroup/derrors:go_default_library",
+        "//vendor/github.com/daishogroup/system-model/entities:go_default_library",
+        "//vendor/github.com/ghodss/yaml:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/k8s.io/helm/pkg/strvals:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["request_test.go"],
+    embed = [":go_default_library"],
+    importpath = "github.com/daishogroup/conductor/entities",
+    deps = [
+        "//vendor/github.com/daishogroup/system-model/entities:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

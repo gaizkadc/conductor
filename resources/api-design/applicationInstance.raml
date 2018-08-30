@@ -1,0 +1,22 @@
+#%RAML 1.0 DataType
+
+displayName: ApplicationInstance
+description: |
+An application descriptor contains the information required to deploy and application.
+type: object
+properties:
+  deployedId: string
+  appDescriptorId: string
+  clusterId: string
+  name: string
+  description: string
+  label: string
+  arguments: string
+example:
+  deployedId: app00001-00001
+  appDescriptorId: app00001
+  clusterId: c0001
+  name: Example Application
+  description: Basic application deployment
+  label: cloud
+  arguments: --port=1234

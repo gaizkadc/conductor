@@ -1,0 +1,71 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+
+[[constraint]]
+  name = "github.com/bitly/go-simplejson"
+
+[[constraint]]
+  name = "github.com/daishogroup/system-model"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/daishogroup/dhttp"
+  version = "v1.2.1"
+
+#[[constraint]]
+#  name = "github.com/dghubble/sling"
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+
+[[constraint]]
+  name = "github.com/gorilla/handlers"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.6.0"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  source = "git@github.com:/sirupsen/logrus"
+  version = "~1.0.3"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+
+[[constraint]]
+  name = "github.com/verdverm/frisby"
+
+[[constraint]]
+  name = "gopkg.in/alecthomas/kingpin.v2"
+  version = "2.2.5"
+
+
+[[constraint]]
+  name = "k8s.io/helm"
+
+[[constraint]]
+  name = "github.com/daishogroup/service"
+  version = "1.0.0"
+
+

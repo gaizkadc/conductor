@@ -1,0 +1,44 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("@io_bazel_rules_go//go:def.bzl", "gazelle", "go_binary", "go_prefix")
+
+gazelle(
+    name = "gazelle",
+    build_tags = [
+        "darwin",
+    ],
+    command = "fix",
+    external = "vendored",
+    prefix = "github.com/daishogroup/conductor",
+)
+
+go_binary(
+    name = "conductor",  #keep
+    library = "//cmd/conductor:go_default_library",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "conductor-cli",
+    library = "//cmd/conductor-cli:go_default_library",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "conductor-integration",
+    library = "//cmd/conductor-integration:go_default_library",
+    visibility = ["//visibility:public"],
+    #deps = ["//:conductor"],
+)
+
+go_prefix("github.com/daishogroup/conductor")
+
+pkg_tar(
+    name = "core-conductor",
+    srcs = [
+        "//components/conductor:component.yaml",
+        "//components/conductor:image.tar",
+    ],
+    extension = "tar.gz",
+    mode = "0644",
+    package_dir = "/",
+)
