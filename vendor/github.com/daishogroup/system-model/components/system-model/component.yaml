@@ -1,0 +1,74 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    app: samurai
+    component: system-model
+  name: system-model
+  namespace: daisho
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: samurai
+      component: system-model
+  template:
+    metadata:
+      labels:
+        app: samurai
+        component: system-model
+    spec:
+      containers:
+      - name: system-model
+        image: registry.fmx.cloud/daisho/system-model:v1.1.0
+        imagePullPolicy: Always
+        args:
+          - "--filesystem-persistence"
+          - "--filesystem-basePath=/daisho/data"
+        ports:
+        - name: api-port
+          containerPort: 8800
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: api-port
+        volumeMounts:
+        - name: data
+          mountPath: /daisho/data
+      securityContext:
+        runAsUser: 2000
+        fsGroup: 2000
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: system-model
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: system-model
+  namespace: daisho
+spec:
+  selector:
+    app: samurai
+    component: system-model
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8800
+      targetPort: 8800
+      nodePort: 31089
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: system-model
+  namespace: daisho
+spec:
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+  storageClassName: daisho-flash

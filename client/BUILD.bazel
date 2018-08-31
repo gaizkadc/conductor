@@ -8,7 +8,7 @@ go_library(
         "conductor_rest.go",
         "conductor_testsuite.go",
     ],
-    importpath = "github.com/daishogroup/conductor/client",
+    importpath = "github.com/nalej/conductor/client",
     visibility = ["//visibility:public"],
     deps = [
         "//entities:go_default_library",
@@ -25,7 +25,7 @@ go_test(
     name = "go_default_test",
     srcs = ["conductor_rest_test.go"],
     embed = [":go_default_library"],
-    importpath = "github.com/daishogroup/conductor/client",
+    importpath = "github.com/nalej/conductor/client",
     deps = [
         "//vendor/github.com/daishogroup/dhttp:go_default_library",
         "//vendor/github.com/daishogroup/system-model/entities:go_default_library",

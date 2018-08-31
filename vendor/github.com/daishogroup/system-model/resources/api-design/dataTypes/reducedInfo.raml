@@ -1,0 +1,26 @@
+#%RAML 1.0 DataType
+
+displayName: Reduced Info
+description: Simplified dump object.
+type: object
+properties:
+  networks:
+    type: array
+    items: !include networkReducedInfo.raml
+    required: true
+  clusters:
+    type: array
+    items: !include clusterReducedInfo.raml
+    required: true
+  nodes:
+    type: array
+    items: !include nodeReducedInfo.raml
+    required: true
+  descriptors:
+    type: array
+    items: !include applicationDescriptorReducedInfo.raml
+    required: true
+  instances:
+    type: array
+    items: !include applicationInstanceReducedInfo.raml
+    required: true

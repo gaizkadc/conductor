@@ -37,7 +37,7 @@ all: dep build test
 .PHONY: dep
 dep:
 	$(info >>> Updating dependencies...)
-	dep ensure
+	dep ensure -v
 
 .PHONY: test test-race test-coverage
 test:

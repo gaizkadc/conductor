@@ -1,0 +1,457 @@
+#%RAML 1.0
+title: System Model API
+version: v1
+baseUri: http://system-model/api/{version}
+description: The system model API provides CRUD operations for all the entities
+  inside the Daisho Platform.
+types:
+  Cluster: !include dataTypes/cluster.raml
+  AddClusterRequest: !include dataTypes/addClusterRequest.raml
+  User: !include dataTypes/user.raml
+  Network: !include dataTypes/network.raml
+  AddNetworkRequest: !include dataTypes/addNetworkRequest.raml
+  Node: !include dataTypes/node.raml
+  AddNodeRequest: !include dataTypes/addNodeRequest.raml
+  ApplicationInstance: !include dataTypes/applicationInstance.raml
+  ApplicationDescriptor: !include dataTypes/applicationDescriptor.raml
+  AddAppDescriptorRequest: !include dataTypes/addAppDescriptorRequest.raml
+  AddAppInstanceRequest: !include dataTypes/addAppInstanceRequest.raml
+  Dump: !include dataTypes/dump.raml
+  ReducedInfo: !include dataTypes/reducedInfo.raml
+  UpdateNodeRequest: !include dataTypes/updateNodeRequest.raml
+  UpdateClusterRequest: !include dataTypes/updateClusterRequest.raml
+  AddUserRequest: !include dataTypes/addUserRequest.raml
+  UpdateUserRequest: !include dataTypes/updateUserRequest.raml
+  UserAccess: !include dataTypes/userAccess.raml
+  AddUserAccessRequest: !include dataTypes/addUserAccessRequest.raml
+  UsersReducedInfo: !include dataTypes/userReducedSummary.raml
+  UsersList: !include dataTypes/usersList.raml
+
+  SuccessfulOperation: !include dataTypes/successfulOp.raml
+#
+# Network endpoints.
+#
+/network:
+  /list:
+    get:
+      displayName: Get the list of the networks
+      description: Get a list of all the networks the user has access to.
+      responses:
+        200:
+          body:
+            application/json:
+              type: Network[]
+  /add:
+    post:
+      displayName: Add a new network
+      description: Add a new network to the system.
+      body:
+        application/json:
+          type: AddNetworkRequest
+      responses:
+        200:
+          body:
+            application/json:
+              type: Network
+        400:
+          description: If the request is invalid
+        500:
+          description: If the server cannot process the request
+  /{networkId}/info:
+    uriParameters:
+      networkId:
+        type: string
+        displayName: The network identifier.
+    get:
+      displayName: Get the information of a given network
+      description: Get the information of a given network including the admin.
+      responses:
+        200:
+          body:
+            application/json:
+              type: Network
+        404:
+          description: The requested network does not exists.
+  /{networkId}/delete:
+    uriParameters:
+      networkId:
+        type: string
+        displayName: The network identifier.
+    delete:
+      displayName: Delete the network.
+      description: Delete the network if and only if no information is related with this network.
+      responses:
+        200:
+          description: The network is deleted
+        500:
+          description: The network could not be deleted
+#
+# Cluster endpoints.
+#
+/cluster:
+  /{networkId}/:
+    uriParameters:
+      networkId:
+        type: string
+        displayName: Target network identifier.
+    /add:
+      post:
+        displayName: Add a new cluster to an existing network
+        body:
+          application/json:
+            type: AddClusterRequest
+        responses:
+          200:
+            description: Cluster is added
+            body:
+              application/json:
+                type: Cluster
+          400:
+            description: If the request is invalid
+          500:
+            description: If the server cannot process the request
+    /list:
+      get:
+        displayName: Get the existing clusters inside a network
+        responses:
+          200:
+            body:
+              application/json:
+                type: Cluster[]
+          400:
+            description: If the request is invalid
+          404:
+            description: The selected network does not exists
+    /{clusterId}/:
+      uriParameters:
+        clusterId:
+          type: string
+          displayName: Target cluster inside a given network.
+      /delete:
+        delete:
+          displayName: Delete an existing cluster
+          responses:
+            200:
+              description: The cluster has been successfully deleted.
+            400:
+              description: The cluster cannot be removed.
+      /info:
+        get:
+          displayName: Get the information of a selected cluster
+          responses:
+            200:
+              body:
+                application/json:
+                  type: Cluster
+            404:
+              description: The selected network or cluster identifier does not exist.
+            500:
+              description: If the server cannot process the request
+      /update:
+        post:
+          displayName: Update an already existing cluster
+          body:
+            application/json:
+              type: UpdateClusterRequest
+          responses:
+            200:
+              body:
+                application/json:
+                  type: SuccessfulOperation
+            404:
+              description: The selected network or cluster identifier does not exist.
+            500:
+              description: If the server cannot process the request
+
+#
+# node endpoints.
+#
+/node:
+  /{networkId}/{clusterId}:
+    uriParameters:
+      networkId:
+        type: string
+        displayName: Target network identifier.
+      clusterId:
+        type: string
+        displayName: Target cluster identifier.
+    /add:
+      post:
+        displayName: Add a new node to an existing cluster
+        body:
+          application/json:
+            type: AddNodeRequest
+        responses:
+          200:
+            body:
+              application/json:
+                type: Node
+          404:
+            description: The selected cluster does not exists
+    /list:
+      get:
+        displayName: Get the existing nodes inside a cluster
+        responses:
+          200:
+            body:
+              application/json:
+                type: Node[]
+          404:
+            description: The selected cluster does not exists
+    /{nodeId}/:
+      uriParameters:
+        nodeId:
+          type: string
+          displayName: Target node inside a given cluster.
+      /delete:
+        delete:
+          displayName: Delete an existing cluster
+          responses:
+            200:
+              description: The node has been successfully deleted.
+              body:
+                application/json:
+                  type:
+                    SuccessfulOperation
+            404:
+              description: The selected cluster does not exists
+      /info:
+        get:
+          displayName: Get the information of a selected node
+          responses:
+            200:
+              body:
+                application/json:
+                  type: Node
+            404:
+              description: The selected network or cluster identifier does not exists.
+      /update:
+        post:
+          displayName: Update an existing node
+          body:
+            application/json:
+              type: UpdateNodeRequest
+          responses:
+            200:
+              body:
+                application/json:
+                  type: SuccessfulOperation
+            404:
+              description: The selected network, cluster or node does not exist
+
+#
+# Applications
+#
+/app:
+  /{networkId}/:
+    uriParameters:
+      networkId:
+        type: string
+        displayName: The network identifier.
+    /descriptor/:
+      /add:
+        post:
+          displayName: Add a new application descriptor
+          body:
+            application/json:
+              type: AddAppDescriptorRequest
+      /list:
+        get:
+          displayName: List the applications in the system
+          responses:
+            200:
+              body:
+                application/json:
+                  type: ApplicationDescriptor[]
+            500:
+              description: If the list cannot be retrieved
+      /{applicationId}/:
+        uriParameters:
+          applicationId:
+            type: string
+            displayName: Application descriptor identifier.
+        /info:
+          get:
+            displayName: Get the application descriptor info
+            responses:
+              200:
+                body:
+                  application/json:
+                    type: ApplicationDescriptor
+    /instance/:
+      /add:
+        post:
+          displayName: Add a new application instance
+          body:
+            application/json:
+              type: AddAppInstanceRequest
+          responses:
+            200:
+              description: If the app is deployed
+              body:
+                application/json:
+                  type: ApplicationInstance
+      /list:
+        get:
+          displayName: Get the list of deployed instances.
+          responses:
+            200:
+              description: The list of deployed instances.
+              body:
+                application/json:
+                  type: ApplicationInstance[]
+      /{applicationId}/:
+        uriParameters:
+          applicationId:
+            type: string
+            displayName: Application instance identifier.
+        /update:
+          post:
+            displayName: Update the information in the application instance.
+            body:
+              application/json:
+                type: ApplicationInstance
+        /delete:
+          delete:
+            displayName: Delete an application instance
+        /info:
+          get:
+            displayName: Get an application descriptor.
+            responses:
+              200:
+                body:
+                  application/json:
+                    type: ApplicationInstance
+              404:
+                description: Application ID was not found.
+              500:
+                description: The request could not be processed.
+  # System model dumping
+  /dump/:
+    /export:
+      get:
+        displayName: Export the current system model in a processable format.
+        responses:
+          200:
+            body:
+              application/json:
+                type: Dump
+          500:
+            description: The request could not be processed.
+  /info/:
+    /reduced:
+      get:
+        displayName: Export the system model in a reduced format.
+        responses:
+          200:
+            body:
+              application/json:
+                type: ReducedInfo
+          500:
+            description: The request could not be processed.
+/user/:
+  /add:
+    post:
+      displayName: Add a new user.
+      body:
+        application/json:
+          type: AddUserRequest
+      responses:
+        200:
+          body:
+            application/json:
+              type: User
+        500:
+          description: The request could not be processed.
+        404:
+          description: User already exists.
+  /{userId}/get:
+    get:
+      displayName: Get user data.
+      responses:
+        200:
+          body:
+            application/json:
+              type: User
+        400:
+          description: Non valid user id.
+        500:
+          description: The request coult not be processed.
+  /{userId}/delete:
+    delete:
+      description: |
+        Delete resource
+      responses:
+        200:
+          description: |
+            Succesfully deleted user
+          body:
+            application/json:
+              type: SuccessfulOperation
+  /{userId}/update:
+    post:
+      description: |
+        Update the information of a certain user
+      responses:
+        200:
+          body:
+            application/json:
+              type: UpdateUserRequest
+        400:
+          description: Non valid user id
+        500:
+          description: The request could not be processed.
+
+# Access operations
+/access/list:
+  get:
+    displayName: List existing users.
+    responses:
+      200:
+        body:
+          application/json:
+            type: UsersList
+      500:
+        description: The request could not be processed.
+/access/{userID}/add:
+  post:
+    description: Add access grants for the user.
+    body:
+      application/json:
+        type: AddUserAccessRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: UserAccess
+      400:
+        description: Non valid user id.
+      500:
+        description: The request could not be processed.
+/access/{userID}/get:
+  get:
+    description: Get access role for the user.
+    responses:
+      200:
+        body:
+          application/json:
+            type: UserAccess
+      400:
+        description: Invalid userID.
+      500:
+        description: The request could not be processed.
+/access/{userID}/delete:
+  delete:
+    description: |
+      Delete indicated user access privileges.
+    responses:
+      200:
+        description: |
+          Succesfully deleted resource.
+        body:
+          application/json:
+            type: SuccessfulOperation
+      400:
+        description: Invalid UserID.
+      500:
+        description: The request could not be processed.

@@ -7,7 +7,7 @@ package client
 
 import (
 	"github.com/stretchr/testify/suite"
-    "github.com/daishogroup/conductor/entities"
+    "github.com/nalej/conductor/entities"
 )
 
 

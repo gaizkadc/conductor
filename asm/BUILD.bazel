@@ -8,7 +8,7 @@ go_library(
         "asm_rest.go",
         "entities.go",
     ],
-    importpath = "github.com/daishogroup/conductor/asm",
+    importpath = "github.com/nalej/conductor/asm",
     visibility = ["//visibility:public"],
     deps = [
         "//entities:go_default_library",

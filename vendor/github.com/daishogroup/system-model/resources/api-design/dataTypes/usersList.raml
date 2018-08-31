@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+
+displayName: UsersList
+description: List of users.
+type: object
+properties:
+  users:
+    type: array
+    items: !include userReducedSummary.raml
+example:
+  users: [{userId: user1, roles: [admin, operator]},
+          {userId: user1, roles: [admin, operator]}]

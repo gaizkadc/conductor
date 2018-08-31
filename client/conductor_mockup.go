@@ -6,7 +6,7 @@
 package client
 
 import (
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
     "github.com/daishogroup/derrors"
     smClient "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"

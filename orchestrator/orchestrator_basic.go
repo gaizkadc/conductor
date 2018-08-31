@@ -11,9 +11,9 @@ import (
     "strings"
     "time"
 
-    "github.com/daishogroup/conductor/asm"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
-    "github.com/daishogroup/conductor/errors"
+    "github.com/nalej/conductor/asm"
+    entitiesConductor "github.com/nalej/conductor/entities"
+    "github.com/nalej/conductor/errors"
     "github.com/daishogroup/derrors"
     smclient "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"

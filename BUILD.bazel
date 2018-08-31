@@ -8,7 +8,7 @@ gazelle(
     ],
     command = "fix",
     external = "vendored",
-    prefix = "github.com/daishogroup/conductor",
+    prefix = "github.com/nalej/conductor",
 )
 
 go_binary(
@@ -30,7 +30,7 @@ go_binary(
     #deps = ["//:conductor"],
 )
 
-go_prefix("github.com/daishogroup/conductor")
+go_prefix("github.com/nalej/conductor")
 
 pkg_tar(
     name = "core-conductor",

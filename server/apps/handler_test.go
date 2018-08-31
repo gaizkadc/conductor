@@ -16,9 +16,9 @@ import (
     "github.com/stretchr/testify/suite"
     "github.com/verdverm/frisby"
 
-    "github.com/daishogroup/conductor/asm"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
-    logger2 "github.com/daishogroup/conductor/logger"
+    "github.com/nalej/conductor/asm"
+    entitiesConductor "github.com/nalej/conductor/entities"
+    logger2 "github.com/nalej/conductor/logger"
     "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"
     "github.com/daishogroup/system-model/server"

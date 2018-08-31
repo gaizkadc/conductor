@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+
+displayName: UserAccess
+description: User access privilege entry.
+type: object
+properties:
+  userID: string
+  role:
+    enum: [admin, operator, user]
+example:
+  userID: User1234
+  role: admin

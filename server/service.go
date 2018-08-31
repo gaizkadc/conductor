@@ -9,14 +9,14 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/daishogroup/conductor/server/apps"
+    "github.com/nalej/conductor/server/apps"
     smclient "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"
     "github.com/gorilla/handlers"
     "github.com/gorilla/mux"
     log "github.com/sirupsen/logrus"
-    "github.com/daishogroup/conductor/asm"
-    "github.com/daishogroup/conductor/logger"
+    "github.com/nalej/conductor/asm"
+    "github.com/nalej/conductor/logger"
     "github.com/daishogroup/dhttp"
 )
 

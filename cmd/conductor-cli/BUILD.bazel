@@ -7,7 +7,7 @@ go_library(
         "command.go",
         "main.go",
     ],
-    importpath = "github.com/daishogroup/conductor/cmd/conductor-cli",
+    importpath = "github.com/nalej/conductor/cmd/conductor-cli",
     visibility = ["//visibility:public"],
     deps = [
         "//client:go_default_library",
@@ -23,6 +23,6 @@ go_library(
 go_binary(
     name = "conductor-cli",
     embed = [":go_default_library"],
-    importpath = "github.com/daishogroup/conductor/cmd/conductor-cli",
+    importpath = "github.com/nalej/conductor/cmd/conductor-cli",
     visibility = ["//visibility:public"],
 )

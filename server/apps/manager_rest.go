@@ -6,14 +6,14 @@
 package apps
 
 import (
-    "github.com/daishogroup/conductor/errors"
-    "github.com/daishogroup/conductor/orchestrator"
+    "github.com/nalej/conductor/errors"
+    "github.com/nalej/conductor/orchestrator"
     "github.com/daishogroup/derrors"
     smclient "github.com/daishogroup/system-model/client"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
     "github.com/daishogroup/system-model/entities"
-    "github.com/daishogroup/conductor/asm"
-    loggerAggregator "github.com/daishogroup/conductor/logger"
+    "github.com/nalej/conductor/asm"
+    loggerAggregator "github.com/nalej/conductor/logger"
 )
 
 // Manager structure using a remote system client entry and one nocmgr client.

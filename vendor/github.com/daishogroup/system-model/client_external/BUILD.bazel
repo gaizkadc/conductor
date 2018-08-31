@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "applications_external_helper.go",
+        "client_external_helper.go",
+    ],
+    importpath = "github.com/daishogroup/system-model/client_external",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client:go_default_library",
+        "//entities:go_default_library",
+        "//provider/appdescstorage:go_default_library",
+        "//provider/appinststorage:go_default_library",
+        "//provider/clusterstorage:go_default_library",
+        "//provider/networkstorage:go_default_library",
+        "//provider/nodestorage:go_default_library",
+        "//server/app:go_default_library",
+        "//server/cluster:go_default_library",
+        "//server/network:go_default_library",
+        "//server/node:go_default_library",
+        "//vendor/github.com/daishogroup/dhttp:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "applications_external_test.go",
+        "cluster_external_test.go",
+        "network_external_test.go",
+        "node_external_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//client:go_default_library",
+        "//vendor/github.com/daishogroup/dhttp:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/stretchr/testify/suite:go_default_library",
+    ],
+)

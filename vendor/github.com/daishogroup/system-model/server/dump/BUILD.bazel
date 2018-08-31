@@ -1,0 +1,50 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "handler.go",
+        "manager.go",
+    ],
+    importpath = "github.com/daishogroup/system-model/server/dump",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//entities:go_default_library",
+        "//provider/accessstorage:go_default_library",
+        "//provider/appdescstorage:go_default_library",
+        "//provider/appinststorage:go_default_library",
+        "//provider/clusterstorage:go_default_library",
+        "//provider/networkstorage:go_default_library",
+        "//provider/nodestorage:go_default_library",
+        "//provider/userstorage:go_default_library",
+        "//vendor/github.com/daishogroup/derrors:go_default_library",
+        "//vendor/github.com/daishogroup/dhttp:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "handler_test.go",
+        "manager_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//entities:go_default_library",
+        "//provider/accessstorage:go_default_library",
+        "//provider/appdescstorage:go_default_library",
+        "//provider/appinststorage:go_default_library",
+        "//provider/clusterstorage:go_default_library",
+        "//provider/networkstorage:go_default_library",
+        "//provider/nodestorage:go_default_library",
+        "//provider/userstorage:go_default_library",
+        "//vendor/github.com/bitly/go-simplejson:go_default_library",
+        "//vendor/github.com/daishogroup/dhttp:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/stretchr/testify/suite:go_default_library",
+        "//vendor/github.com/verdverm/frisby:go_default_library",
+    ],
+)

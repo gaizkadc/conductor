@@ -6,7 +6,7 @@ go_library(
         "client.go",
         "parser.go",
     ],
-    importpath = "github.com/daishogroup/conductor/logger",
+    importpath = "github.com/nalej/conductor/logger",
     visibility = ["//visibility:public"],
     deps = [
         "//entities:go_default_library",
@@ -21,6 +21,6 @@ go_test(
     name = "go_default_test",
     srcs = ["parser_test.go"],
     embed = [":go_default_library"],
-    importpath = "github.com/daishogroup/conductor/logger",
+    importpath = "github.com/nalej/conductor/logger",
     deps = ["//vendor/github.com/stretchr/testify/assert:go_default_library"],
 )

@@ -8,7 +8,7 @@ go_library(
         "manager_mockup.go",
         "manager_rest.go",
     ],
-    importpath = "github.com/daishogroup/conductor/server/apps",
+    importpath = "github.com/nalej/conductor/server/apps",
     visibility = ["//visibility:public"],
     deps = [
         "//asm:go_default_library",
@@ -31,7 +31,7 @@ go_test(
         "handler_test.go",
     ],
     embed = [":go_default_library"],
-    importpath = "github.com/daishogroup/conductor/server/apps",
+    importpath = "github.com/nalej/conductor/server/apps",
     deps = [
         "//asm:go_default_library",
         "//entities:go_default_library",

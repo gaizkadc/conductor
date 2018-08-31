@@ -9,7 +9,7 @@ import (
     "github.com/daishogroup/derrors"
     "github.com/daishogroup/system-model/entities"
     log "github.com/sirupsen/logrus"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
 )
 
 var logger = log.WithField("package", "entities")

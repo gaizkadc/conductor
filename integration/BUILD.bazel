@@ -7,7 +7,7 @@ go_library(
         "integration.go",
         "integration_helper.go",
     ],
-    importpath = "github.com/daishogroup/conductor/integration",
+    importpath = "github.com/nalej/conductor/integration",
     visibility = ["//visibility:public"],
     deps = [
         "//client:go_default_library",

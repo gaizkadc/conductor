@@ -9,7 +9,7 @@ import (
     "os"
     log "github.com/sirupsen/logrus"
     "gopkg.in/alecthomas/kingpin.v2"
-    "github.com/daishogroup/conductor/integration"
+    "github.com/nalej/conductor/integration"
 )
 
 

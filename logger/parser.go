@@ -12,8 +12,8 @@ import (
     "encoding/json"
     "fmt"
 
-    "github.com/daishogroup/conductor/entities"
-    "github.com/daishogroup/conductor/errors"
+    "github.com/nalej/conductor/entities"
+    "github.com/nalej/conductor/errors"
     "github.com/daishogroup/derrors"
 )
 

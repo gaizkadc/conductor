@@ -1,0 +1,28 @@
+#%RAML 1.0 DataType
+
+displayName: UpdateNodeRequest
+description: |
+Request to update an existing node.
+type: object
+properties:
+  name: string
+  description: string
+  publicIp: string
+  privateIp: string
+  installed: boolean
+  username: string
+  password: string
+  sshKey: string
+  status:
+    type:
+      enum: [NODEINIT, NODEBOOTSTRAPPING, NODEBOOTSTRAPPED, NODEDEPLOYING, JOINED, DELETED]
+example:
+  name: Example Application
+  description: An example of an gateway application
+  publicIp: 143.24.3.15
+  privateIp: 10.0.0.2
+  installed: false
+  username: user1
+  password: password1
+  sshKey: lkjasofdiuekjkdnfkdi
+  status: NODEINIT

@@ -1,0 +1,33 @@
+#%RAML 1.0 DataType
+
+displayName: Cluster
+description: A cluster represents a collection of nodes to deploy edge computing applications.
+ Different types of clusters exits depending on how far are from the edge.
+type: object
+properties:
+  networkId: string
+  id: string
+  name: string
+  description: string
+  type:
+    enum: [cloud, edge, gateway]
+  location: string
+  canRemove: boolean
+  email: string
+  status:
+    type:
+      enum: [INIT,BOOTSTRAPPING,BOOTSTRAPPED,DEPLOYING,DEPLOYED,DELETED]
+  drain: boolean
+  cordon: boolean
+example:
+  networkId: 123c7efc-caa1-412e-8061-66fd5abeb989
+  id: 666c7efc-caa1-412e-8061-66fd5abeb989
+  name: AWS
+  description: Company cloud on Amazon
+  type: cloud
+  location: California, USA
+  canRemove: false
+  email: admin@admins.com
+  status: INIT
+  drain: false
+  cordon: false

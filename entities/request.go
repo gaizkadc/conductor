@@ -8,7 +8,7 @@ import (
     "fmt"
     "regexp"
 
-    "github.com/daishogroup/conductor/errors"
+    "github.com/nalej/conductor/errors"
     "github.com/daishogroup/derrors"
     "github.com/ghodss/yaml"
     log "github.com/sirupsen/logrus"

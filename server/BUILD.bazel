@@ -6,7 +6,7 @@ go_library(
         "config.go",
         "service.go",
     ],
-    importpath = "github.com/daishogroup/conductor/server",
+    importpath = "github.com/nalej/conductor/server",
     visibility = ["//visibility:public"],
     deps = [
         "//asm:go_default_library",

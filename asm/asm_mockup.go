@@ -7,7 +7,7 @@ package asm
 
 import (
     "github.com/daishogroup/system-model/entities"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
     "github.com/daishogroup/derrors"
 )
 

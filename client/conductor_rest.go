@@ -10,7 +10,7 @@ import (
     "github.com/daishogroup/system-model/entities"
     "fmt"
     "github.com/daishogroup/dhttp"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
 )
 
 // URLS to use

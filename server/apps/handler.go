@@ -10,12 +10,12 @@ import (
     "io/ioutil"
     "net/http"
 
-    "github.com/daishogroup/conductor/errors"
+    "github.com/nalej/conductor/errors"
     "github.com/daishogroup/derrors"
     "github.com/daishogroup/system-model/entities"
     "github.com/gorilla/mux"
     log "github.com/sirupsen/logrus"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    entitiesConductor "github.com/nalej/conductor/entities"
     "github.com/daishogroup/dhttp"
 
 )

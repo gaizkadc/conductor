@@ -1,0 +1,48 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "access.go",
+        "application.go",
+        "backup.go",
+        "cluster.go",
+        "config.go",
+        "credentials.go",
+        "dump.go",
+        "entities.go",
+        "network.go",
+        "node.go",
+        "oauth.go",
+        "operation.go",
+        "password.go",
+        "port.go",
+        "session.go",
+        "user.go",
+    ],
+    importpath = "github.com/daishogroup/system-model/entities",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//errors:go_default_library",
+        "//vendor/github.com/daishogroup/derrors:go_default_library",
+        "//vendor/github.com/satori/go.uuid:go_default_library",
+        "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "application_test.go",
+        "cluster_test.go",
+        "config_test.go",
+        "dump_test.go",
+        "network_test.go",
+        "node_test.go",
+        "oauth_test.go",
+        "password_test.go",
+        "user_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/stretchr/testify/assert:go_default_library"],
+)

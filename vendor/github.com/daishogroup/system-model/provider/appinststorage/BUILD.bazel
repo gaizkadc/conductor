@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "appinstprovider.go",
+        "filesystem.go",
+        "mockup.go",
+    ],
+    importpath = "github.com/daishogroup/system-model/provider/appinststorage",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//entities:go_default_library",
+        "//errors:go_default_library",
+        "//vendor/github.com/daishogroup/derrors:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["filesystem_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//entities:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

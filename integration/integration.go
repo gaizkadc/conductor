@@ -14,14 +14,14 @@ import (
     smServer "github.com/daishogroup/system-model/server"
     smClient "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"
-    "github.com/daishogroup/conductor/server"
+    "github.com/nalej/conductor/server"
     log "github.com/sirupsen/logrus"
     "os"
     "strings"
     "strconv"
     "errors"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
-    clientConductor "github.com/daishogroup/conductor/client"
+    entitiesConductor "github.com/nalej/conductor/entities"
+    clientConductor "github.com/nalej/conductor/client"
 )
 
 const (

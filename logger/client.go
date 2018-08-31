@@ -6,7 +6,7 @@ package logger
 
 import (
     log "github.com/sirupsen/logrus"
-    "github.com/daishogroup/conductor/entities"
+    "github.com/nalej/conductor/entities"
     "github.com/daishogroup/dhttp"
     "github.com/daishogroup/derrors"
     "fmt"

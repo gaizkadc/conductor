@@ -7,11 +7,11 @@ package main
 
 import (
 
-    "github.com/daishogroup/conductor/client"
+    "github.com/nalej/conductor/client"
     "github.com/daishogroup/system-model/entities"
     "gopkg.in/alecthomas/kingpin.v2"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
-    "github.com/daishogroup/conductor/errors"
+    entitiesConductor "github.com/nalej/conductor/entities"
+    "github.com/nalej/conductor/errors"
 )
 
 type orchestratorCommand struct {

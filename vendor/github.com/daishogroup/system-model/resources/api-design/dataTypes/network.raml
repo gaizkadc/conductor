@@ -1,0 +1,26 @@
+#%RAML 1.0 DataType
+
+displayName: Network
+description: The network available to deploy edge computing solutions.
+type: object
+properties:
+  id: string
+  name: string
+  description: string
+  adminName: string
+  adminPhone: string
+  adminEmail: string
+  operator?: !include user.raml
+example:
+  id: "n1"
+  name: "Company Edge Network"
+  description: "Company network for edge deployments"
+  adminName: "The Admin"
+  adminPhone: "1234 1234 1234"
+  adminEmail: "admin@admins.com"
+  operator:
+    id: u1345
+    name: "The Operator"
+    phone: "1234 1234 1234"
+    email: "operator@operators.com"
+    password: "operatorpass"

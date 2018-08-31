@@ -10,8 +10,8 @@ import (
 
     log "github.com/sirupsen/logrus"
 
-    "github.com/daishogroup/conductor/asm"
-    entitiesConductor "github.com/daishogroup/conductor/entities"
+    "github.com/nalej/conductor/asm"
+    entitiesConductor "github.com/nalej/conductor/entities"
     smclient "github.com/daishogroup/system-model/client"
     "github.com/daishogroup/system-model/entities"
     "github.com/stretchr/testify/suite"

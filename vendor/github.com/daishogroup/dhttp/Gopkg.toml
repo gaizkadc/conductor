@@ -1,0 +1,21 @@
+
+[[constraint]]
+  name = "github.com/daishogroup/derrors"
+  version = "v1.1.1"
+
+[[constraint]]
+  name = "github.com/dghubble/sling"
+  version = "v1.1.0"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "v1.6.1"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  source = "git@github.com:/sirupsen/logrus"
+  version = "~1.0.3"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "~1.2.1"
