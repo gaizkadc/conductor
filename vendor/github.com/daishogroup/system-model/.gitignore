@@ -1,7 +1,0 @@
-bazel-*
-*.iml
-.idea
-*.swp
-# Exclude go build targets
-#system-model
-#system_model_cli
