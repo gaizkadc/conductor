@@ -8,22 +8,10 @@
   version = "v1.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/logmatic/logmatic-go"
-  packages = ["."]
-  revision = "9eb00af17b4c3c788c9b88a476c98fec79dd39df"
-
-[[projects]]
   name = "github.com/nalej/service"
   packages = ["."]
   revision = "b5e9b4aeeaa5bd57501c1b49b3e5ae1903017178"
   version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
-  version = "v1.0.6"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -37,21 +25,9 @@
   revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
   version = "v1.0.2"
 
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
-  revision = "182538f80094b6a8efaade63a8fd8e0d9d5843dd"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "fa5fdf94c78965f1aa8423f0cc50b8b8d728b05a"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de58437eef498837256e4ea637bbc5ed9f8bc2f7da3c9f62ba9035c48b8a1803"
+  inputs-digest = "f795bc9e2fcb523ce7239fffadf8075134bf5342a5b81e3f7b7e00ee4ba108d6"
   solver-name = "gps-cdcl"
   solver-version = 1

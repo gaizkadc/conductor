@@ -10,6 +10,5 @@ package scorer
 
 type Scorer interface{
 
-    //
-    ScoreResources(req ResourceRequirements) Scoring
+
 }

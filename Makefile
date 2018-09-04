@@ -8,7 +8,7 @@
 TARGETS=musician
 
 # Name of the components that will be build and packaged as core packages.
-COMPONENTS=musician
+COMPONENTS=musician monitoring
 
 NAME=conductor
 
@@ -79,13 +79,15 @@ package-create-dir:
 create-package:
 	$(info >>> Packaging ...)
 	for component in $(COMPONENTS); do \
-        docker build -t nalej/"$$component" -f components/"$$component"/Dockerfile $(TARGET)/linux_amd64 ; \
-        mkdir -p $(TARGET)/images/"$$component" ; \
-        docker save nalej/"$$component" > $(TARGET)/images/"$$component"/image.tar ; \
+		mkdir -p $(TARGET)/images/"$$component" ; \
+        if [ -f components/"$$component"/Dockerfile ]; then \
+            docker build -t nalej/"$$component" -f components/"$$component"/Dockerfile $(TARGET)/linux_amd64 ; \
+            docker save nalej/"$$component" > $(TARGET)/images/"$$component"/image.tar ; \
+            // docker rmi nalej/"$$component"; \
+            cd $(TARGET)/images/"$$component"/ && tar cvzf core-"$$component".tar.gz * && cd - ; \
+            mv $(TARGET)/images/"$$component"/core-"$$component".tar.gz $(TARGET)/packages ; \
+        fi ; \
         cp components/"$$component"/component.yaml $(TARGET)/images/"$$component"/. ; \
-        cd $(TARGET)/images/"$$component"/ && tar cvzf core-"$$component".tar.gz * && cd - ; \
-        mv $(TARGET)/images/"$$component"/core-"$$component".tar.gz $(TARGET)/packages ; \
-		// docker rmi nalej/"$$component"; \
     done
 
 # Check the codestyle using gometalinter

@@ -1,0 +1,514 @@
+####
+# Prometheus configuration
+###
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: prometheus
+  namespace: nalej
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: prometheus
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: prometheus
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+      - image: quay.io/prometheus/prometheus:v2.3.0
+        imagePullPolicy: IfNotPresent
+        name: prometheus
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        - containerPort: 9020
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 2500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /prometheus
+          name: data
+        - mountPath: /etc/prometheus
+          name: config-volume
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: kube-state-metrics
+      volumes:
+      - emptyDir: {}
+        name: data
+      - configMap:
+          name: prometheus-config
+        name: config-volume
+---
+
+apiVersion: v1
+data:
+  prometheus.yml: |
+    rule_files:
+      - '/opt/nalej/alerts/alerts.rules'
+    scrape_configs:
+    - job_name: 'kubernetes-kube-state'
+      scrape_interval: 60s
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+      - source_labels: [__meta_kubernetes_pod_label_grafanak8sapp]
+        regex: .*true.*
+        action: keep
+      - source_labels: ['__meta_kubernetes_pod_label_daemon', '__meta_kubernetes_pod_node_name']
+        regex: 'node-exporter;(.*)'
+        action: replace
+        target_label: nodename
+kind: ConfigMap
+metadata:
+  labels:
+    app: samurai
+    component: prometheus
+  name: prometheus-config
+  namespace: nalej
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: nalej
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    component: prometheus
+    app: samurai
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    component: prometheus
+    app: samurai
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+  - nonResourceURLs:
+      - "/metrics"
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    app: samurai
+    component: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: nalej
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: prometheus
+  namespace: nalej
+spec:
+  ports:
+  - port: 9090
+    protocol: TCP
+    targetPort: 9090
+    nodePort: 31080
+  selector:
+    name: prometheus
+  type: NodePort
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dprometheus
+  labels:
+    app: samurai
+    component: prometheus
+  namespace: nalej
+spec:
+  ports:
+  - port: 9020
+    protocol: TCP
+    targetPort: 9020
+  selector:
+    name: prometheus
+  type: ClusterIP
+
+
+
+##########
+# Node exporter configuration
+##########
+
+---
+
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+  namespace: nalej
+spec:
+  selector:
+    matchLabels:
+      daemon: node-exporter
+      grafanak8sapp: 'true'
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: node-exporter
+      labels:
+        daemon: node-exporter
+        grafanak8sapp: 'true'
+        k8s-app: node-exporter
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v0.15.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly:  true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+      hostNetwork: true
+      hostPID: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+
+---
+
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+  namespace: nalej
+spec:
+  privileged: true
+  hostNetwork: true
+  hostPID: true
+  hostPorts:
+  - min: 9100
+    max: 9100
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  fsGroup:
+    rule: RunAsAny
+  volumes:
+  - '*'
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-exporter
+subjects:
+- kind: ServiceAccount
+  name: node-exporter
+  namespace: nalej
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+  namespace: nalej
+rules:
+  - apiGroups:
+      - extensions
+    resources:
+      - podsecuritypolicies
+    resourceNames:
+      - privileged
+    verbs:
+      - use
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+    resourceNames:
+      - node-exporter
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+  namespace: nalej
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-exporter
+subjects:
+# Example: All service accounts in my-namespace
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:serviceaccounts
+# Example: A specific service account in my-namespace
+- kind: ServiceAccount # Omit apiGroup
+  name: default
+  namespace: nalej
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: node-exporter
+  namespace: nalej
+
+
+#####
+# Kube-state metrics configuration
+#####
+
+---
+
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: kube-state-metrics
+  namespace: nalej
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kube-state-metrics
+      grafanak8sapp: 'true'
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-state-metrics
+        grafanak8sapp: 'true'
+    spec:
+      serviceAccountName: kube-state-metrics
+      containers:
+      - name: kube-state-metrics
+        image: quay.io/coreos/kube-state-metrics:v1.3.1
+        ports:
+        - name: http-metrics
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: "/healthz"
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: kube-state-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-state-metrics
+subjects:
+- kind: ServiceAccount
+  name: kube-state-metrics
+  namespace: nalej
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: kube-state-metrics
+rules:
+- apiGroups: [""]
+  resources:
+  - configmaps
+  - secrets
+  - nodes
+  - pods
+  - services
+  - resourcequotas
+  - replicationcontrollers
+  - limitranges
+  - persistentvolumeclaims
+  - persistentvolumes
+  - namespaces
+  - endpoints
+  verbs: ["list", "watch"]
+- apiGroups: ["extensions"]
+  resources:
+  - daemonsets
+  - deployments
+  - replicasets
+  verbs: ["list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  verbs: ["list", "watch"]
+- apiGroups: ["batch"]
+  resources:
+  - cronjobs
+  - jobs
+  verbs: ["list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources:
+  - horizontalpodautoscalers
+  verbs: ["list", "watch"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: kube-state-metrics
+  namespace: nalej
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-state-metrics-resizer
+subjects:
+- kind: ServiceAccount
+  name: kube-state-metrics
+  namespace: nalej
+
+---
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: prometheus
+    app: samurai
+  name: kube-state-metrics
+  namespace: nalej
