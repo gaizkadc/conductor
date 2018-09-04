@@ -2,20 +2,15 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["conductor.go"],
-    importpath = "github.com/daishogroup/conductor/cmd/conductor",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//server:go_default_library",
-        "//vendor/github.com/daishogroup/service:go_default_library",
-        "//vendor/github.com/sirupsen/logrus:go_default_library",
-        "//vendor/gopkg.in/alecthomas/kingpin.v2:go_default_library",
-    ],
+    srcs = ["main.go"],
+    importpath = "github.com/nalej/conductor/cmd/conductor",
+    visibility = ["//visibility:private"],
+    deps = ["//vendor/github.com/spf13/cobra:go_default_library"],
 )
 
 go_binary(
     name = "conductor",
     embed = [":go_default_library"],
-    importpath = "github.com/daishogroup/conductor/cmd/conductor",
+    importpath = "github.com/nalej/conductor/cmd/conductor",
     visibility = ["//visibility:public"],
 )

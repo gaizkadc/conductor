@@ -1,8 +1,0 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "go_default_library",
-    srcs = ["messages.go"],
-    importpath = "github.com/daishogroup/conductor/errors",
-    visibility = ["//visibility:public"],
-)

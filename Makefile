@@ -5,15 +5,15 @@
 #
 
 # Name of the target applications to be built
-TARGETS=conductor
+TARGETS=musician
 
-# Name of the components that will be build and packaged as Daisho core packages.
-COMPONENTS=conductor
+# Name of the components that will be build and packaged as core packages.
+COMPONENTS=musician monitoring
 
 NAME=conductor
 
 # Target directory to store binaries and results
-TARGET=conductor
+TARGET=bin
 
 # Go parameters
 GOCMD=go
@@ -37,7 +37,7 @@ all: dep build test
 .PHONY: dep
 dep:
 	$(info >>> Updating dependencies...)
-	dep ensure
+	dep ensure -v
 
 .PHONY: test test-race test-coverage
 test:
@@ -65,7 +65,7 @@ build:
 build-linux:
 	$(info >>> Bulding for Linux...)
 	for app in $(TARGETS); do \
-    	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(TARGET)/bin/linux_amd64/"$$app" ./cmd/"$$app" ; \
+    	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(TARGET)/linux_amd64/"$$app" ./cmd/"$$app" ; \
 	done
 
 # Package all images and components
@@ -79,12 +79,15 @@ package-create-dir:
 create-package:
 	$(info >>> Packaging ...)
 	for component in $(COMPONENTS); do \
-        docker build -t apiserver:5000/nalej/"$$component" -f components/"$$component"/Dockerfile $(TARGET)/ ; \
-        mkdir $(TARGET)/images/"$$component" ; \
-        docker save apiserver:5000/nalej/"$$component" > $(TARGET)/images/"$$component"/image.tar ; \
+		mkdir -p $(TARGET)/images/"$$component" ; \
+        if [ -f components/"$$component"/Dockerfile ]; then \
+            docker build -t nalej/"$$component" -f components/"$$component"/Dockerfile $(TARGET)/linux_amd64 ; \
+            docker save nalej/"$$component" > $(TARGET)/images/"$$component"/image.tar ; \
+            // docker rmi nalej/"$$component"; \
+            cd $(TARGET)/images/"$$component"/ && tar cvzf core-"$$component".tar.gz * && cd - ; \
+            mv $(TARGET)/images/"$$component"/core-"$$component".tar.gz $(TARGET)/packages ; \
+        fi ; \
         cp components/"$$component"/component.yaml $(TARGET)/images/"$$component"/. ; \
-        cd $(TARGET)/images/"$$component"/ && tar cvzf core-"$$component".tar.gz * && cd - ; \
-        mv $(TARGET)/images/"$$component"/core-"$$component".tar.gz $(TARGET)/packages ; \
     done
 
 # Check the codestyle using gometalinter

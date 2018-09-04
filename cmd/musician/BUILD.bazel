@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/nalej/conductor/cmd/musician",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/logmatic/logmatic-go:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "musician",
+    embed = [":go_default_library"],
+    importpath = "github.com/nalej/conductor/cmd/musician",
+    visibility = ["//visibility:public"],
+)
