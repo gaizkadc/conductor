@@ -4,6 +4,7 @@
 
 package main
 
+
 /*
 import (
     "github.com/golang/glog"
@@ -20,6 +21,9 @@ func main(){
 */
 
 
+
+
+
 import (
     "fmt"
     "github.com/nalej/service"
@@ -27,6 +31,7 @@ import (
 )
 
 func main(){
+
     /*
     log.WithFields(log.Fields{
         "animal": "walrus",
@@ -44,3 +49,7 @@ func main(){
     collectorService := statuscollector.Service{collector}
     service.Launch(&collectorService)
 }
+
+
+
+

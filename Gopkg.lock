@@ -14,6 +14,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/prometheus/client_golang"
+  packages = ["api","api/prometheus/v1"]
+  revision = "967789050ba94deca04a5e84cce8ad472ce313c1"
+  version = "v0.9.0-pre1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+  packages = ["model"]
+  revision = "c7de2306084e37d54b8be01f3541a8464345e9a5"
+
+[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
@@ -28,6 +40,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f795bc9e2fcb523ce7239fffadf8075134bf5342a5b81e3f7b7e00ee4ba108d6"
+  inputs-digest = "1fba6268d8777b0c44085ecdcc9fb6c2d0b26f4a80797d755b16a09e8ab23b9e"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -2,84 +2,83 @@
 // Copyright (C) 2018 Nalej Group - All Rights Reserved
 //
 
+
 package statuscollector
 
 import (
-    "net/http"
-    "time"
+    "github.com/prometheus/client_golang/api/prometheus/v1"
+    "github.com/prometheus/common/model"
+    "github.com/prometheus/client_golang/api"
     "fmt"
-    "github.com/nalej/conductor/entities"
-    "encoding/json"
+    "time"
+    "context"
 )
 
 
 // Simple client to query Prometheus HTTP API.
-type PrometheusHTTPClient struct {
-    // The http client
-    client http.Client
+type PrometheusClient struct {
+    // The api endpoint
+    api v1.API
     // The target address
     address string
 }
 
-func NewPrometheusHTTPClient(address string) *PrometheusHTTPClient {
-    client := http.Client{Timeout: time.Second * 3}
-    return &PrometheusHTTPClient{client, address}
+func NewPrometheusClient(address string) *PrometheusClient {
+    // create a client using the address
+    client, err := api.NewClient(api.Config{Address: address})
+    if err != nil {
+        fmt.Printf("error creating Prometheus client %s",err)
+        return nil
+    }
+    api := v1.NewAPI(client)
+    return &PrometheusClient{api,address}
 }
 
 // Get the available memory in the cluster
-func(c *PrometheusHTTPClient) GetMemory() (*entities.PrometheusMemoryStatus,error) {
-    target := fmt.Sprintf("%s/api/v1/query?query=node_memory_MemFree",c.address)
-    req, err := http.NewRequest(http.MethodGet,target,nil)
+// return:
+//
+func(c *PrometheusClient) GetMemory() (*model.Value,error) {
+
+    value, err := c.api.Query(context.Background(),"node_memory_MemFree",time.Now())
     if err != nil {
-        fmt.Printf("There was an error creating request for %s",target)
-        return nil,err
-    }
-    res, err := c.client.Do(req)
-    if err != nil {
-        fmt.Printf("Error saying %s",err)
         return nil, err
     }
 
-    defer res.Body.Close()
-
-    var ent entities.PrometheusMemoryStatus
-    if err := json.NewDecoder(res.Body).Decode(&ent); err != nil {
-        return nil, err
-    }
-
-    return &ent, nil
+    return &value, nil
 }
 
 
+// Main structure containing necessary items to support a status collector for Prometheus.
 type  PrometheusStatusCollector struct {
-    client PrometheusHTTPClient
+    client PrometheusClient
     // Milliseconds to sleep between calls.
     sleepDuration time.Duration
     // Cached status
-    cached map[string]interface{}
+    // TODO: Evaluate potential ways to have a more efficient storage.
+    cached map[string]model.Value
 }
 
 
 func NewPrometheusStatusCollector(address string, sleepTime int) *PrometheusStatusCollector {
     // Build a client
-    client := NewPrometheusHTTPClient(address)
+    client := NewPrometheusClient(address)
     sleepDuration := time.Duration(time.Millisecond) * time.Duration(sleepTime)
-    return &PrometheusStatusCollector{*client, sleepDuration, make(map[string]interface{})}
+    return &PrometheusStatusCollector{*client, sleepDuration, make(map[string]model.Value)}
 }
 
 // Start the collector
 // return:
 //  Error if any
 func(coll *PrometheusStatusCollector) Run() error {
-    fmt.Println("Starting status collector...")
+    fmt.Println("Starting Prometheus status collector...")
     for {
         fmt.Println("Get memory status...")
         mem, err := coll.client.GetMemory()
         if err != nil {
             fmt.Printf("Error requesting memory %s",err)
         } else {
-            fmt.Printf("Current mem status: %v\n",*mem)
-            coll.cached["memory"] = mem
+            fmt.Printf("%s\n", *mem)
+            coll.cached["memory"] = *mem
         }
         time.Sleep(coll.sleepDuration)
     }
@@ -96,7 +95,7 @@ func(coll *PrometheusStatusCollector) Finalize(killSignal bool) error {
 
 // Get the current status.
 func(coll *PrometheusStatusCollector) GetStatus() string {
-    return coll.GetStatus()
+    return coll.cached["mem"].String()
 }
 
 // Return the status collector name.
