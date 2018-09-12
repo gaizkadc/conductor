@@ -23,9 +23,7 @@ var runCmd = &cobra.Command{
     Short: "Run a musician service",
     Long: "Run a musician service for the cluster this node belongs to",
     Run: func(cmd *cobra.Command, args [] string) {
-        log.Info().Msgf("%s",args)
         RunMusician()
-        log.Info().Msg("the run command was launched!!!!")
     },
 }
 

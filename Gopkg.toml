@@ -13,3 +13,30 @@
 
 [[constraint]]
     name="github.com/prometheus/common"
+
+[[constraint]]
+    name="github.com/beeker1121/goque"
+    version="v2.0.1"
+
+[[constraint]]
+    name="github.com/nalej/grpc-conductor-go"
+    version="v0.0.2"
+
+ [[constraint]]
+    name="github.com/grpc/grpc-go"
+    version="v1.15.0"
+
+ [[constraint]]
+   name="github.com/onsi/ginkgo"
+   version="v1.6.0"
+
+[[constraint]]
+    name="github.com/onsi/gomega"
+    version="v1.4.2"
+
+ [[override]]
+   source = "https://github.com/fsnotify/fsnotify/archive/v1.4.7.tar.gz"
+   name = "gopkg.in/fsnotify.v1"
+
+ [[constraint]]
+    name = "github.com/phf/go-queue"
