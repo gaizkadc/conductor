@@ -245,6 +245,8 @@ spec:
           args:
             - --path.procfs=/host/proc
             - --path.sysfs=/host/sys
+            - --collector.filesystem.ignored-mount-points
+            - '^/(sys|proc|dev|host|etc)($|/)'
           ports:
             - name: metrics
               containerPort: 9100
@@ -265,6 +267,8 @@ spec:
         - name: sys
           hostPath:
             path: /sys
+
+
 
 ---
 

@@ -4,6 +4,7 @@
 
 package statuscollector
 
+import "github.com/nalej/conductor/entities"
 
 // Interface to be fulfilled by any StatusCollector implementation. In a few words a status collector is a service
 // running in the background collecting status information from the cluster where it was deployed. This is done
@@ -23,7 +24,7 @@ type  StatusCollector interface {
     // Get the current status.
     // return:
     //  Current status of the cluster.
-    GetStatus() string
+    GetStatus() (*entities.Status, error)
 
     // Return the status collector name.
     // return:

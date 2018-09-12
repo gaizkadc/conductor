@@ -37,7 +37,7 @@ func NewPrometheusHTTPClient(address string) *PrometheusHTTPClient {
 // Get the available memory in the cluster
 // return:
 //
-func(c *PrometheusHTTPClient) GetMemory() (*entities.PrometheusMemoryStatus,error) {
+func(c *PrometheusHTTPClient) GetMemory() (*entities.Status,error) {
     target := fmt.Sprintf("%s/api/v1/query?query=node_memory_MemFree",c.address)
     req, err := http.NewRequest(http.MethodGet,target,nil)
     if err != nil {
@@ -52,7 +52,7 @@ func(c *PrometheusHTTPClient) GetMemory() (*entities.PrometheusMemoryStatus,erro
 
     defer res.Body.Close()
 
-    var ent entities.PrometheusMemoryStatus
+    var ent entities.Status
     if err := json.NewDecoder(res.Body).Decode(&ent); err != nil {
         return nil, err
     }

@@ -18,7 +18,7 @@ func (s *Service) Name() string {
 
 //Description get a short description of the service proposal.
 func (s *Service) Description() string {
-    return "Status collector service to collecto the current status of the cluster."
+    return "Status collector service to collect the current status of the cluster."
 }
 
 // Run is the start method is called when the application is initialized.
@@ -36,7 +36,7 @@ func (s *Service) Run() error {
 //   params:
 //     killSignal It is true when the process is killed by the system.
 func (s *Service) Finalize(killSignal bool) {
-    println("GOODBYE!!")
+    println("Status collector service finished!!")
 }
 
 // Main is the service entry point.

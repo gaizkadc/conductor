@@ -36,6 +36,10 @@ all: dep build test image
 
 .PHONY: dep
 dep:
+	if [ ! -d vendor ]; then \
+	    echo ">>> Create vendor folder" ; \
+	    mkdir vendor ; \
+	fi ;
 	$(info >>> Updating dependencies...)
 	dep ensure -v
 
@@ -59,24 +63,32 @@ test-coverage:
 checkstyle:
 	gometalinter --disable-all --enable=golint --enable=vet --enable=errcheck --enable=goconst --vendor ./...
 
+# Run go formatter
+.PHONY: format
+format:
+	$(info >>> Formatting...)
+	gofmt -s -w .
+
 .PHONY: clean
 clean:
 	$(info >>> Cleaning project...)
 	$(GOCLEAN)
 	rm -Rf $(TARGET)
 
-.PHONY: build-all build build-linux
-build-all: build build-linux
+.PHONY: dep build-all build build-linux build-local
+build-all: dep format build build-linux
+build: dep local
+build-linux: dep linux
 
-build:
+# Local compilation
+local:
 	$(info >>> Building ...)
 	for app in $(APPS); do \
-	        echo Building $$app... ; \
             $(GOBUILD) -o $(TARGET)/"$$app" ./cmd/"$$app" ; \
 	done
 
 # Cross compilation to obtain a linux binary
-build-linux:
+linux:
 	$(info >>> Bulding for Linux...)
 	for app in $(APPS); do \
     	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(TARGET)/linux_amd64/"$$app" ./cmd/"$$app" ; \
@@ -97,7 +109,7 @@ create-image:
             mkdir -p $(TARGET)/images/"$$app" ; \
             docker build --no-cache -t $(DOCKER_REPO)/"$$app":$(VERSION) -f components/"$$app"/Dockerfile $(TARGET)/linux_amd64 ; \
             docker save $(DOCKER_REPO)/"$$app" > $(TARGET)/images/"$$app"/image.tar ; \
-            docker rmi $(DOCKER_REPO)/"$$app"; \
+            // docker rmi $(DOCKER_REPO)/"$$app":$(VERSION) ; \
             cd $(TARGET)/images/"$$app"/ && tar cvzf "$$app".tar.gz * && cd - ; \
         else  \
             echo $$app has no Dockerfile ; \
@@ -109,8 +121,16 @@ publish: image publish-image
 
 publish-image:
 	$(info >>> Publish images into Docker Hub ...)
-	$(info >>> Plese type your credentials ...)
-	docker login
+	if [ ""$$DOCKER_USER"" = "" ]; then \
+	    echo DOCKER_USER environment variable was not set!!! ; \
+	    exit 1 ; \
+	fi ; \
+	if [ ""$$DOCKER_USER"" = "" ]; then \
+        echo DOCKER_USER environment variable was not set!!! ; \
+        exit 1 ; \
+    fi ; \
+	$(info >>> Assuming credentials are available in environment variables ...)
+	echo  "$$DOCKER_PASSWORD" | docker login -u "$$DOCKER_USER" --password-stdin
 	for app in $(APPS); do \
 	    if [ -f $(TARGET)/images/"$$app"/image.tar ]; then \
 	        docker push $(DOCKER_REPO)/"$$app":$(VERSION) ; \
