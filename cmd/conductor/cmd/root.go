@@ -15,10 +15,9 @@ import (
 )
 
 var RootCmd = &cobra.Command{
-    Use: "musician",
-    Short: "Musician data collector for clusters",
-    Long: `Musicians collect information for cluster monitoring and interact with conductor to schedule deployments.`,
-    TraverseChildren: true,
+    Use: "conductor",
+    Short: "Superorchestrator for the Nalej platform",
+    Long: `Conductor is a superorchestrator that...`,
 }
 
 // Variables
@@ -61,7 +60,7 @@ func initConfig() {
             log.Fatal().AnErr("Failed to read config file: ", err)
             os.Exit(1)
         }
-    }else{
+    } else {
         log.Info().Msg("no config file was set")
     }
 }
