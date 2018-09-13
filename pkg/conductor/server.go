@@ -9,16 +9,12 @@ import (
     "github.com/rs/zerolog/log"
     "fmt"
     "net"
-    "google.golang.org/grpc/reflection"
     "google.golang.org/grpc"
-    "github.com/nalej/conductor/internal/conductor/deployment"
-    pbConductor "github.com/nalej/grpc-conductor-go"
-    "github.com/phf/go-queue/queue"
 )
 
 type ConductorServer struct {
-    // Port our service is waiting for incoming data.
     Port uint32
+    Server *grpc.Server
 }
 
 // Create a new Conductor server.
@@ -27,7 +23,8 @@ type ConductorServer struct {
 //  return:
 //   implementation of a Conductor server
 func NewConductorServer(port uint32) *ConductorServer {
-    return &ConductorServer{port}
+    s := grpc.NewServer()
+    return &ConductorServer{port, s}
 }
 
 func(c *ConductorServer) Run() {
@@ -37,17 +34,8 @@ func(c *ConductorServer) Run() {
         log.Fatal().Errs("failed to listen: %v", []error{err})
     }
 
-    // Available handlers
-    deployment := deployment.NewHandler(queue.New())
-
-    // Server and registry
-    grpcServer := grpc.NewServer()
-    pbConductor.RegisterDeploymentServer(grpcServer,deployment)
-
-    // Register reflection service on gRPC server.
-    reflection.Register(grpcServer)
     log.Info().Uint32("port", c.Port).Msg("Launching gRPC server")
-    if err := grpcServer.Serve(lis); err != nil {
+    if err := c.Server.Serve(lis); err != nil {
         log.Fatal().Errs("failed to serve: %v", []error{err})
     }
 

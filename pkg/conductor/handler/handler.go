@@ -3,32 +3,30 @@
 //
 // Service in charge of processing deployment gRPC requests.
 
-package deployment
+package handler
 
 import (
     "context"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    "github.com/rs/zerolog/log"
+    "github.com/nalej/conductor/pkg/conductor"
     "errors"
-    "github.com/phf/go-queue/queue"
+    "github.com/rs/zerolog/log"
 )
 
 type Handler struct{
-    queue *queue.Queue
+    c *conductor.Conductor
 }
 
-func NewHandler(q *queue.Queue) *Handler {
-    return &Handler{q}
+func NewHandler(c *conductor.Conductor) *Handler {
+    return &Handler{c}
 }
 
 
 func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentRequest) (*pbConductor.DeploymentResponse, error) {
+    log.Debug().Interface("deploymentRequest", request).Msg("Deploy")
     if request == nil {
         return nil, errors.New("invalid request")
     }
-    log.Debug().Interface("request", request).Msg("received deployment request")
-    h.queue.PushBack(request)
+    return h.c.ProcessDeploymentRequest(request)
 
-    response := pbConductor.DeploymentResponse{"this is your answer"}
-    return &response, nil
 }

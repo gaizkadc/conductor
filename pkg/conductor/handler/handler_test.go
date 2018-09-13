@@ -2,12 +2,12 @@
 // Copyright (C) 2018 Nalej Group - All Rights Reserved
 //
 
-package deployment
+package handler
 
 import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
-    pbConductor "github.com/nalej/grpc-conductor-go"
+    conductor "github.com/nalej/grpc-conductor-go"
     "google.golang.org/grpc/test/bufconn"
     "google.golang.org/grpc"
     "context"
@@ -31,22 +31,22 @@ var _ = Describe("Deployment server API", func() {
     })
 
     Context("A new deployment is requested", func(){
-        var request pbConductor.DeploymentRequest
-        var response pbConductor.DeploymentResponse
-        var client pbConductor.DeploymentClient
+        var request conductor.DeploymentRequest
+        var response conductor.DeploymentResponse
+        var client conductor.DeploymentClient
         var q *queue.Queue
 
         BeforeEach(func(){
             // Register the service.
             q = queue.New()
-            pbConductor.RegisterDeploymentServer(server,NewHandler(q))
+            conductor.RegisterDeploymentServer(server,NewHandler(q))
 
-            request = pbConductor.DeploymentRequest{RequestId: "myrequestId"}
-            response = pbConductor.DeploymentResponse{RequestId: "this is your answer"}
+            request = conductor.DeploymentRequest{RequestId: "myrequestId"}
+            response = conductor.DeploymentResponse{RequestId: "this is a response"}
 
             conn, err := tools.GetConn(*listener)
             Expect(err).ShouldNot(HaveOccurred())
-            client = pbConductor.NewDeploymentClient(conn)
+            client = conductor.NewDeploymentClient(conn)
         })
 
         It("receive an expected message", func() {
@@ -64,7 +64,7 @@ var _ = Describe("Deployment server API", func() {
         It("we can pop the request from the queue", func(){
             _, err := client.Deploy(context.Background(), &request)
             Expect(err).ShouldNot(HaveOccurred())
-            pop := q.PopFront().(*pbConductor.DeploymentRequest)
+            pop := q.PopFront().(*conductor.DeploymentRequest)
             Expect(request.String()).To(Equal(pop.String()))
         })
     })

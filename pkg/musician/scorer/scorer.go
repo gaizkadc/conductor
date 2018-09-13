@@ -7,8 +7,17 @@
 
 package scorer
 
+import (
+    conductor "github.com/nalej/grpc-conductor-go"
+)
 
-type Scorer interface{
 
+type Scorer interface {
 
+    // For a given score request return a scoring response.
+    //  params:
+    //   request to be processed.
+    //  return:
+    //   score response or error if any.
+    Score(request *conductor.ClusterScoreRequest) (*conductor.ClusterScoreResponse, error)
 }
