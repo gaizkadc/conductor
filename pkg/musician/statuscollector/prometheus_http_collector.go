@@ -10,7 +10,7 @@ import (
     "net/http"
     "time"
     "fmt"
-    "github.com/nalej/conductor/entities"
+    "github.com/nalej/conductor/internal/entities"
     "encoding/json"
 )
 

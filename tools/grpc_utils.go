@@ -14,7 +14,7 @@ import (
     "net"
 )
 
-const bufSize = 1024*1024
+const BufSize = 1024*1024
 
 
 

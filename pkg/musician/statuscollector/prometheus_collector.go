@@ -12,7 +12,7 @@ import (
     "github.com/rs/zerolog/log"
     "time"
     "context"
-    "github.com/nalej/conductor/entities"
+    "github.com/nalej/conductor/internal/entities"
     "errors"
 )
 

@@ -8,16 +8,15 @@ package handler
 import (
     "context"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    "github.com/nalej/conductor/pkg/conductor"
     "errors"
     "github.com/rs/zerolog/log"
 )
 
 type Handler struct{
-    c *conductor.Conductor
+    c *Manager
 }
 
-func NewHandler(c *conductor.Conductor) *Handler {
+func NewHandler(c *Manager) *Handler {
     return &Handler{c}
 }
 
@@ -28,5 +27,4 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
         return nil, errors.New("invalid request")
     }
     return h.c.ProcessDeploymentRequest(request)
-
 }

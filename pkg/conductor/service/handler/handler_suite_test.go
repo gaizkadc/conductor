@@ -13,5 +13,5 @@ import (
 
 func TestApiTest(t *testing.T) {
     RegisterFailHandler(Fail)
-    RunSpecs(t, "ApiTest Suite")
+    RunSpecs(t, "Conductor ApiTest Suite")
 }
