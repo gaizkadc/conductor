@@ -7,6 +7,7 @@ package handler
 import (
     "context"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    "github.com/rs/zerolog/log"
     "errors"
 )
 
@@ -19,6 +20,7 @@ func NewHandler(m *Manager) *Handler {
 }
 
 func (h *Handler) Score(ctx context.Context, request *pbConductor.ClusterScoreRequest) (*pbConductor.ClusterScoreResponse, error) {
+    log.Debug().Msg("musician score was requested")
     if request == nil {
         return nil, errors.New("empty request")
     }

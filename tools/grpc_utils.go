@@ -12,9 +12,17 @@ import (
     "time"
     "context"
     "net"
+    "sync"
 )
 
 const BufSize = 1024*1024
+
+var (
+    // Testing listener to be used in testing environments. It uses a singleton pattern to be instantiated
+    // only once if required.
+    testListener *bufconn.Listener
+    once sync.Once
+)
 
 
 
@@ -37,4 +45,11 @@ func GetConn (listener bufconn.Listener) (*grpc.ClientConn, error){
         return nil, err
     }
     return conn, nil
+}
+
+func GetDefaultListener() *bufconn.Listener {
+    once.Do(func(){
+        testListener = bufconn.Listen(BufSize)
+    })
+    return testListener
 }

@@ -16,6 +16,7 @@ type Status struct {
 
 
 type Requirements struct {
+    RequestID string
     CPU float32
     Memory float32
     Disk float32
@@ -23,6 +24,7 @@ type Requirements struct {
 
 // Representation of the score for a potential deployment candidate.
 type ClusterScore struct {
+    RequestID string
     ClusterID string
     Score float32
 }

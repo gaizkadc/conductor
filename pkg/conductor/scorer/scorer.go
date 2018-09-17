@@ -14,8 +14,7 @@ type Scorer interface {
     // For a existing set of deployment requirements score potential candidates.
     //  params:
     //   requirements to be fulfilled
-    //   array of musician addresses to be queried
     //  return:
     //   candidates score
-    ScoreRequirements (requirements *entities.Requirements, musicians []string) (*entities.ClusterScore, error)
+    ScoreRequirements (requirements *entities.Requirements) (*entities.ClusterScore, error)
 }

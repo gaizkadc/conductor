@@ -24,14 +24,14 @@ import (
 
 type Manager struct {
     Status *statuscollector.StatusCollector
-    Scorer *scorer.Scorer
+    ScorerMethod scorer.Scorer
 }
 
 func NewManager(collector *statuscollector.StatusCollector, serv scorer.Scorer) *Manager {
-    return &Manager{collector, &serv}
+    return &Manager{collector, serv}
 }
 
 
 func (m *Manager) Score(request *pbConductor.ClusterScoreRequest) (*pbConductor.ClusterScoreResponse, error) {
-    return &pbConductor.ClusterScoreResponse{RequestId: "cluster score reponse", Score: 0.1}, nil
+    return m.ScorerMethod.Score(request)
 }

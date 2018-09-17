@@ -125,7 +125,7 @@ type  PrometheusStatusCollector struct {
 }
 
 
-func NewPrometheusStatusCollector(address string, sleepTime uint32) *PrometheusStatusCollector {
+func NewPrometheusStatusCollector(address string, sleepTime uint32) StatusCollector {
     // Build a client
     client := NewPrometheusClient(address)
     sleepDuration := time.Duration(time.Millisecond) * time.Duration(sleepTime)

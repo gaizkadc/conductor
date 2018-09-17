@@ -6,18 +6,15 @@ package cmd
 
 import (
     "github.com/spf13/cobra"
-    "github.com/rs/zerolog"
     "github.com/rs/zerolog/log"
     "github.com/spf13/viper"
     "github.com/nalej/conductor/pkg/conductor/service"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/phf/go-queue/queue"
+    "github.com/rs/zerolog"
 )
 
-// Incoming requests port
-var port uint32
-// Array of musician addresses
-var musicians[]string
+
 
 
 var runCmd = &cobra.Command{
@@ -31,6 +28,10 @@ var runCmd = &cobra.Command{
 
 
 func init() {
+    // UNIX Time is faster and smaller than most timestamps
+    // If you set zerolog.TimeFieldFormat to an empty string,
+    // logs will write with UNIX time
+    zerolog.TimeFieldFormat = ""
 
     RootCmd.AddCommand(runCmd)
 
@@ -42,10 +43,10 @@ func init() {
 
 // Entrypoint for a musician service.
 func RunConductor() {
-    // UNIX Time is faster and smaller than most timestamps
-    // If you set zerolog.TimeFieldFormat to an empty string,
-    // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
+    // Incoming requests port
+    var port uint32
+    // Array of musician addresses
+    var musicians[]string
 
     port = uint32(viper.GetInt32("port"))
     musicians = viper.GetStringSlice("musicians")

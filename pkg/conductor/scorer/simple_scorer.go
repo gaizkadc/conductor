@@ -7,16 +7,19 @@ package scorer
 import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/nalej/conductor/internal/entities"
-    "google.golang.org/grpc"
     "context"
     "github.com/rs/zerolog/log"
     "time"
+    "github.com/nalej/conductor/tools"
+    "github.com/nalej/conductor/pkg/conductor"
 )
 
-type SimpleScorer struct {}
+type SimpleScorer struct {
+    musicians *tools.ConnectionsMap
+}
 
 func NewSimpleScorer() Scorer {
-    return SimpleScorer{}
+    return SimpleScorer{musicians: conductor.GetMusicianClients()}
 }
 
 // For a existing set of deployment requirements score potential candidates.
@@ -24,29 +27,26 @@ func NewSimpleScorer() Scorer {
 //   requirements to be fulfilled
 //  return:
 //   candidates score
-func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements, musicians []string) (*entities.ClusterScore, error) {
-    for _, target := range(musicians) {
-        // Set up a connection to the server.
-        conn, err := grpc.Dial(target, grpc.WithInsecure())
-        if err != nil {
-            log.Fatal().Errs("unable to connect: %v", []error{err})
-        }
-        defer conn.Close()
+func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements) (*entities.ClusterScore, error) {
+    for _, conn := range s.musicians.GetConnections() {
+        log.Info().Interface("musician", conn.Target()).Msg("conductor query score")
+
         c := pbConductor.NewMusicianClient(conn)
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
 
-        log.Info().Str("musician", target).Msg("query score")
-        req:=pbConductor.ClusterScoreRequest{Requirements:"this are my requirements", RequestId:"1"}
+        req:=pbConductor.ClusterScoreRequest{Requirements:"this are my requirements"}
         res, err := c.Score(ctx,&req)
 
         if err != nil {
             return nil, err
         }
 
-        log.Info().Str("cluster",target).Interface("response", res)
-
+        log.Info().Str("cluster",conn.Target()).Interface("response", res)
     }
-    return nil,nil
+
+    to_return := entities.ClusterScore{Score: 10.0}
+    return &to_return, nil
+
 }

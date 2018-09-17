@@ -41,7 +41,7 @@ var _ = Describe("Deployment server API", func() {
     var listener *bufconn.Listener
 
     BeforeEach(func(){
-        listener = bufconn.Listen(tools.BufSize)
+        listener = tools.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer()
         collector := statuscollector.NewFakeCollector()

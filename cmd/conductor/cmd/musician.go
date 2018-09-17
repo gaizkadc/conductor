@@ -21,14 +21,11 @@ import (
     "github.com/spf13/viper"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
+    "github.com/nalej/conductor/pkg/musician/service"
+    "github.com/nalej/conductor/pkg/musician/scorer"
+    "os"
     "github.com/rs/zerolog"
 )
-
-// Prometheus URL
-var prometheus string
-// Time to sleep between monitoring queries
-var sleepTime uint32
-
 
 var musicianCmd = &cobra.Command{
     Use: "musician",
@@ -41,10 +38,15 @@ var musicianCmd = &cobra.Command{
 
 
 func init() {
+    // UNIX Time is faster and smaller than most timestamps
+    // If you set zerolog.TimeFieldFormat to an empty string,
+    // logs will write with UNIX time
+    zerolog.TimeFieldFormat = ""
 
     RootCmd.AddCommand(musicianCmd)
 
-    musicianCmd.Flags().StringP("prometheus", "p", "", "prometheus endpoint")
+    musicianCmd.Flags().Uint32P("port", "p",5001,"musician endpoint")
+    musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
     musicianCmd.Flags().Uint32P("sleep", "s",10000,"time to sleep between queries in milliseconds")
 
     viper.BindPFlags(musicianCmd.Flags())
@@ -52,16 +54,36 @@ func init() {
 
 // Entrypoint for a musician service.
 func RunMusician() {
-    // UNIX Time is faster and smaller than most timestamps
-    // If you set zerolog.TimeFieldFormat to an empty string,
-    // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
+    // Prometheus URL
+    var prometheus string
+    // Time to sleep between monitoring queries
+    var sleepTime uint32
+    // Application port
+    var port uint32
 
+
+    port = uint32(viper.GetInt32("port"))
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
+    /*
     log.Info().Msg("launching status collector...")
 
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
     collector.Run()
+    */
+
+    log.Info().Msg("launching musician...")
+    collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
+    scorer := scorer.NewSimpleScorer()
+    musicianService,err := service.NewMusicianService(port, &collector, &scorer)
+
+    if err!=nil{
+        log.Fatal().AnErr("error",err).Msg("impossible to start service")
+        os.Exit(1)
+    }
+
+    musicianService.Run()
+
+
 }
