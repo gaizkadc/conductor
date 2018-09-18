@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Nalej Group - All Rights Reserved
 //
 
-package deployment
+package handler
 
 import (
     "testing"
@@ -13,5 +13,5 @@ import (
 
 func TestApiTest(t *testing.T) {
     RegisterFailHandler(Fail)
-    RunSpecs(t, "ApiTest Suite")
+    RunSpecs(t, "Conductor ApiTest Suite")
 }

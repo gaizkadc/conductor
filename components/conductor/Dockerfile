@@ -10,6 +10,6 @@ FROM iron/go
 # WORKDIR /nalej
 
 # Now just add the binary
-COPY musician /nalej/
+COPY conductor /nalej/
 
-ENTRYPOINT ["./nalej/musician"]
+ENTRYPOINT ["./nalej/conductor"]

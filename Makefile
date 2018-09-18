@@ -5,7 +5,7 @@
 #
 
 # Name of the target applications to be built
-APPS=musician conductor
+APPS=conductor
 
 # Target directory to store binaries and results
 TARGET=bin
