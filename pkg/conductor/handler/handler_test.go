@@ -23,10 +23,10 @@ import (
     "google.golang.org/grpc/test/bufconn"
     "google.golang.org/grpc"
     "context"
-    "fmt"
     "github.com/nalej/conductor/tools"
     "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
+    "fmt"
 )
 
 
@@ -41,33 +41,42 @@ var _ = Describe("Deployment server API", func() {
     var listener *bufconn.Listener
     // Queue
     var q *queue.Queue
+    // Conductor client
+    var client pbConductor.ConductorClient
 
-    BeforeEach(func(){
+    BeforeSuite(func(){
         listener = tools.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer()
+        fmt.Println("recreate the queue....")
         q = queue.New()
         cond = NewManager(q, scorerMethod, TestPort)
         tools.LaunchServer(server,listener)
+
+        // Register the service.
+        pbConductor.RegisterConductorServer(server, NewHandler(cond))
+
+        conn, err := tools.GetConn(*listener)
+        Expect(err).ShouldNot(HaveOccurred())
+        client = pbConductor.NewConductorClient(conn)
     })
+
+    AfterSuite(func(){
+        server.Stop()
+        listener.Close()
+    })
+
 
     Context("The queue is empty and a new request arrives", func() {
         var request pbConductor.DeploymentRequest
         var response pbConductor.DeploymentResponse
-        var client pbConductor.ConductorClient
+
 
         BeforeEach(func() {
-            // Register the service.
-            q.Init()
-            pbConductor.RegisterConductorServer(server, NewHandler(cond))
-
             request = pbConductor.DeploymentRequest{RequestId: "myrequestId"}
             response = pbConductor.DeploymentResponse{RequestId: "this is a response"}
-
-            conn, err := tools.GetConn(*listener)
-            Expect(err).ShouldNot(HaveOccurred())
-            client = pbConductor.NewConductorClient(conn)
         })
+
 
         It("receive an expected message", func() {
             resp, err := client.Deploy(context.Background(), &request)
@@ -77,38 +86,32 @@ var _ = Describe("Deployment server API", func() {
         })
 
         It("the queue was empty, the request is sent to process", func() {
-            Expect(q.Len()).To(Equal(0))
+            Expect(cond.Queue.Len()).To(Equal(0))
             _, err := client.Deploy(context.Background(), &request)
-            Expect(q.Len()).To(Equal(0))
+            Expect(cond.Queue.Len()).To(Equal(0))
             Expect(err).ShouldNot(HaveOccurred())
         })
     })
 
     Context("there was something in the queue and a new request arrives", func() {
         var request pbConductor.DeploymentRequest
-        var client pbConductor.ConductorClient
+        var toEnqueue pbConductor.DeploymentRequest
 
         BeforeEach(func() {
-            // Register the service.
-            q.Init()
+            request = pbConductor.DeploymentRequest{RequestId: "myrequestId"}
             // put something in the queue
-            q.PushBack(pbConductor.DeploymentRequest{RequestId: "this was enqueued"})
-            pbConductor.RegisterConductorServer(server, NewHandler(cond))
-
-            request = pbConductor.DeploymentRequest{RequestId: "myrequestId2"}
-
-            conn, err := tools.GetConn(*listener)
-            Expect(err).ShouldNot(HaveOccurred())
-            client = pbConductor.NewConductorClient(conn)
+            toEnqueue = pbConductor.DeploymentRequest{RequestId: "this was enqueued"}
+            cond.Queue.PushBack(&toEnqueue)
         })
 
         It("the new request is enqueued and the very first is processed", func() {
-            Expect(q.Len()).To(Equal(1))
+            Expect(cond.Queue.Len()).To(Equal(1))
+            Expect(toEnqueue.String()).To(Equal(cond.Queue.Front().(*pbConductor.DeploymentRequest).String()))
             _, err := client.Deploy(context.Background(), &request)
             Expect(err).ShouldNot(HaveOccurred())
-            Expect(q.Len()).To(Equal(1))
-            fmt.Printf("====%v\n",q.Front().(*pbConductor.DeploymentRequest).String())
-            Expect(request.String()).To(Equal(q.PopFront().(*pbConductor.DeploymentRequest).String()))
+            Expect(cond.Queue.Len()).To(Equal(2))
+            back:=cond.Queue.Back()
+            Expect(back.(*pbConductor.DeploymentRequest).String()).To(Equal(request.String()))
         })
     })
 })

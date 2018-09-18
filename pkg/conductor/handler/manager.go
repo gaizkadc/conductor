@@ -40,19 +40,20 @@ func NewManager(queue *queue.Queue, scorer scorer.Scorer, port uint32) *Manager 
 
 
 func(c *Manager) ProcessDeploymentRequest(request *pbConductor.DeploymentRequest) (*pbConductor.DeploymentResponse, error) {
+    log.Debug().Msgf("manager queue [%p] contains: -->%s<--\n", &c.Queue,c.Queue)
     // Empty queue process it.
-    if c.Queue.Len() == 0 {
-        log.Debug().Str("request_id",request.RequestId).Msg("It's time to process request")
+    if c.Queue.Len()==0{
+        log.Debug().Str("request_id",request.RequestId).Msg("empty queue process request")
 
         req:= entities.Requirements{RequestID: request.RequestId, Disk:0.1,CPU:0.2,Memory:0.3}
 
         returned,_ :=c.ScorerMethod.ScoreRequirements (&req)
         log.Debug().Msgf("Returned %v",returned)
-
     } else {
         log.Debug().Str("request_id", request.RequestId).Msg("deployment request send to the queue")
         c.Queue.PushBack(request)
     }
+    log.Debug().Msgf("manager queue contains after leaving: -->%s<--\n", c.Queue.String())
     response := pbConductor.DeploymentResponse{RequestId: "this is a response"}
     return &response, nil
 }

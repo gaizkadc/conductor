@@ -16,7 +16,9 @@
 
 package conductor
 
-// Set of common routines for conductor components.
+// Set of common routines for conductor components. A pool of already opened client connections is maintained
+// for the components below and implemented in a singleton instance accessible by all the elements in this package.
+// When running tests, this pool uses listening buffers.
 
 import (
     "github.com/nalej/conductor/tools"
@@ -36,9 +38,9 @@ func GetMusicianClients() *tools.ConnectionsMap {
     once.Do(func(){
         if flag.Lookup("test.v") != nil {
             log.Debug().Msg("using testing musician clients factory")
-            MusicianClients = tools.NewConnectionsMap(ConductorClientFactoryTest)
+            MusicianClients = tools.NewConnectionsMap(conductorClientFactoryTest)
         } else {
-            MusicianClients = tools.NewConnectionsMap(ConductorClientFactory)
+            MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
         }
     })
     return MusicianClients
@@ -49,7 +51,7 @@ func GetMusicianClients() *tools.ConnectionsMap {
 //   address the communication has to be done with
 //  return:
 //   client and error if any
-func ConductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
+func conductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
     conn, err := tools.GetConn(*tools.GetDefaultListener())
     if err != nil {
         log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
@@ -64,7 +66,7 @@ func ConductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
 //   address the communication has to be done with
 //  return:
 //   client and error if any
-func ConductorClientFactory(address string) (*grpc.ClientConn, error) {
+func conductorClientFactory(address string) (*grpc.ClientConn, error) {
     conn, err := grpc.Dial(address, grpc.WithInsecure())
     if err != nil {
         log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
