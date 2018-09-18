@@ -5,14 +5,18 @@
 
 package statuscollector
 
-import "time"
+import (
+    "time"
+    "sync"
+)
 
 type SimpleCache struct {
     pool map[string] CacheEntry
+    sync.RWMutex
 }
 
 func NewSimpleCache() *SimpleCache {
-    return &SimpleCache{make(map[string] CacheEntry,0)}
+    return &SimpleCache{pool:make(map[string] CacheEntry,0)}
 }
 
 
@@ -21,7 +25,9 @@ func NewSimpleCache() *SimpleCache {
 //   key Unique key
 //   value Value to be stored
 func(c *SimpleCache) Put (key string, value interface{}) {
+    c.Lock()
     c.pool[key] = CacheEntry{time.Now(), value}
+    c.Unlock()
 }
 
 // Get an entry value identified by the key.
@@ -30,7 +36,9 @@ func(c *SimpleCache) Put (key string, value interface{}) {
 //  return:
 //   stored interface or error if not found
 func(c *SimpleCache) Get (key string) (*CacheEntry, error) {
+    c.RLock()
     res, found := c.pool[key]
+    c.RUnlock()
     if !found {
         return nil, nil
     }

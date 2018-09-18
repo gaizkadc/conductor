@@ -27,4 +27,5 @@ type ClusterScore struct {
     RequestID string
     ClusterID string
     Score float32
+    TotalEvaluated int
 }

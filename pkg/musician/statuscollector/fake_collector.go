@@ -19,11 +19,16 @@ package statuscollector
 import "github.com/nalej/conductor/internal/entities"
 
 type FakeCollector struct {
-
+    // Single observed status
+    Status *entities.Status
 }
 
 func NewFakeCollector() StatusCollector {
-    return &FakeCollector{}
+    return &FakeCollector{Status: nil}
+}
+
+func(c *FakeCollector) SetStatus(status entities.Status) {
+    c.Status = &status
 }
 
 func(c *FakeCollector) Run() error {
@@ -35,8 +40,12 @@ func (c *FakeCollector) Finalize(killSignal bool) error {
 }
 
 func (c *FakeCollector) GetStatus() (*entities.Status, error) {
-    toReturn := entities.Status{CPU:0.1, Mem: 0.2, Disk: 0.3}
-    return &toReturn, nil
+    if c.Status == nil {
+        // No status was set, return the basic one.
+        return &entities.Status{CPU:0.1, Mem: 0.2, Disk: 0.3}, nil
+    }
+
+    return c.Status,nil
 }
 
 // Return the status collector name.

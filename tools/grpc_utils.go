@@ -53,3 +53,13 @@ func GetDefaultListener() *bufconn.Listener {
     })
     return testListener
 }
+
+// GetAvailablePort obtains a free port.
+func GetAvailablePort() (int, error) {
+    listener, err := net.Listen("tcp", ":0")
+    defer listener.Close()
+    if err != nil {
+        return -1, err
+    }
+    return listener.Addr().(*net.TCPAddr).Port, nil
+}

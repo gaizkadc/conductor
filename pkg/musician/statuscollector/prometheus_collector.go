@@ -177,6 +177,7 @@ func(coll *PrometheusStatusCollector) Finalize(killSignal bool) error {
 }
 
 // Get the current status.
+// TODO check thread safe access
 func(coll *PrometheusStatusCollector) GetStatus() (*entities.Status, error) {
     // Build the status and return it
     // TODO check potential error and outdated values

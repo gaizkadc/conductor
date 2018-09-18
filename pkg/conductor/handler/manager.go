@@ -21,7 +21,6 @@ import (
     "github.com/rs/zerolog/log"
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-
     "github.com/nalej/conductor/internal/entities"
 )
 
@@ -45,9 +44,10 @@ func(c *Manager) ProcessDeploymentRequest(request *pbConductor.DeploymentRequest
     if c.Queue.Len()==0{
         log.Debug().Str("request_id",request.RequestId).Msg("empty queue process request")
 
-        req:= entities.Requirements{RequestID: request.RequestId, Disk:0.1,CPU:0.2,Memory:0.3}
+        req:= entities.Requirements{RequestID: request.RequestId,
+                                    Disk: request.Disk, CPU: request.Cpu, Memory: request.Memory}
 
-        returned,_ :=c.ScorerMethod.ScoreRequirements (&req)
+        returned,_ := c.ScorerMethod.ScoreRequirements (&req)
         log.Debug().Msgf("Returned %v",returned)
     } else {
         log.Debug().Str("request_id", request.RequestId).Msg("deployment request send to the queue")

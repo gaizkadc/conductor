@@ -12,6 +12,7 @@ import (
     "time"
     "github.com/nalej/conductor/tools"
     "github.com/nalej/conductor/pkg/conductor"
+    "errors"
 )
 
 type SimpleScorer struct {
@@ -28,25 +29,81 @@ func NewSimpleScorer() Scorer {
 //  return:
 //   candidates score
 func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements) (*entities.ClusterScore, error) {
-    for _, conn := range s.musicians.GetConnections() {
-        log.Info().Interface("musician", conn.Target()).Msg("conductor query score")
+    if requirements == nil {
+        nil_error := errors.New("impossible to score nil requements")
+        log.Error().Err(nil_error)
+        return nil, nil_error
+    }
+    scores := s.collectScores(requirements)
+
+    if scores == nil {
+        no_scores := errors.New("no available scores found")
+        log.Error().Err(no_scores)
+        return nil, no_scores
+    }
+    // evaluate scores
+
+    // check what can we say with the returned values
+    // Find maxi score
+    max := float32(-1.0)
+    var candidate *pbConductor.ClusterScoreResponse = nil
+    evaluated := 0
+    for _, musicianScore := range scores {
+        if musicianScore.Score > max {
+            candidate = musicianScore
+        }
+        evaluated = evaluated + 1
+    }
+
+    if candidate == nil {
+        no_candidate := errors.New("no candidate fulfils the requirements")
+        log.Error().Err(no_candidate)
+        return nil, no_candidate
+    }
+
+    finalScore := entities.ClusterScore{RequestID: candidate.RequestId,
+                                        ClusterID: candidate.ClusterId,
+                                        Score: candidate.Score,
+                                        TotalEvaluated: evaluated}
+
+    log.Debug().Str("component","conductor").Interface("score",finalScore).Msg("final score found")
+    return &finalScore,nil
+}
+
+// Internal method to query known clusters about requirements scoring.
+func (s SimpleScorer) collectScores(requirements *entities.Requirements) []*pbConductor.ClusterScoreResponse{
+    // we expect as many scores as musicians we have
+    musicians := s.musicians.GetConnections()
+    found_scores := make([]*pbConductor.ClusterScoreResponse,0,len(musicians))
+    for _, conn := range  musicians {
+        log.Debug().Interface("musician", conn.Target()).Msg("conductor query score")
 
         c := pbConductor.NewMusicianClient(conn)
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
 
-        req:=pbConductor.ClusterScoreRequest{Requirements:"this are my requirements"}
+        req:=pbConductor.ClusterScoreRequest{RequestId: requirements.RequestID,
+                                            Disk: requirements.Disk,
+                                            Memory: requirements.Memory,
+                                            Cpu: requirements.CPU}
         res, err := c.Score(ctx,&req)
-
         if err != nil {
-            return nil, err
+            log.Error().Err(err).Msg("errors found querying musician")
+        } else {
+            if res==nil{
+                log.Error().Err(errors.New("musician returned nil response"))
+            } else {
+                log.Info().Interface("response",res).Msg("musician responded with score")
+                found_scores = append(found_scores,res)
+            }
         }
-
-        log.Info().Str("cluster",conn.Target()).Interface("response", res)
     }
 
-    to_return := entities.ClusterScore{Score: 10.0}
-    return &to_return, nil
 
+    if len(found_scores) == 0 {
+        found_scores = nil
+    }
+
+    return found_scores
 }

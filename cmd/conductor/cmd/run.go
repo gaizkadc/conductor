@@ -35,8 +35,8 @@ func init() {
 
     RootCmd.AddCommand(runCmd)
 
-    runCmd.Flags().Uint32P("port", "p",5000,"port where conductor listens to")
-    runCmd.Flags().StringArrayP("musicians", "m", make([]string,0),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
+    runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
+    runCmd.Flags().StringArrayP("musicians", "m", make([]string,10),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -48,10 +48,14 @@ func RunConductor() {
     // Array of musician addresses
     var musicians[]string
 
-    port = uint32(viper.GetInt32("port"))
+    port = uint32(viper.GetInt32("conductor-port"))
     musicians = viper.GetStringSlice("musicians")
 
     log.Info().Msg("launching conductor...")
+
+    for _,t := range musicians {
+        log.Info().Msgf("musician: %s\n",t)
+    }
 
     q := queue.New()
     scr := scorer.NewSimpleScorer()

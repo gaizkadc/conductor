@@ -28,7 +28,7 @@ func NewGenericGRPCServer(port uint32) *GenericGRPCServer {
 }
 
 func(c *GenericGRPCServer) Run() {
-    log.Info().Msg("Running conductor server...")
+    log.Info().Msg("Running server...")
     lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", c.Port))
 
     if err != nil {
