@@ -45,6 +45,7 @@ func GetMusicianClients() *tools.ConnectionsMap {
         }
     })
     */
+
     once.Do(func(){
         MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
     })

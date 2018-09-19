@@ -36,7 +36,7 @@ func init() {
     RootCmd.AddCommand(runCmd)
 
     runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
-    runCmd.Flags().StringArrayP("musicians", "m", make([]string,10),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
+    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -53,8 +53,10 @@ func RunConductor() {
 
     log.Info().Msg("launching conductor...")
 
-    for _,t := range musicians {
-        log.Info().Msgf("musician: %s\n",t)
+    if debug {
+        zerolog.SetGlobalLevel(zerolog.DebugLevel)
+    } else {
+        zerolog.SetGlobalLevel(zerolog.InfoLevel)
     }
 
     q := queue.New()
@@ -64,6 +66,5 @@ func RunConductor() {
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")
     }
-
     conductorService.Run()
 }

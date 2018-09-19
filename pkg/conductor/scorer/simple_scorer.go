@@ -1,6 +1,18 @@
-//
-// Copyright (C) 2018 Nalej Group - All Rights Reserved
-//
+/*
+ * Copyright 2018 Nalej
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package scorer
 
@@ -38,7 +50,7 @@ func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements) (*
 
     if scores == nil {
         no_scores := errors.New("no available scores found")
-        log.Error().Err(no_scores)
+        log.Error().Err(no_scores).Msg("simple scorer could not collect any score")
         return nil, no_scores
     }
     // evaluate scores
@@ -74,7 +86,8 @@ func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements) (*
 func (s SimpleScorer) collectScores(requirements *entities.Requirements) []*pbConductor.ClusterScoreResponse{
     // we expect as many scores as musicians we have
     musicians := s.musicians.GetConnections()
-    found_scores := make([]*pbConductor.ClusterScoreResponse,0,len(musicians))
+    collected_scores := make([]*pbConductor.ClusterScoreResponse,0,len(musicians))
+    found_scores := 0
     for _, conn := range  musicians {
         log.Debug().Interface("musician", conn.Target()).Msg("conductor query score")
 
@@ -88,6 +101,7 @@ func (s SimpleScorer) collectScores(requirements *entities.Requirements) []*pbCo
                                             Memory: requirements.Memory,
                                             Cpu: requirements.CPU}
         res, err := c.Score(ctx,&req)
+
         if err != nil {
             log.Error().Err(err).Msg("errors found querying musician")
         } else {
@@ -95,15 +109,18 @@ func (s SimpleScorer) collectScores(requirements *entities.Requirements) []*pbCo
                 log.Error().Err(errors.New("musician returned nil response"))
             } else {
                 log.Info().Interface("response",res).Msg("musician responded with score")
-                found_scores = append(found_scores,res)
+                collected_scores = append(collected_scores,res)
+                found_scores = found_scores + 1
             }
         }
     }
 
 
-    if len(found_scores) == 0 {
-        found_scores = nil
+    if found_scores==0 {
+        log.Debug().Msg("not found scores")
+        collected_scores = nil
     }
 
-    return found_scores
+    log.Debug().Msgf("returned score %v", collected_scores)
+    return collected_scores
 }

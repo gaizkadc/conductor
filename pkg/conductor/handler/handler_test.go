@@ -26,7 +26,6 @@ import (
     "github.com/nalej/conductor/tools"
     "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-    "fmt"
 )
 
 
@@ -39,7 +38,7 @@ var _ = Describe("Deployment server API", func() {
     var cond *Manager
     // grpc test listener
     var listener *bufconn.Listener
-    // Queue
+    // queue
     var q *queue.Queue
     // Conductor client
     var client pbConductor.ConductorClient
@@ -48,7 +47,6 @@ var _ = Describe("Deployment server API", func() {
         listener = tools.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer()
-        fmt.Println("recreate the queue....")
         q = queue.New()
         cond = NewManager(q, scorerMethod, TestPort)
         tools.LaunchServer(server,listener)
@@ -74,7 +72,8 @@ var _ = Describe("Deployment server API", func() {
 
         BeforeEach(func() {
             request = pbConductor.DeploymentRequest{RequestId: "myrequestId"}
-            response = pbConductor.DeploymentResponse{RequestId: "this is a response"}
+            response = pbConductor.DeploymentResponse{RequestId: "myrequestId"}
+            q.Init()
         })
 
 
@@ -85,12 +84,6 @@ var _ = Describe("Deployment server API", func() {
             Expect(err).ShouldNot(HaveOccurred())
         })
 
-        It("the queue was empty, the request is sent to process", func() {
-            Expect(cond.Queue.Len()).To(Equal(0))
-            _, err := client.Deploy(context.Background(), &request)
-            Expect(cond.Queue.Len()).To(Equal(0))
-            Expect(err).ShouldNot(HaveOccurred())
-        })
     })
 
     Context("there was something in the queue and a new request arrives", func() {
@@ -98,19 +91,20 @@ var _ = Describe("Deployment server API", func() {
         var toEnqueue pbConductor.DeploymentRequest
 
         BeforeEach(func() {
+            q.Init()
             request = pbConductor.DeploymentRequest{RequestId: "myrequestId"}
             // put something in the queue
             toEnqueue = pbConductor.DeploymentRequest{RequestId: "this was enqueued"}
-            cond.Queue.PushBack(&toEnqueue)
+            cond.queue.PushBack(&toEnqueue)
         })
 
         It("the new request is enqueued and the very first is processed", func() {
-            Expect(cond.Queue.Len()).To(Equal(1))
-            Expect(toEnqueue.String()).To(Equal(cond.Queue.Front().(*pbConductor.DeploymentRequest).String()))
+            Expect(cond.queue.Len()).To(Equal(1))
+            Expect(toEnqueue.String()).To(Equal(cond.queue.Front().(*pbConductor.DeploymentRequest).String()))
             _, err := client.Deploy(context.Background(), &request)
             Expect(err).ShouldNot(HaveOccurred())
-            Expect(cond.Queue.Len()).To(Equal(2))
-            back:=cond.Queue.Back()
+            Expect(cond.queue.Len()).To(Equal(2))
+            back:=cond.queue.Back()
             Expect(back.(*pbConductor.DeploymentRequest).String()).To(Equal(request.String()))
         })
     })

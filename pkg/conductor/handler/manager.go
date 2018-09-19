@@ -22,42 +22,89 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/internal/entities"
+    "sync"
+    "time"
 )
 
+// Time to wait between checks in the queue.
+const CheckSleepTime = 2
+
 type Manager struct {
-    // Queue for incoming messages
-    Queue *queue.Queue
+    // queue for incoming messages
+    queue *queue.Queue
     // ScorerMethod
     ScorerMethod scorer.Scorer
+    // Mutex for queue operations
+    mux sync.RWMutex
 }
 
 func NewManager(queue *queue.Queue, scorer scorer.Scorer, port uint32) *Manager {
     // instantiate a server
-    return &Manager{queue, scorer}
+    return &Manager{queue: queue, ScorerMethod: scorer}
 }
 
-
-
-func(c *Manager) ProcessDeploymentRequest(request *pbConductor.DeploymentRequest) (*pbConductor.DeploymentResponse, error) {
-    log.Debug().Msgf("manager queue [%p] contains: -->%s<--\n", &c.Queue,c.Queue)
-    // Empty queue process it.
-    if c.Queue.Len()==0{
-        log.Debug().Str("request_id",request.RequestId).Msg("empty queue process request")
-
-        req:= entities.Requirements{RequestID: request.RequestId,
-                                    Disk: request.Disk, CPU: request.Cpu, Memory: request.Memory}
-
-        returned,_ := c.ScorerMethod.ScoreRequirements (&req)
-        log.Debug().Msgf("Returned %v",returned)
-    } else {
-        log.Debug().Str("request_id", request.RequestId).Msg("deployment request send to the queue")
-        c.Queue.PushBack(request)
+// Check iteratively if there is anything to be processed in the queue.
+func (c *Manager) Run() {
+    for {
+        for c.AvailableRequests() {
+            c.ProcessDeploymentRequest()
+        }
+        // log.Debug().Msg("no requests to consume")
+        time.Sleep(time.Second*CheckSleepTime)
     }
-    log.Debug().Msgf("manager queue contains after leaving: -->%s<--\n", c.Queue.String())
-    response := pbConductor.DeploymentResponse{RequestId: "this is a response"}
-    return &response, nil
 }
 
+func(c *Manager) ProcessDeploymentRequest(){
+    req := c.NextRequest()
+    if req == nil {
+        log.Error().Msg("the queue was unexpectedly empty")
+        return
+    }
+
+    scoreRequest := entities.Requirements{RequestID: req.RequestId,
+        Disk: req.Disk, CPU: req.Cpu, Memory: req.Memory}
+
+    scoreResult, err := c.ScorerMethod.ScoreRequirements (&scoreRequest)
+
+    if err != nil {
+        log.Error().Err(err).Msgf("error scoring request %s",scoreRequest.RequestID)
+        return
+    }
+
+    log.Info().Msgf("conductor maximum score for %s is for cluster %s among %d possible",
+        scoreResult.RequestID, scoreResult.ClusterID, scoreResult.TotalEvaluated)
+
+    // TODO elaborate plan, modify system model accordingly
+    // Elaborate deployment plan
+}
+
+
+
+// Thread-safe method to access queued requests
+func(c *Manager) NextRequest() *pbConductor.DeploymentRequest {
+    c.mux.Lock()
+    toReturn := c.queue.PopFront().(*pbConductor.DeploymentRequest)
+    defer c.mux.Unlock()
+    return toReturn
+}
+
+// Thread-safe function to find whether there are more requests available or not.
+func(c *Manager) AvailableRequests() bool {
+    c.mux.RLock()
+    available := c.queue.Len()!=0
+    defer c.mux.RUnlock()
+    return available
+}
+
+// Push a new request to the que for later processing.
+//  params:
+//   req entry to be enqueued
+func (c *Manager) PushRequest(req *pbConductor.DeploymentRequest) error {
+    c.mux.Lock()
+    c.queue.PushBack(req)
+    defer c.mux.Unlock()
+    return nil
+}
 
 
 

@@ -66,6 +66,12 @@ func RunMusician() {
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
+    if debug {
+        zerolog.SetGlobalLevel(zerolog.DebugLevel)
+    } else {
+        zerolog.SetGlobalLevel(zerolog.InfoLevel)
+    }
+
     log.Info().Msg("launching musician...")
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
     go collector.Run()
@@ -79,6 +85,5 @@ func RunMusician() {
     }
 
     musicianService.Run()
-
 
 }

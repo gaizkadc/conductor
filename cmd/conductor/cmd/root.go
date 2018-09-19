@@ -23,6 +23,8 @@ var RootCmd = &cobra.Command{
 // Variables
 // Path of the configuration file
 var configFile string
+// set default values
+var debug bool
 
 
 func Execute() {
@@ -70,5 +72,5 @@ func init() {
     cobra.OnInitialize(initConfig)
     // initialization file
     RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file path")
-
+    RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug mode")
 }

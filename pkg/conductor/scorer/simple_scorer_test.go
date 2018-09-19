@@ -30,6 +30,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "fmt"
 
+    "time"
 )
 
 
@@ -76,6 +77,8 @@ var _ = Describe ("Simple scorer functionality with two musicians", func() {
 
         clients = conductor.GetMusicianClients()
 
+        // courtesy sleep to ensure all the grpc servers are up.
+        time.Sleep(time.Second*2)
         clients.AddConnection(fmt.Sprintf("localhost:%d",servers[0].Port))
         clients.AddConnection(fmt.Sprintf("localhost:%d",servers[1].Port))
 
