@@ -65,7 +65,9 @@ func(c *ConductorService) Run() {
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)
 
+    go c.conductor.Run()
     c.server.Run()
+
 }
 
 // Set the musicians to be queried

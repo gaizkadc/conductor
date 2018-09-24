@@ -25,7 +25,7 @@ import (
     "google.golang.org/grpc"
     "github.com/rs/zerolog/log"
     "sync"
-    "flag"
+    //"flag"
 )
 
 var (
@@ -35,6 +35,7 @@ var (
 )
 
 func GetMusicianClients() *tools.ConnectionsMap {
+    /*
     once.Do(func(){
         if flag.Lookup("test.v") != nil {
             log.Debug().Msg("using testing musician clients factory")
@@ -43,6 +44,12 @@ func GetMusicianClients() *tools.ConnectionsMap {
             MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
         }
     })
+    */
+
+    once.Do(func(){
+        MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
+    })
+
     return MusicianClients
 }
 

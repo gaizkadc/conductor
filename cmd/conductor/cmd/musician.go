@@ -38,14 +38,10 @@ var musicianCmd = &cobra.Command{
 
 
 func init() {
-    // UNIX Time is faster and smaller than most timestamps
-    // If you set zerolog.TimeFieldFormat to an empty string,
-    // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
 
     RootCmd.AddCommand(musicianCmd)
 
-    musicianCmd.Flags().Uint32P("port", "p",5001,"musician endpoint")
+    musicianCmd.Flags().Uint32P("musician-port", "u",5001,"musician endpoint")
     musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
     musicianCmd.Flags().Uint32P("sleep", "s",10000,"time to sleep between queries in milliseconds")
 
@@ -62,20 +58,21 @@ func RunMusician() {
     var port uint32
 
 
-    port = uint32(viper.GetInt32("port"))
+    port = uint32(viper.GetInt32("musician-port"))
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
-    /*
-    log.Info().Msg("launching status collector...")
-
-    collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
-    collector.Run()
-    */
+    if debugLevel {
+        zerolog.SetGlobalLevel(zerolog.DebugLevel)
+    } else {
+        zerolog.SetGlobalLevel(zerolog.InfoLevel)
+    }
 
     log.Info().Msg("launching musician...")
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
-    scorer := scorer.NewSimpleScorer()
+    go collector.Run()
+
+    scorer := scorer.NewSimpleScorer(collector)
     musicianService,err := service.NewMusicianService(port, &collector, &scorer)
 
     if err!=nil{
@@ -84,6 +81,5 @@ func RunMusician() {
     }
 
     musicianService.Run()
-
 
 }

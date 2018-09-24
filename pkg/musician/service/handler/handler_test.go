@@ -41,10 +41,10 @@ var _ = Describe("Deployment server API", func() {
     var listener *bufconn.Listener
 
     BeforeEach(func(){
+        collector := statuscollector.NewFakeCollector()
         listener = tools.GetDefaultListener()
         server = grpc.NewServer()
-        scorerMethod := scorer.NewSimpleScorer()
-        collector := statuscollector.NewFakeCollector()
+        scorerMethod := scorer.NewSimpleScorer(collector)
         mgr = NewManager(&collector, scorerMethod)
         tools.LaunchServer(server,listener)
     })
@@ -59,7 +59,7 @@ var _ = Describe("Deployment server API", func() {
             pbConductor.RegisterMusicianServer(server, NewHandler(mgr))
 
             request = pbConductor.ClusterScoreRequest{RequestId: "myrequestId"}
-            response = pbConductor.ClusterScoreResponse{RequestId: "cluster score reponse", Score: 0.1}
+            response = pbConductor.ClusterScoreResponse{RequestId: "myrequestId", Score: 0.1}
 
             conn, err := tools.GetConn(*listener)
             Expect(err).ShouldNot(HaveOccurred())
@@ -69,7 +69,7 @@ var _ = Describe("Deployment server API", func() {
         It("receive an expected message", func() {
             resp, err := client.Score(context.Background(), &request)
 
-            Expect(resp.String()).To(Equal(response.String()))
+            Expect(resp.RequestId).To(Equal(response.RequestId))
             Expect(err).ShouldNot(HaveOccurred())
         })
     })
