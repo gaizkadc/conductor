@@ -32,7 +32,7 @@ func init() {
     RootCmd.AddCommand(runCmd)
 
     runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
-    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
+    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians 192.168.1.1:3000 127.0.0.1:3000")
 
     viper.BindPFlags(runCmd.Flags())
 }

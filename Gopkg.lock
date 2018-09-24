@@ -14,6 +14,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/hashicorp/hcl"
   packages = [".","hcl/ast","hcl/parser","hcl/printer","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "8cb6e5b959231cc1119e43259c4a608f9c51a241"
@@ -44,10 +50,34 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/nalej/golang-template"
+  packages = ["version"]
+  revision = "07a770bd10401011de703a9357df0d959e722ebd"
+
+[[projects]]
+  name = "github.com/nalej/grpc-application-go"
+  packages = ["."]
+  revision = "cdf6ec3bceac86f11b29eed60018aec2cdce9896"
+  version = "v0.0.2"
+
+[[projects]]
+  name = "github.com/nalej/grpc-common-go"
+  packages = ["."]
+  revision = "6f63c4006bba4bbb6f6c9935a52621388658ee06"
+  version = "v0.0.4"
+
+[[projects]]
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
-  revision = "76715dd9898717157c07f7a3c9ce9ac6270f0268"
-  version = "v0.0.9"
+  revision = "9e1f5083c005baea0341d7238586a5a9cacecead"
+  version = "v0.0.14"
+
+[[projects]]
+  name = "github.com/nalej/grpc-organization-go"
+  packages = ["."]
+  revision = "8b9ade4c0d679f2d4deb4b00d95e1126f2ed3abf"
+  version = "v0.0.5"
 
 [[projects]]
   name = "github.com/nalej/service"
@@ -185,6 +215,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9a250318d314818dd3d653be3f97e745d97fc5a49b2fa0cc856509d61a70d297"
+  inputs-digest = "5c75de55892fd992e02aff771f27e207806312eccb5db973c66b171d24ead13a"
   solver-name = "gps-cdcl"
   solver-version = 1

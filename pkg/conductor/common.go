@@ -31,12 +31,16 @@ import (
 var (
     // Singleton instance of connections with musician clients
     MusicianClients *tools.ConnectionsMap
-    once sync.Once
+    onceMusicians   sync.Once
+    // Singleton instance of connections with deployment managers
+    DMClients *tools.ConnectionsMap
+    onceDM sync.Once
 )
+
 
 func GetMusicianClients() *tools.ConnectionsMap {
     /*
-    once.Do(func(){
+    onceMusicians.Do(func(){
         if flag.Lookup("test.v") != nil {
             log.Debug().Msg("using testing musician clients factory")
             MusicianClients = tools.NewConnectionsMap(conductorClientFactoryTest)
@@ -46,13 +50,20 @@ func GetMusicianClients() *tools.ConnectionsMap {
     })
     */
 
-    once.Do(func(){
+    onceMusicians.Do(func(){
         MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
     })
 
     return MusicianClients
 }
 
+func GetDMClients() *tools.ConnectionsMap {
+    onceDM.Do(func() {
+        DMClients = tools.NewConnectionsMap(dmClientFactory)
+    })
+}
+
+/*
 // Factory in charge of generating new connections for Conductor->Musician communication in test environments.
 //  params:
 //   address the communication has to be done with
@@ -66,7 +77,7 @@ func conductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
     log.Info().Msgf("Connected to address at %s", address)
     return conn, err
 }
-
+*/
 
 // Factory in charge of generating new connections for Conductor->Musician communication.
 //  params:
@@ -74,6 +85,20 @@ func conductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
 //  return:
 //   client and error if any
 func conductorClientFactory(address string) (*grpc.ClientConn, error) {
+    conn, err := grpc.Dial(address, grpc.WithInsecure())
+    if err != nil {
+        log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
+    }
+    log.Info().Msgf("Connected to address at %s", address)
+    return conn, err
+}
+
+// Factory in charge of generating new connections for Conductor->DM communication.
+//  params:
+//   address the communication has to be done with
+//  return:
+//   client and error if any
+func dmClientFactory(address string) (*grpc.ClientConn, error) {
     conn, err := grpc.Dial(address, grpc.WithInsecure())
     if err != nil {
         log.Fatal().Msgf("Failed to start gRPC connection: %v", err)

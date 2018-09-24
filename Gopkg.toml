@@ -20,7 +20,11 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-conductor-go"
-    version="v0.0.9"
+    version="v0.0.14"
+
+[[constraint]]
+    name="github.com/nalej/grpc-application-go"
+    version="v0.0.2"
 
  [[constraint]]
     name="github.com/grpc/grpc-go"
@@ -40,3 +44,7 @@
 
  [[constraint]]
     name = "github.com/phf/go-queue"
+
+ [[constraint]]
+    name = "github.com/google/uuid"
+    version = "v1.0.0"
