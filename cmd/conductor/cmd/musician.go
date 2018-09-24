@@ -38,10 +38,6 @@ var musicianCmd = &cobra.Command{
 
 
 func init() {
-    // UNIX Time is faster and smaller than most timestamps
-    // If you set zerolog.TimeFieldFormat to an empty string,
-    // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
 
     RootCmd.AddCommand(musicianCmd)
 
@@ -66,7 +62,7 @@ func RunMusician() {
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
-    if debug {
+    if debugLevel {
         zerolog.SetGlobalLevel(zerolog.DebugLevel)
     } else {
         zerolog.SetGlobalLevel(zerolog.InfoLevel)

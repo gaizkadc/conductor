@@ -4,8 +4,18 @@
 
 package main
 
-import "github.com/nalej/conductor/cmd/conductor/cmd"
+import (
+    "github.com/nalej/conductor/cmd/conductor/cmd"
+    "github.com/nalej/golang-template/version"
+)
+
+
+var MainVersion string
+var MainCommit string
+
 
 func main() {
+    version.AppVersion = MainVersion
+    version.Commit = MainCommit
     cmd.Execute()
 }
