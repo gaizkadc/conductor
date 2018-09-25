@@ -90,4 +90,5 @@ func init() {
     // initialization file
     RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file path")
     RootCmd.PersistentFlags().BoolVar(&debugLevel, "debugLevel", false, "enable debugLevel mode")
+    RootCmd.PersistentFlags().BoolVar(&consoleLogging, "consoleLogging", false, "Pretty print logging")
 }

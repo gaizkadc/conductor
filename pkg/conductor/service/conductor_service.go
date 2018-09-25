@@ -25,6 +25,7 @@ import (
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor"
+    "github.com/nalej/conductor/pkg/conductor/plandesigner"
 )
 
 
@@ -41,8 +42,8 @@ type ConductorService struct {
     connections *tools.ConnectionsMap
 }
 
-func NewConductorService(port uint32, q *queue.Queue, s scorer.Scorer) (*ConductorService, error) {
-    c := handler.NewManager(q, s, port)
+func NewConductorService(port uint32, q *queue.Queue, s scorer.Scorer, designer plandesigner.PlanDesigner) (*ConductorService, error) {
+    c := handler.NewManager(q, s, designer, port)
     conductorServer := tools.NewGenericGRPCServer(port)
     // instance := ConductorService{c, conductorServer, make([]string, 0)},connections)
     instance := ConductorService{conductor: c,

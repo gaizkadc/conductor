@@ -12,6 +12,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/phf/go-queue/queue"
     "github.com/rs/zerolog"
+    "github.com/nalej/conductor/pkg/conductor/plandesigner"
 )
 
 
@@ -32,7 +33,7 @@ func init() {
     RootCmd.AddCommand(runCmd)
 
     runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
-    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians (192.168.1.1:3000, 127.0.0.1:3000)")
+    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians 192.168.1.1:3000 127.0.0.1:3000")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -57,7 +58,8 @@ func RunConductor() {
 
     q := queue.New()
     scr := scorer.NewSimpleScorer()
-    conductorService, err := service.NewConductorService(port, q, scr)
+    designer := plandesigner.NewSimplePlanDesigner()
+    conductorService, err := service.NewConductorService(port, q, scr, designer)
     conductorService.SetMusicians(musicians)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")
