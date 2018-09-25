@@ -27,6 +27,9 @@ import (
     "sync"
     "time"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor"
+    "context"
+    "github.com/google/uuid"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -103,7 +106,7 @@ func(c *Manager) ProcessDeploymentRequest(){
 
     // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(&appDescriptor,&apps, scoreResult)
+    plans, err := c.Designer.DesignPlan(&appDescriptor,&apps, scoreResult)
 
     if err != nil{
         log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestId)
@@ -111,20 +114,42 @@ func(c *Manager) ProcessDeploymentRequest(){
     }
 
     // Tell deployment managers to execute plans
-    err = c.DeployPlan(plan)
+    err = c.DeployPlans(plans)
     if err != nil {
-        log.Error().Err(err).Msgf("error deploying plan %s for request %s",plan.DeploymentId, req.RequestId)
+        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
         return
     }
 }
 
 
-// For a given deployment plan, tell the corresponding deployment managers to run the deployment.
-func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
-    // TODO get cluster IP address from system model
-    for _, stage := range plan.Stages {
+// For a given collection of plans, tell the corresponding deployment managers to run the deployment.
+func (c *Manager) DeployPlans(plans []*pbConductor.DeploymentPlan) error {
+    for planIndex, plan := range plans {
+        log.Info().Msgf("start plan %s deployment with %d out of %d plans",plan.DeploymentId,planIndex, len(plans))
         //pbDeploymentManager.NewDeploymentManagerClient()
+        // TODO get cluster IP address from system model
+        conductor.GetDMClients().AddConnection("127.0.0.1:5002")
+        clusterIP := "127.0.0.1:5002"
+        conn,err := conductor.GetDMClients().GetConnection(clusterIP)
+        if err!=nil{
+            log.Error().Err(err).Msgf("problem creating connection with %s",clusterIP)
+            // TODO define what to do in this case. Run rollback?
+            return err
+        }
+
+        // build a request
+        request := pbDeploymentManager.DeployPlanRequest{RequestId: uuid.New().String(),Plan: plan}
+        client := pbDeploymentManager.NewDeploymentManagerClient(conn)
+        _, err = client.Execute(context.Background(),&request)
+
+        if err!=nil {
+            // TODO define how to proceed in case of error
+            log.Error().Err(err).Msgf("problem deploying plan %s",plan.DeploymentId)
+            return err
+        }
+        // TODO define how to modify the system model according to the response
     }
+
     return nil
 }
 

@@ -38,7 +38,7 @@ func NewSimplePlanDesigner () PlanDesigner {
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppDescriptor,
     services *pbApplication.ServiceGroup,
-    score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error) {
+    score *entities.ClusterScore) ([]*pbConductor.DeploymentPlan, error) {
     // Build deployment stages for the application
     // TODO this version assumes everything will go into a single cluster
     testDeploymentServices := p.getTestServices()
@@ -56,7 +56,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppDescriptor,
         Stages: []*pbConductor.DeploymentStage{&stage},
     }
 
-    return &newPlan, nil
+    return []*pbConductor.DeploymentPlan{&newPlan}, nil
 }
 
 

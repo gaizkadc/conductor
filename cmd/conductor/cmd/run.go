@@ -12,6 +12,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/phf/go-queue/queue"
     "github.com/rs/zerolog"
+    "github.com/nalej/conductor/pkg/conductor/plandesigner"
 )
 
 
@@ -57,7 +58,8 @@ func RunConductor() {
 
     q := queue.New()
     scr := scorer.NewSimpleScorer()
-    conductorService, err := service.NewConductorService(port, q, scr)
+    designer := plandesigner.NewSimplePlanDesigner()
+    conductorService, err := service.NewConductorService(port, q, scr, designer)
     conductorService.SetMusicians(musicians)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")

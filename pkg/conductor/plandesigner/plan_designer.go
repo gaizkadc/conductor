@@ -32,8 +32,8 @@ type PlanDesigner interface {
     //   services group of services to deploy
     //   score obtained by musicians
     //  return:
-    //   deployment plan or error if any
+    //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app *pbApplication.AppDescriptor,
         services *pbApplication.ServiceGroup,
-        score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error)
+        score *entities.ClusterScore) ([]*pbConductor.DeploymentPlan, error)
 }
