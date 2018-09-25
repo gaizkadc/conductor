@@ -49,7 +49,7 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
     // TODO
     // Modify system model accordingly
 
-    toReturn := pbConductor.DeploymentResponse{RequestId: request.RequestId, Status: pbConductor.DeploymentResponse_QUEUED}
+    toReturn := pbConductor.DeploymentResponse{RequestId: request.RequestId, Status: pbConductor.ApplicationStatus_QUEUED}
     log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
     return &toReturn, nil
 }

@@ -21,6 +21,7 @@ import (
     "github.com/rs/zerolog/log"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
+    pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/internal/entities"
     "sync"
@@ -112,7 +113,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     // Tell deployment managers to execute plans
     err = c.DeployPlan(plan)
     if err != nil {
-        log.Error().Err(err).Msgf("error deploying plan %d for request %s",plan.DeploymentId, req.RequestId)
+        log.Error().Err(err).Msgf("error deploying plan %s for request %s",plan.DeploymentId, req.RequestId)
         return
     }
 }
@@ -120,7 +121,10 @@ func(c *Manager) ProcessDeploymentRequest(){
 
 // For a given deployment plan, tell the corresponding deployment managers to run the deployment.
 func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
-    // TODO
+    // TODO get cluster IP address from system model
+    for _, stage := range plan.Stages {
+        //pbDeploymentManager.NewDeploymentManagerClient()
+    }
     return nil
 }
 

@@ -26,6 +26,7 @@ import (
     "github.com/nalej/conductor/tools"
     "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/nalej/conductor/pkg/conductor/plandesigner"
 )
 
 
@@ -47,8 +48,9 @@ var _ = Describe("Deployment server API", func() {
         listener = tools.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer()
+        designer := plandesigner.NewSimplePlanDesigner()
         q = queue.New()
-        cond = NewManager(q, scorerMethod, TestPort)
+        cond = NewManager(q, scorerMethod, designer,TestPort)
         tools.LaunchServer(server,listener)
 
         // Register the service.

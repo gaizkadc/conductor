@@ -58,8 +58,8 @@
 [[projects]]
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
-  revision = "cdf6ec3bceac86f11b29eed60018aec2cdce9896"
-  version = "v0.0.2"
+  revision = "49aafce07a9f2b963bf9352d44bd3b2803ec014d"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/nalej/grpc-common-go"
@@ -70,8 +70,20 @@
 [[projects]]
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
-  revision = "9e1f5083c005baea0341d7238586a5a9cacecead"
-  version = "v0.0.14"
+  revision = "fc3fea6366654ed876348a8ffa13a31ffd520a71"
+  version = "v0.0.15"
+
+[[projects]]
+  name = "github.com/nalej/grpc-deployment-manager-go"
+  packages = ["."]
+  revision = "8a18840d3424469873c1658e4cc87734b625182b"
+  version = "v0.0.1"
+
+[[projects]]
+  name = "github.com/nalej/grpc-infrastructure-go"
+  packages = ["."]
+  revision = "8d2551823f55e632c56fb810bd31114aabd3b5d7"
+  version = "v0.0.1"
 
 [[projects]]
   name = "github.com/nalej/grpc-organization-go"
@@ -215,6 +227,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5c75de55892fd992e02aff771f27e207806312eccb5db973c66b171d24ead13a"
+  inputs-digest = "a1b611125c597bee052897eb11b4f92e28df300fe73b035a1545bddf581014b7"
   solver-name = "gps-cdcl"
   solver-version = 1

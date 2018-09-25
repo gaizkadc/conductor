@@ -61,6 +61,7 @@ func GetDMClients() *tools.ConnectionsMap {
     onceDM.Do(func() {
         DMClients = tools.NewConnectionsMap(dmClientFactory)
     })
+    return DMClients
 }
 
 /*
