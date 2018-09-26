@@ -1,17 +1,5 @@
 /*
- * Copyright 2018 Nalej
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
  */
 
 package plandesigner
@@ -22,7 +10,6 @@ import (
     "github.com/nalej/conductor/internal/entities"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
-    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     "github.com/google/uuid"
 )
 
@@ -37,26 +24,34 @@ func NewSimplePlanDesigner () PlanDesigner {
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppDescriptor,
-    services *pbApplication.ServiceGroup,
-    score *entities.ClusterScore) ([]*pbConductor.DeploymentPlan, error) {
+    score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error) {
     // Build deployment stages for the application
     // TODO this version assumes everything will go into a single cluster
     testDeploymentServices := p.getTestServices()
+    fragmentUUID := uuid.New().String()
+    stageUUID := uuid.New().String()
+
     stage := pbConductor.DeploymentStage{
-        DeploymentId: uuid.New().String(),
-        StageId: uuid.New().String(),
-        Services: testDeploymentServices,
-        ClusterId: &pbInfrastructure.ClusterId{ClusterId:"cluster_001", OrganizationId:"org_001"}}
+        FragmentId: fragmentUUID,
+        StageId: stageUUID,
+        Services: testDeploymentServices}
 
     // TODO this is hardcoded until we can access the system model
-
-    // Aggregate in a new plan
-    newPlan := pbConductor.DeploymentPlan{
+    fragment := pbConductor.DeploymentFragment{
+        FragmentId: fragmentUUID,
         DeploymentId: uuid.New().String(),
         Stages: []*pbConductor.DeploymentStage{&stage},
     }
 
-    return []*pbConductor.DeploymentPlan{&newPlan}, nil
+    // Aggregate to a new plan
+    newPlan := pbConductor.DeploymentPlan{
+        AppId: &pbApplication.AppDescriptorId{AppDescriptorId:app.AppDescriptorId, OrganizationId: app.OrganizationId},
+        DeploymentId: uuid.New().String(),
+        OrganizationId: app.OrganizationId,
+        Fragments: []*pbConductor.DeploymentFragment{&fragment},
+    }
+
+    return &newPlan, nil
 }
 
 

@@ -1,6 +1,6 @@
-//
-// Copyright (C) 2018 Nalej Group - All Rights Reserved
-//
+/*
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ */
 
 package cmd
 
@@ -13,9 +13,8 @@ import (
     "github.com/phf/go-queue/queue"
     "github.com/rs/zerolog"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 )
-
-
 
 
 var runCmd = &cobra.Command{
@@ -58,8 +57,9 @@ func RunConductor() {
 
     q := queue.New()
     scr := scorer.NewSimpleScorer()
+    reqColl := requirementscollector.NewSimpleRequirementsCollector()
     designer := plandesigner.NewSimplePlanDesigner()
-    conductorService, err := service.NewConductorService(port, q, scr, designer)
+    conductorService, err := service.NewConductorService(port, q, scr, reqColl, designer)
     conductorService.SetMusicians(musicians)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")
