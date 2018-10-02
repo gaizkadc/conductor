@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package scorer
 
@@ -10,7 +11,7 @@ import (
     "context"
     "github.com/rs/zerolog/log"
     "time"
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/nalej/conductor/pkg/conductor"
     "errors"
     "github.com/google/uuid"

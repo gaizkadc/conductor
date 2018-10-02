@@ -1,15 +1,17 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package scorer
 
 import (
-    . "github.com/onsi/ginkgo"
-    . "github.com/onsi/gomega"
+    "github.com/onsi/ginkgo"
+    "github.com/onsi/gomega"
     //"google.golang.org/grpc"
     //"google.golang.org/grpc/test/bufconn"
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
+    "github.com/nalej/grpc-utils/pkg/test"
     musicianHandler "github.com/nalej/conductor/pkg/musician/service/handler"
     musicianScorer "github.com/nalej/conductor/pkg/musician/scorer"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
@@ -19,15 +21,13 @@ import (
     "fmt"
 
     "time"
+
 )
 
 
-var _ = Describe ("Simple scorer functionality with two musicians", func() {
+var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func() {
     // grpc servers
     var servers []*tools.GenericGRPCServer
-    // grpc test listener
-    //var listener *bufconn.Listener
-    //var listeners []*tools.GenericGRPCServer
     // scorer
     var scorerMethod Scorer
     // Musician handler
@@ -37,7 +37,7 @@ var _ = Describe ("Simple scorer functionality with two musicians", func() {
     // Musician clients
     var clients *tools.ConnectionsMap
 
-    BeforeEach(func() {
+    ginkgo.BeforeEach(func() {
         // instantiate musicianHandler server
         scorerMethod = NewSimpleScorer()
         // instantiate collectors
@@ -51,9 +51,9 @@ var _ = Describe ("Simple scorer functionality with two musicians", func() {
         managers[1] = musicianHandler.NewManager(&collectors[1], musicianScorer.NewSimpleScorer(collectors[1]))
 
         servers = make([]*tools.GenericGRPCServer,2)
-        port1, _ := tools.GetAvailablePort()
+        port1, _ := test.GetAvailablePort()
         servers[0] = tools.NewGenericGRPCServer(uint32(port1))
-        port2, _ := tools.GetAvailablePort()
+        port2, _ := test.GetAvailablePort()
         servers[1] = tools.NewGenericGRPCServer(uint32(port2))
 
         go servers[0].Run()
@@ -72,17 +72,17 @@ var _ = Describe ("Simple scorer functionality with two musicians", func() {
 
     })
 
-    AfterEach(func(){
+    ginkgo.AfterEach(func(){
         for _,s := range servers {
             s.Server.Stop()
         }
     })
 
-    Describe("sent requirements that only fit into one cluster", func(){
+    ginkgo.Describe("sent requirements that only fit into one cluster", func(){
         var request entities.Requirements
 
-        BeforeEach(func(){
-            request = entities.Requirements{RequestID:"request_000",CPU:0.5,Memory:100, Disk:100}
+        ginkgo.BeforeEach(func(){
+            request = entities.Requirements{CPU:0.5,Memory:100, Disk:100}
 
             // collector 0 says overload
             overloaded_status := entities.Status{CPU: 0.87, Mem: 32000, Disk:100}
@@ -93,14 +93,13 @@ var _ = Describe ("Simple scorer functionality with two musicians", func() {
 
         })
 
-        Context("the cluster with lowest occupation is chosen", func(){
-            It("second cluster has the highest score", func(){
+        ginkgo.Context("the cluster with lowest occupation is chosen", func(){
+            ginkgo.It("second cluster has the highest score", func(){
                 response, err := scorerMethod.ScoreRequirements(&request)
-                Expect(err).ShouldNot(HaveOccurred())
-                Expect(response).NotTo(BeNil())
-                Expect(response.RequestID).To(Equal(request.RequestID))
-                Expect(response.TotalEvaluated).To(Equal(2))
-                Expect(response.Score).To(Equal(float32(1.88)))
+                gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+                gomega.Expect(response).NotTo(gomega.BeNil())
+                gomega.Expect(response.TotalEvaluated).To(gomega.Equal(2))
+                gomega.Expect(response.Score).To(gomega.Equal(float32(1.88)))
             })
         })
     })

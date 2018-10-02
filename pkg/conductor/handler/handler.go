@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
 
- // Service in charge of processing deployment gRPC requests.
+
+// Service in charge of processing deployment gRPC requests.
 
 package handler
 

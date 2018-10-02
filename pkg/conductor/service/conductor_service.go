@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package service
 
@@ -8,7 +9,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/handler"
     "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"

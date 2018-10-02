@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2018  Nalej - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package requirementscollector
 

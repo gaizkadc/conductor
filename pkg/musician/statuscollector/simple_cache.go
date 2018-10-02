@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 // Simple cache implementation using a map with string ids.
 

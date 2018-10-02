@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package plandesigner
 
 import (
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/internal/entities"
     pbConductor "github.com/nalej/grpc-conductor-go"

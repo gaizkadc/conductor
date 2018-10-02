@@ -58,8 +58,8 @@
 [[projects]]
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
-  revision = "49aafce07a9f2b963bf9352d44bd3b2803ec014d"
-  version = "v0.0.3"
+  revision = "6422896069e88020b6de9917067ff59f05a8762d"
+  version = "v0.0.6"
 
 [[projects]]
   name = "github.com/nalej/grpc-common-go"
@@ -70,14 +70,14 @@
 [[projects]]
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
-  revision = "44c17e79dde20acdd017cbc53b263faa79c9158c"
-  version = "v0.0.17"
+  revision = "cdadd9f1161d18fb4cea03f75e6def8c37da49cd"
+  version = "v0.0.19"
 
 [[projects]]
   name = "github.com/nalej/grpc-deployment-manager-go"
   packages = ["."]
-  revision = "43a57e0b14e9a22b57c021a9e167c11456ac5ca1"
-  version = "v0.0.3"
+  revision = "2f3d6ea0b09e1b63028875a2d027432146776d5b"
+  version = "v0.0.6"
 
 [[projects]]
   name = "github.com/nalej/grpc-infrastructure-go"
@@ -90,6 +90,12 @@
   packages = ["."]
   revision = "8b9ade4c0d679f2d4deb4b00d95e1126f2ed3abf"
   version = "v0.0.5"
+
+[[projects]]
+  name = "github.com/nalej/grpc-utils"
+  packages = ["pkg/test","pkg/tools"]
+  revision = "5dd4662c03100806b57763212966a72e0c4b85e5"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/nalej/service"
@@ -227,6 +233,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5a0ed94e6fcf08beb718b8d53c5a4674d5f80cdbc721149044453c21c9240174"
+  inputs-digest = "6e1cde5f70b3ab25edafdf75e7c2660ccdf82fe367be8f358797c8b268fda9e4"
   solver-name = "gps-cdcl"
   solver-version = 1
