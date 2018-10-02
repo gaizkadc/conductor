@@ -1,18 +1,7 @@
 /*
- * Copyright 2018 Nalej
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
 
 package service
 
@@ -20,12 +9,13 @@ import (
     "github.com/nalej/conductor/pkg/conductor/handler"
     "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 )
 
 
@@ -42,8 +32,10 @@ type ConductorService struct {
     connections *tools.ConnectionsMap
 }
 
-func NewConductorService(port uint32, q *queue.Queue, s scorer.Scorer, designer plandesigner.PlanDesigner) (*ConductorService, error) {
-    c := handler.NewManager(q, s, designer, port)
+func NewConductorService(port uint32, q *queue.Queue, s scorer.Scorer, reqCollector requirementscollector.RequirementsCollector,
+    designer plandesigner.PlanDesigner) (*ConductorService, error) {
+
+    c := handler.NewManager(q, s, reqCollector, designer,port)
     conductorServer := tools.NewGenericGRPCServer(port)
     // instance := ConductorService{c, conductorServer, make([]string, 0)},connections)
     instance := ConductorService{conductor: c,

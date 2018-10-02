@@ -1,18 +1,8 @@
 /*
- * Copyright 2018 Nalej
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (C) 2018 Nalej Group -All Rights Reserved
  */
+
+
 
 package handler
 
@@ -23,13 +13,12 @@ import (
     pbApplication "github.com/nalej/grpc-application-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-    "github.com/nalej/conductor/internal/entities"
     "sync"
     "time"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor"
     "context"
-    "github.com/google/uuid"
+    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -40,15 +29,18 @@ type Manager struct {
     queue *queue.Queue
     // ScorerMethod
     ScorerMethod scorer.Scorer
+    // Requirements collector
+    ReqCollector requirementscollector.RequirementsCollector
     // Plan designer
     Designer plandesigner.PlanDesigner
     // Mutex for queue operations
     mux sync.RWMutex
 }
 
-func NewManager(queue *queue.Queue, scorer scorer.Scorer, designer plandesigner.PlanDesigner, port uint32) *Manager {
+func NewManager(queue *queue.Queue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
+    designer plandesigner.PlanDesigner, port uint32) *Manager {
     // instantiate a server
-    return &Manager{queue: queue, ScorerMethod: scorer, Designer: designer}
+    return &Manager{queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -71,7 +63,8 @@ func(c *Manager) ProcessDeploymentRequest(){
         return
     }
 
-    // TODO
+    // TODO get all the data from the system model
+
     // Get the ServiceGroup structure
     // This is hardcoded for testing purposes
     appDescriptor := pbApplication.AppDescriptor{
@@ -83,38 +76,38 @@ func(c *Manager) ProcessDeploymentRequest(){
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
     }
 
-    apps := pbApplication.ServiceGroup{
-        AppDescriptorId: req.AppId.AppDescriptorId,
-        Name: "hardcoded_service_group",
-        Description: "description of hardcoded_service_group",
-        Services: []string{"test_service_1", "test_service_2"},
+    // 1) collect requirements for the application descriptor
+    foundRequirements, err := c.ReqCollector.FindRequirements(&appDescriptor)
+    if err != nil {
+        log.Error().Err(err).Msgf("impossible to find requirements for application %s", appDescriptor.AppDescriptorId)
+        return
     }
 
-
-    foundRequirements := entities.Requirements{RequestID: req.RequestId,
-        Disk: req.Disk, CPU: req.Cpu, Memory: req.Memory}
-
-    scoreResult, err := c.ScorerMethod.ScoreRequirements (&foundRequirements)
+    // 2) score requirements
+    scoreResult, err := c.ScorerMethod.ScoreRequirements (foundRequirements)
 
     if err != nil {
-        log.Error().Err(err).Msgf("error scoring request %s", foundRequirements.RequestID)
+        log.Error().Err(err).Msgf("error scoring request %s", req.RequestId)
         return
     }
 
     log.Info().Msgf("conductor maximum score for %s is for cluster %s among %d possible",
         scoreResult.RequestID, scoreResult.ClusterID, scoreResult.TotalEvaluated)
 
+
+    // 3) design plan
     // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
-    plans, err := c.Designer.DesignPlan(&appDescriptor,&apps, scoreResult)
+    plan, err := c.Designer.DesignPlan(&appDescriptor, scoreResult)
 
     if err != nil{
         log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestId)
         return
     }
 
+    // 4) deploy fragments
     // Tell deployment managers to execute plans
-    err = c.DeployPlans(plans)
+    err = c.DeployPlan(plan)
     if err != nil {
         log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
         return
@@ -123,10 +116,9 @@ func(c *Manager) ProcessDeploymentRequest(){
 
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
-func (c *Manager) DeployPlans(plans []*pbConductor.DeploymentPlan) error {
-    for planIndex, plan := range plans {
-        log.Info().Msgf("start plan %s deployment with %d out of %d plans",plan.DeploymentId,planIndex, len(plans))
-        //pbDeploymentManager.NewDeploymentManagerClient()
+func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
+    for fragmentIndex, fragment := range plan.Fragments {
+        log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
         // TODO get cluster IP address from system model
         conductor.GetDMClients().AddConnection("127.0.0.1:5002")
         clusterIP := "127.0.0.1:5002"
@@ -138,13 +130,13 @@ func (c *Manager) DeployPlans(plans []*pbConductor.DeploymentPlan) error {
         }
 
         // build a request
-        request := pbDeploymentManager.DeployPlanRequest{RequestId: uuid.New().String(),Plan: plan}
+        request := pbDeploymentManager.DeployFragmentRequest{}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
 
         if err!=nil {
             // TODO define how to proceed in case of error
-            log.Error().Err(err).Msgf("problem deploying plan %s",plan.DeploymentId)
+            log.Error().Err(err).Msgf("problem deploying fragment %s", fragment.DeploymentId)
             return err
         }
         // TODO define how to modify the system model according to the response
