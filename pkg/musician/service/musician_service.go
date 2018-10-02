@@ -9,7 +9,7 @@ import (
     "github.com/nalej/conductor/pkg/musician/scorer"
     "google.golang.org/grpc/reflection"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    "github.com/nalej/conductor/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
 )
 

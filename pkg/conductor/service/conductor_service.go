@@ -18,7 +18,14 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 )
 
-
+type ConductorConfig struct {
+    // incoming port
+    Port uint32
+    // URL where the system model is available
+    SystemModelURL string
+    // List of musicians to be queried
+    Musicians []string
+}
 
 
 type ConductorService struct {
@@ -26,22 +33,25 @@ type ConductorService struct {
     conductor *handler.Manager
     // Server for incoming requests
     server *tools.GenericGRPCServer
-    // List of musicians to be queried
-    musicians []string
     // Connections with musicians
     connections *tools.ConnectionsMap
+    // Configuration object
+    configuration *ConductorConfig
 }
 
-func NewConductorService(port uint32, q *queue.Queue, s scorer.Scorer, reqCollector requirementscollector.RequirementsCollector,
-    designer plandesigner.PlanDesigner) (*ConductorService, error) {
 
-    c := handler.NewManager(q, s, reqCollector, designer,port)
-    conductorServer := tools.NewGenericGRPCServer(port)
-    // instance := ConductorService{c, conductorServer, make([]string, 0)},connections)
+func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
+    q := queue.New()
+    scr := scorer.NewSimpleScorer()
+    reqColl := requirementscollector.NewSimpleRequirementsCollector()
+    designer := plandesigner.NewSimplePlanDesigner()
+
+    c := handler.NewManager(q, scr, reqColl, designer, config.Port)
+    conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 server: conductorServer,
-                                musicians: make([]string,0),
-                                connections: conductor.GetMusicianClients()}
+                                connections: conductor.GetMusicianClients(),
+                                configuration: config}
     return &instance, nil
 }
 

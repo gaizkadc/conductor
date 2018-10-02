@@ -10,11 +10,8 @@ import (
     "github.com/rs/zerolog/log"
     "github.com/spf13/viper"
     "github.com/nalej/conductor/pkg/conductor/service"
-    "github.com/nalej/conductor/pkg/conductor/scorer"
-    "github.com/phf/go-queue/queue"
     "github.com/rs/zerolog"
-    "github.com/nalej/conductor/pkg/conductor/plandesigner"
-    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+
 )
 
 
@@ -34,6 +31,7 @@ func init() {
 
     runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
     runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians 192.168.1.1:3000 127.0.0.1:3000")
+    runCmd.Flags().StringP("systemmodel","s","localhost:8800","host:port indicating where is available the system model")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -44,9 +42,12 @@ func RunConductor() {
     var port uint32
     // Array of musician addresses
     var musicians[]string
+    // System model url
+    var systemModel string
 
     port = uint32(viper.GetInt32("conductor-port"))
     musicians = viper.GetStringSlice("musicians")
+    systemModel = viper.GetString("systemmodel")
 
     log.Info().Msg("launching conductor...")
 
@@ -56,11 +57,13 @@ func RunConductor() {
         zerolog.SetGlobalLevel(zerolog.InfoLevel)
     }
 
-    q := queue.New()
-    scr := scorer.NewSimpleScorer()
-    reqColl := requirementscollector.NewSimpleRequirementsCollector()
-    designer := plandesigner.NewSimplePlanDesigner()
-    conductorService, err := service.NewConductorService(port, q, scr, reqColl, designer)
+    config := service.ConductorConfig{
+        Port: port,
+        Musicians: musicians,
+        SystemModelURL: systemModel,
+    }
+
+    conductorService, err := service.NewConductorService(&config)
     conductorService.SetMusicians(musicians)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")

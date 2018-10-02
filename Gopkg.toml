@@ -39,6 +39,9 @@
     version="v0.0.6"
 
  [[constraint]]
+    name="github.com/nalej/system-model"
+
+ [[constraint]]
     name="github.com/grpc/grpc-go"
     version="v1.15.0"
 
