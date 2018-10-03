@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Nalej Group -All Rights Reserved
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ *
  */
 
 
@@ -7,15 +8,16 @@ package service
 
 import (
     "github.com/nalej/conductor/pkg/conductor/handler"
-    "github.com/phf/go-queue/queue"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    pbApplication "github.com/nalej/grpc-application-go"
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "google.golang.org/grpc"
 )
 
 type ConductorConfig struct {
@@ -41,10 +43,19 @@ type ConductorService struct {
 
 
 func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
-    q := queue.New()
+    q := handler.NewMemoryRequestQueue()
     scr := scorer.NewSimpleScorer()
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
     designer := plandesigner.NewSimplePlanDesigner()
+    // app client
+    conn,err := grpc.Dial(config.SystemModelURL)
+    if err != nil {
+        return nil, err
+    }
+
+
+
+    appClient := pbApplication.NewApplicationsClient(conn)
 
     c := handler.NewManager(q, scr, reqColl, designer, config.Port)
     conductorServer := tools.NewGenericGRPCServer(config.Port)
@@ -76,14 +87,14 @@ func(c *ConductorService) Run() {
 // Set the musicians to be queried
 // TODO: this has to be removed and check the system model instead. This is only for initial testing.
 func(c *ConductorService) SetMusicians(musicians []string) {
-    c.musicians=musicians
+    c.configuration.Musicians=musicians
     for _, target := range musicians {
         _,err := c.connections.AddConnection(target)
         if err != nil {
             log.Error().Err(err)
         } else {
             log.Info().Str("address",target).Msg("musician address correctly added")
-            c.musicians = append(c.musicians, target)
+            c.configuration.Musicians = append(c.configuration.Musicians, target)
         }
     }
 }

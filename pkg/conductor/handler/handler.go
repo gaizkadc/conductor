@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Nalej Group -All Rights Reserved
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ *
  */
 
 
@@ -34,9 +35,6 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
     if err != nil {
         return nil, err
     }
-
-    // TODO
-    // Modify system model accordingly
 
     toReturn := pbConductor.DeploymentResponse{RequestId: request.RequestId, Status: pbConductor.ApplicationStatus_QUEUED}
     log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
