@@ -6,9 +6,9 @@
 package handler
 
 import (
-    pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/phf/go-queue/queue"
     "sync"
+    "github.com/nalej/conductor/internal/entities"
 )
 
 // Interface for a queue storing deployment requests
@@ -17,7 +17,7 @@ type RequestsQueue interface {
     // Obtain next deployment request
     //  returns:
     //   next deployment request, nil if nothing is ready
-    NextRequest() *pbConductor.DeploymentRequest
+    NextRequest() *entities.DeploymentRequest
 
     // Check if there are more available requests.
     AvailableRequests() bool
@@ -27,7 +27,7 @@ type RequestsQueue interface {
     //   req the requirement to be pushed into.
     //  returns:
     //   error if any
-    PushRequest(req *pbConductor.DeploymentRequest) error
+    PushRequest(req *entities.DeploymentRequest) error
 
     // Clear the queue
     Clear()
@@ -51,10 +51,10 @@ func NewMemoryRequestQueue () RequestsQueue {
 }
 
 // Thread-safe method to access queued requests
-func(q *MemoryRequestQueue) NextRequest() *pbConductor.DeploymentRequest {
+func(q *MemoryRequestQueue) NextRequest() *entities.DeploymentRequest {
     q.mux.Lock()
     defer q.mux.Unlock()
-    toReturn := q.queue.PopFront().(*pbConductor.DeploymentRequest)
+    toReturn := q.queue.PopFront().(*entities.DeploymentRequest)
     return toReturn
 }
 
@@ -69,7 +69,7 @@ func(q *MemoryRequestQueue) AvailableRequests() bool {
 // Push a new request to the que for later processing.
 //  params:
 //   req entry to be enqueued
-func (q *MemoryRequestQueue) PushRequest(req *pbConductor.DeploymentRequest) error {
+func (q *MemoryRequestQueue) PushRequest(req *entities.DeploymentRequest) error {
     q.mux.Lock()
     defer q.mux.Unlock()
     q.queue.PushBack(req)

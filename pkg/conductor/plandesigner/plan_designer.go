@@ -17,11 +17,11 @@ type PlanDesigner interface {
 
     // For any set of requirements an a given score elaborate a deployment plan.
     //  params:
-    //   app application descriptor
+    //   app application instance
     //   services group of services to deploy
     //   score obtained by musicians
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
-    DesignPlan(app *pbApplication.AppDescriptor,
+    DesignPlan(app *pbApplication.AppInstance,
         score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error)
 }

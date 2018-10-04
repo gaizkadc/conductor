@@ -31,12 +31,16 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
     }
 
     // Enqueue request for later processing
-    err := h.c.PushRequest(request)
+    log.Debug().Msgf("enqueue request %s",request.RequestId)
+    instance, err := h.c.PushRequest(request)
     if err != nil {
         return nil, err
     }
 
-    toReturn := pbConductor.DeploymentResponse{RequestId: request.RequestId, Status: pbConductor.ApplicationStatus_QUEUED}
+    toReturn := pbConductor.DeploymentResponse{
+        RequestId: request.RequestId,
+        InstanceId: instance.ApplicationID,
+        Status: pbConductor.ApplicationStatus_QUEUED}
     log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
     return &toReturn, nil
 }

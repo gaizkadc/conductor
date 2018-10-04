@@ -24,8 +24,19 @@ var (
     // Singleton instance of connections with deployment managers
     DMClients *tools.ConnectionsMap
     onceDM sync.Once
+    // Singleton instance of connections with the system model
+    SMClients *tools.ConnectionsMap
+    onceSM sync.Once
 
 )
+
+func GetSystemModelClients() *tools.ConnectionsMap {
+    onceSM.Do(func(){
+        // reuse the conductor factory
+        SMClients = tools.NewConnectionsMap(conductorClientFactory)
+    })
+    return SMClients
+}
 
 
 func GetMusicianClients() *tools.ConnectionsMap {

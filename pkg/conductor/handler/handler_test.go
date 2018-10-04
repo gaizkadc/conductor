@@ -20,15 +20,15 @@ import (
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
+    "github.com/nalej/conductor/pkg/conductor"
 )
 
 
 const (
-    TestPort=4000
     SystemModelAddress="127.0.0.1:8800"
 )
 
-func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient){
+func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
     // add an organization
     orgRequest := pbOrganization.AddOrganizationRequest{Name: "org001"}
     resp, err := orgClient.AddOrganization(context.Background(),&orgRequest)
@@ -92,8 +92,9 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         Groups: []*pbApplication.ServiceGroup{&servGroup},
         Rules: []*pbApplication.SecurityRule{&secRule},
     }
-    _, err = appClient.AddAppDescriptor(context.Background(),&appDescriptor)
+    desc, err := appClient.AddAppDescriptor(context.Background(),&appDescriptor)
     gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+    return desc
 
 }
 
@@ -115,8 +116,16 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     var orgClient pbOrganization.OrganizationsClient
     // Conductor client
     var client pbConductor.ConductorClient
+    // Used application descriptor
+    var appDescriptor *pbApplication.AppDescriptor
 
     ginkgo.BeforeSuite(func(){
+        // connect with external system model using the pool
+        pool := conductor.GetSystemModelClients()
+        var err error
+        connSM, err = pool.AddConnection(SystemModelAddress)
+        gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
         listener = test.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer()
@@ -128,27 +137,24 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
         client = pbConductor.NewConductorClient(conn)
 
-        // connect with external system model
-        connSM, err = grpc.Dial(SystemModelAddress,grpc.WithInsecure())
-        gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
         // clients
         appClient = pbApplication.NewApplicationsClient(connSM)
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
-        cond = NewManager(q, scorerMethod, reqcoll, designer,TestPort,appClient)
+        cond = NewManager(q, scorerMethod, reqcoll, designer)
         test.LaunchServer(server,listener)
 
         // Register the service.
         pbConductor.RegisterConductorServer(server, NewHandler(cond))
 
-        InitializeEntries(orgClient, appClient)
+        appDescriptor = InitializeEntries(orgClient, appClient)
 
     })
 
     ginkgo.AfterSuite(func(){
-        connSM.Close()
-        server.Stop()
         listener.Close()
+        server.Stop()
+        connSM.Close()
     })
 
 
@@ -156,11 +162,12 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         var request pbConductor.DeploymentRequest
         var response pbConductor.DeploymentResponse
 
-
         ginkgo.BeforeEach(func() {
             request = pbConductor.DeploymentRequest{
                 RequestId: "myrequestId",
-                AppId: &pbApplication.AppDescriptorId{OrganizationId:"org001",AppDescriptorId:"app001"},
+                AppId: &pbApplication.AppDescriptorId{OrganizationId:appDescriptor.OrganizationId,AppDescriptorId: appDescriptor.AppDescriptorId},
+                Description: "A single description",
+                Name: "A testing application",
             }
             response = pbConductor.DeploymentResponse{
                 RequestId: "myrequestId",
@@ -170,10 +177,10 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
         ginkgo.It("receive an expected message", func() {
             resp, err := client.Deploy(context.Background(), &request)
-            gomega.Expect(resp.String()).To(gomega.Equal(response.String()))
+            //gomega.Expect(resp.String()).To(gomega.Equal(response.String()))
+            gomega.Expect(resp.RequestId).To(gomega.Equal(response.RequestId))
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
         })
-
     })
 
 })

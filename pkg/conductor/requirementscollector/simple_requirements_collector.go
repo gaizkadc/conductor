@@ -18,7 +18,7 @@ func NewSimpleRequirementsCollector() RequirementsCollector {
 }
 
 
-func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplication.AppDescriptor) (*entities.Requirements, error) {
+func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplication.AppInstance) (*entities.Requirements, error) {
     // TODO this is hardcoded until we have an available system model
     toReturn := entities.Requirements{CPU:0.5,Memory:100, Disk:100}
     return &toReturn, nil

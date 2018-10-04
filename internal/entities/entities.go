@@ -30,3 +30,12 @@ type ClusterScore struct {
     Score float32
     TotalEvaluated int
 }
+
+// Objects describing received deployment requests. These objects are designed to be stored into
+// a storage structure such as a queue.
+type DeploymentRequest struct {
+    RequestID string
+    OrganizationID string
+    ApplicationID string
+    InstanceID string
+}

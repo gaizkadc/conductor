@@ -11,13 +11,11 @@ import (
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    pbApplication "github.com/nalej/grpc-application-go"
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
-    "google.golang.org/grpc"
 )
 
 type ConductorConfig struct {
@@ -47,17 +45,16 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     scr := scorer.NewSimpleScorer()
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
     designer := plandesigner.NewSimplePlanDesigner()
-    // app client
-    conn,err := grpc.Dial(config.SystemModelURL)
+
+    // Initialize connections pool with system model
+    smPool := conductor.GetSystemModelClients()
+    _, err := smPool.AddConnection(config.SystemModelURL)
     if err != nil {
+        log.Error().Err(err).Msg("error creating connection with system model")
         return nil, err
     }
 
-
-
-    appClient := pbApplication.NewApplicationsClient(conn)
-
-    c := handler.NewManager(q, scr, reqColl, designer, config.Port)
+    c := handler.NewManager(q, scr, reqColl, designer)
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 server: conductorServer,
