@@ -1,46 +1,52 @@
 /*
- * Copyright (C) 2018 Nalej Group -All Rights Reserved
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ *
  */
-
-
 
 package handler
 
 import (
-    "github.com/phf/go-queue/queue"
     "github.com/rs/zerolog/log"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
-    "sync"
     "time"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor"
     "context"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "github.com/nalej/conductor/internal/entities"
 )
 
 // Time to wait between checks in the queue in milliseconds.
 const CheckSleepTime = 2000
 
 type Manager struct {
-    // queue for incoming messages
-    queue *queue.Queue
     // ScorerMethod
     ScorerMethod scorer.Scorer
     // Requirements collector
     ReqCollector requirementscollector.RequirementsCollector
     // Plan designer
     Designer plandesigner.PlanDesigner
-    // Mutex for queue operations
-    mux sync.RWMutex
+    // Queue for incoming requests
+    Queue RequestsQueue
+    // Application client
+    appClient pbApplication.ApplicationsClient
 }
 
-func NewManager(queue *queue.Queue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
-    designer plandesigner.PlanDesigner, port uint32) *Manager {
-    // instantiate a server
-    return &Manager{queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer}
+
+func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
+    designer plandesigner.PlanDesigner) *Manager {
+    // initialize clients
+    pool := conductor.GetSystemModelClients()
+    if pool!=nil && len(pool.GetConnections())==0{
+        log.Panic().Msg("system model clients were not started")
+        return nil
+    }
+    conn := pool.GetConnections()[0]
+    appClient := pbApplication.NewApplicationsClient(conn)
+    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, appClient:appClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -49,37 +55,75 @@ func (c *Manager) Run() {
     for{
         select {
         case <- sleep:
-            for c.AvailableRequests() {
+            for c.Queue.AvailableRequests() {
                 c.ProcessDeploymentRequest()
             }
         }
     }
 }
 
+// Push a request into the queue.
+func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
+    log.Debug().Msgf("push request %s", req.RequestId)
+    desc, err := c.appClient.GetAppDescriptor(context.Background(), req.AppId)
+    if err!= nil {
+        log.Error().Err(err).Msg("error getting application descriptor")
+        return nil,err
+    }
+    // Create new application instance
+    addReq := pbConductor.AddAppInstanceRequest{
+        OrganizationId: desc.OrganizationId,
+        AppDescriptorId: desc.AppDescriptorId,
+        Name: req.Name,
+        Description: req.Description,
+    }
+    // Add instance, by default this is created with queue status
+    instance,err := c.appClient.AddAppInstance(context.Background(),&addReq)
+    if err != nil {
+        log.Error().Err(err).Msg("error adding application instance")
+        return nil,err
+    }
+
+    toEnqueue := entities.DeploymentRequest{
+        RequestID: req.RequestId,
+        InstanceID: instance.AppInstanceId,
+        OrganizationID: req.AppId.OrganizationId,
+        ApplicationID: req.AppId.AppDescriptorId,
+    }
+    err = c.Queue.PushRequest(&toEnqueue)
+    if err != nil {
+        return &toEnqueue,err
+    }
+
+    if err != nil {
+        log.Error().Err(err).Msgf("problems updating application %s",req.AppId)
+        return &toEnqueue, err
+    }
+
+    return &toEnqueue, nil
+}
+
 func(c *Manager) ProcessDeploymentRequest(){
-    req := c.NextRequest()
+    req := c.Queue.NextRequest()
     if req == nil {
         log.Error().Msg("the queue was unexpectedly empty")
         return
     }
 
     // TODO get all the data from the system model
-
     // Get the ServiceGroup structure
-    // This is hardcoded for testing purposes
-    appDescriptor := pbApplication.AppDescriptor{
-        Name:"app_descriptor_test",
-        Description: "app_descriptor_test description",
-        AppDescriptorId: "app_descriptor_id",
-        OrganizationId: "organization_test",
-        EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
-        Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
+
+    appInstance, err  := c.appClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: req.OrganizationID, AppInstanceId: req.InstanceID})
+    if err != nil {
+        log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
+        return
     }
 
     // 1) collect requirements for the application descriptor
-    foundRequirements, err := c.ReqCollector.FindRequirements(&appDescriptor)
+    foundRequirements, err := c.ReqCollector.FindRequirements(appInstance)
     if err != nil {
-        log.Error().Err(err).Msgf("impossible to find requirements for application %s", appDescriptor.AppDescriptorId)
+        log.Error().Err(err).Msgf("impossible to find requirements for application %s", appInstance.AppDescriptorId)
         return
     }
 
@@ -87,7 +131,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     scoreResult, err := c.ScorerMethod.ScoreRequirements (foundRequirements)
 
     if err != nil {
-        log.Error().Err(err).Msgf("error scoring request %s", req.RequestId)
+        log.Error().Err(err).Msgf("error scoring request %s", req.RequestID)
         return
     }
 
@@ -98,10 +142,10 @@ func(c *Manager) ProcessDeploymentRequest(){
     // 3) design plan
     // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(&appDescriptor, scoreResult)
+    plan, err := c.Designer.DesignPlan(appInstance, scoreResult)
 
     if err != nil{
-        log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestId)
+        log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestID)
         return
     }
 
@@ -109,7 +153,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     // Tell deployment managers to execute plans
     err = c.DeployPlan(plan)
     if err != nil {
-        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
+        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestID)
         return
     }
 }
@@ -142,33 +186,6 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
         // TODO define how to modify the system model according to the response
     }
 
-    return nil
-}
-
-
-// Thread-safe method to access queued requests
-func(c *Manager) NextRequest() *pbConductor.DeploymentRequest {
-    c.mux.Lock()
-    toReturn := c.queue.PopFront().(*pbConductor.DeploymentRequest)
-    defer c.mux.Unlock()
-    return toReturn
-}
-
-// Thread-safe function to find whether there are more requests available or not.
-func(c *Manager) AvailableRequests() bool {
-    c.mux.RLock()
-    available := c.queue.Len()!=0
-    defer c.mux.RUnlock()
-    return available
-}
-
-// Push a new request to the que for later processing.
-//  params:
-//   req entry to be enqueued
-func (c *Manager) PushRequest(req *pbConductor.DeploymentRequest) error {
-    c.mux.Lock()
-    c.queue.PushBack(req)
-    defer c.mux.Unlock()
     return nil
 }
 

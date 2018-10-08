@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Nalej Group -All Rights Reserved
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ *
  */
 
 
@@ -23,25 +24,25 @@ var (
     // Singleton instance of connections with deployment managers
     DMClients *tools.ConnectionsMap
     onceDM sync.Once
+    // Singleton instance of connections with the system model
+    SMClients *tools.ConnectionsMap
+    onceSM sync.Once
+
 )
+
+func GetSystemModelClients() *tools.ConnectionsMap {
+    onceSM.Do(func(){
+        // reuse the conductor factory
+        SMClients = tools.NewConnectionsMap(conductorClientFactory)
+    })
+    return SMClients
+}
 
 
 func GetMusicianClients() *tools.ConnectionsMap {
-    /*
-    onceMusicians.Do(func(){
-        if flag.Lookup("test.v") != nil {
-            log.Debug().Msg("using testing musician clients factory")
-            MusicianClients = tools.NewConnectionsMap(conductorClientFactoryTest)
-        } else {
-            MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
-        }
-    })
-    */
-
     onceMusicians.Do(func(){
         MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
     })
-
     return MusicianClients
 }
 
@@ -51,22 +52,6 @@ func GetDMClients() *tools.ConnectionsMap {
     })
     return DMClients
 }
-
-/*
-// Factory in charge of generating new connections for Conductor->Musician communication in test environments.
-//  params:
-//   address the communication has to be done with
-//  return:
-//   client and error if any
-func conductorClientFactoryTest(address string) (*grpc.ClientConn, error) {
-    conn, err := tools.GetConn(*tools.GetDefaultListener())
-    if err != nil {
-        log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
-    }
-    log.Info().Msgf("Connected to address at %s", address)
-    return conn, err
-}
-*/
 
 // Factory in charge of generating new connections for Conductor->Musician communication.
 //  params:
@@ -95,3 +80,4 @@ func dmClientFactory(address string) (*grpc.ClientConn, error) {
     log.Info().Msgf("Connected to address at %s", address)
     return conn, err
 }
+

@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Nalej Group -All Rights Reserved
+ * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ *
  */
 
 
@@ -30,7 +31,7 @@ func init() {
 
     RootCmd.AddCommand(musicianCmd)
 
-    musicianCmd.Flags().Uint32P("musician-port", "u",5001,"musician endpoint")
+    musicianCmd.Flags().Uint32P("musician-port", "u",5100,"musician endpoint")
     musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
     musicianCmd.Flags().Uint32P("sleep", "s",10000,"time to sleep between queries in milliseconds")
 
