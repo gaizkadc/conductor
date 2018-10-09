@@ -33,7 +33,6 @@ var debugLevel bool
 var consoleLogging bool
 
 func Execute() {
-    SetupLogging()
     RootCmd.SetVersionTemplate(version.GetVersionInfo())
     if err := RootCmd.Execute(); err != nil {
         log.Error().Msg(err.Error())
@@ -87,6 +86,7 @@ func initConfig() {
 }
 
 func init() {
+    SetupLogging()
     zerolog.TimeFieldFormat = ""
     cobra.OnInitialize(initConfig)
     // initialization file

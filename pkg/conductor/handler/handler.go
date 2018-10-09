@@ -11,6 +11,7 @@ package handler
 import (
     "context"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    pbCommon "github.com/nalej/grpc-common-go"
     "errors"
     "github.com/rs/zerolog/log"
 )
@@ -43,4 +44,8 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
         Status: pbConductor.ApplicationStatus_QUEUED}
     log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
     return &toReturn, nil
+}
+
+func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployRequest) (*pbCommon.Success, error) {
+    panic("undeploy operation is not implemented yet")
 }

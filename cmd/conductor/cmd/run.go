@@ -11,8 +11,6 @@ import (
     "github.com/rs/zerolog/log"
     "github.com/spf13/viper"
     "github.com/nalej/conductor/pkg/conductor/service"
-    "github.com/rs/zerolog"
-
 )
 
 
@@ -21,6 +19,7 @@ var runCmd = &cobra.Command{
     Short: "Run conductor",
     Long: "Run conductor service with... and with...",
     Run: func(cmd *cobra.Command, args [] string) {
+        SetupLogging()
         RunConductor()
     },
 }
@@ -52,11 +51,6 @@ func RunConductor() {
 
     log.Info().Msg("launching conductor...")
 
-    if debugLevel {
-        zerolog.SetGlobalLevel(zerolog.DebugLevel)
-    } else {
-        zerolog.SetGlobalLevel(zerolog.InfoLevel)
-    }
 
     config := service.ConductorConfig{
         Port: port,
@@ -65,7 +59,6 @@ func RunConductor() {
     }
 
     conductorService, err := service.NewConductorService(&config)
-    conductorService.SetMusicians(musicians)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")
     }

@@ -77,6 +77,7 @@ func (s SimpleScorer) ScoreRequirements (requirements *entities.Requirements) (*
 func (s SimpleScorer) collectScores(requirements *entities.Requirements) []*pbConductor.ClusterScoreResponse{
     // we expect as many scores as musicians we have
     musicians := s.musicians.GetConnections()
+    log.Debug().Msgf("we have %d known clusters",len(musicians))
     collected_scores := make([]*pbConductor.ClusterScoreResponse,0,len(musicians))
     found_scores := 0
     for _, conn := range  musicians {

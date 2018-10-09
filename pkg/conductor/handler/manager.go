@@ -164,8 +164,8 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
         // TODO get cluster IP address from system model
-        conductor.GetDMClients().AddConnection("127.0.0.1:5002")
-        clusterIP := "127.0.0.1:5002"
+        conductor.GetDMClients().AddConnection("127.0.0.1:5200")
+        clusterIP := "127.0.0.1:5200"
         conn,err := conductor.GetDMClients().GetConnection(clusterIP)
         if err!=nil{
             log.Error().Err(err).Msgf("problem creating connection with %s",clusterIP)
@@ -174,7 +174,7 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
         }
 
         // build a request
-        request := pbDeploymentManager.DeployFragmentRequest{}
+        request := pbDeploymentManager.DeploymentFragmentRequest{RequestId: "deployment001",Fragment: fragment}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
 

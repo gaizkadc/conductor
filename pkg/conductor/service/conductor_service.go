@@ -41,10 +41,6 @@ type ConductorService struct {
 
 
 func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
-    q := handler.NewMemoryRequestQueue()
-    scr := scorer.NewSimpleScorer()
-    reqColl := requirementscollector.NewSimpleRequirementsCollector()
-    designer := plandesigner.NewSimplePlanDesigner()
 
     // Initialize connections pool with system model
     smPool := conductor.GetSystemModelClients()
@@ -54,12 +50,24 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
+    // Confligure cluster entries
+    // TODO get from the system model
+    InitPool(config.Musicians, conductor.GetMusicianClients())
+    //InitPool([]string{"localhost:5200"}, conductor.GetDMClients())
+    //SetMusicians(config.Musicians)
+
+    q := handler.NewMemoryRequestQueue()
+    scr := scorer.NewSimpleScorer()
+    reqColl := requirementscollector.NewSimpleRequirementsCollector()
+    designer := plandesigner.NewSimplePlanDesigner()
+
     c := handler.NewManager(q, scr, reqColl, designer)
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 server: conductorServer,
                                 connections: conductor.GetMusicianClients(),
                                 configuration: config}
+
     return &instance, nil
 }
 
@@ -81,17 +89,14 @@ func(c *ConductorService) Run() {
 
 }
 
-// Set the musicians to be queried
-// TODO: this has to be removed and check the system model instead. This is only for initial testing.
-func(c *ConductorService) SetMusicians(musicians []string) {
-    c.configuration.Musicians=musicians
-    for _, target := range musicians {
-        _,err := c.connections.AddConnection(target)
+// Initialize a connections pool with a set of addresses.
+func InitPool(addresses []string, connections *tools.ConnectionsMap) {
+    for _, target := range addresses {
+        _,err := connections.AddConnection(target)
         if err != nil {
             log.Error().Err(err)
         } else {
-            log.Info().Str("address",target).Msg("musician address correctly added")
-            c.configuration.Musicians = append(c.configuration.Musicians, target)
+            log.Info().Str("address",target).Msg("correctly added to the connections pool")
         }
     }
 }
