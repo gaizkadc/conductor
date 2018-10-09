@@ -111,7 +111,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     port2 := pbApplication.Port{Name: "mysqlport", ExposedPort: 3306}
 
     credentials := pbApplication.ImageCredentials{Username: "user1", Password: "password1", Email: "email@email.com"}
-
+    /*
     serv1 := pbApplication.Service{
         OrganizationId: resp.OrganizationId,
         ServiceId: "service_001",
@@ -128,7 +128,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         Storage: []*pbApplication.Storage{&pbApplication.Storage{MountPath: "/tmp",}},
         Credentials: &credentials,
         Configs: []*pbApplication.ConfigFile{&pbApplication.ConfigFile{MountPath:"/tmp"}},
-    }
+    }*/
 
     serv2 := pbApplication.Service {
         OrganizationId: resp.OrganizationId,
@@ -172,7 +172,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         Description:"a service group",
         AppDescriptorId: "app001",
         Name: "group001",
-        Services: []string{serv1.Name, serv2.Name},
+        Services: []string{serv2.Name, serv3.Name},
         Policy: pbApplication.CollocationPolicy_SAME_CLUSTER,
         ServiceGroupId: "group-id",
     }
@@ -197,7 +197,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         OrganizationId: resp.OrganizationId,
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
-        Services: []*pbApplication.Service{&serv1,&serv2,&serv3},
+        Services: []*pbApplication.Service{&serv2,&serv3},
         ConfigurationOptions: map[string]string{"conf1":"valueconf1", "conf2":"valueconf2"},
         Groups: []*pbApplication.ServiceGroup{&servGroup},
         Rules: []*pbApplication.SecurityRule{&secRule},
