@@ -16,6 +16,9 @@ import (
 
     "google.golang.org/grpc"
     "context"
+    "bufio"
+    "os"
+    "os/exec"
 )
 
 
@@ -53,14 +56,15 @@ $$ |  $$ |$$   ____|$$ | $$ | $$ |$$ |  $$ |
 `
 
 func init() {
-    fmt.Println()
-    fmt.Println(msg)
     RootCmd.AddCommand(runDemo)
 
 }
 
 // Entrypoint for a musician service.
 func RunExample() {
+    fmt.Println()
+    fmt.Println(msg)
+
     log.Info().Msg("connect with conductor api at port ")
 
     conn, err := grpc.Dial("localhost:5000", grpc.WithInsecure())
@@ -89,10 +93,23 @@ func RunExample() {
         Description: "A Nalej demo deployment",
         AppId: &pbApplication.AppDescriptorId{OrganizationId: desc.OrganizationId, AppDescriptorId: desc.AppDescriptorId},
     }
-    _, err = conductorClient.Deploy(context.Background(), &request)
+    x, err := conductorClient.Deploy(context.Background(), &request)
     if err != nil {
         log.Panic().Err(err).Msg("impossible to connect with conductor for deployment")
     }
+
+    log.Info().Msgf("The output instance works with id: %s",x.AppInstanceId)
+
+    log.Info().Msg("\nPress any key to delete the generated namespace")
+    bufio.NewReader(os.Stdin).ReadBytes('\n')
+
+    targetNamespace := getNamespace(desc.OrganizationId,x.AppInstanceId)
+
+    output, err := exec.Command("kubectl","delete","namespace",targetNamespace).CombinedOutput()
+    if err != nil {
+        os.Stderr.WriteString(err.Error())
+    }
+    fmt.Println(string(output))
 
 }
 
@@ -204,4 +221,14 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     }
     desc, err := appClient.AddAppDescriptor(context.Background(),&appDescriptor)
     return desc
+}
+
+
+func getNamespace(organizationId string, appInstanceId string) string {
+    target := fmt.Sprintf("%s-%s", organizationId, appInstanceId)
+    // check if the namespace is larger than the allowed k8s namespace length
+    if len(target) > 63 {
+        return target[:63]
+    }
+    return target
 }

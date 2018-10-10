@@ -16,6 +16,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
 )
 
 type ConductorConfig struct {
@@ -31,6 +32,8 @@ type ConductorConfig struct {
 type ConductorService struct {
     // Conductor manager
     conductor *handler.Manager
+    // Conductor monitor
+    monitor *monitor.Manager
     // Server for incoming requests
     server *tools.GenericGRPCServer
     // Connections with musicians
@@ -53,17 +56,23 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     // Confligure cluster entries
     // TODO get from the system model
     InitPool(config.Musicians, conductor.GetMusicianClients())
-    //InitPool([]string{"localhost:5200"}, conductor.GetDMClients())
-    //SetMusicians(config.Musicians)
 
     q := handler.NewMemoryRequestQueue()
     scr := scorer.NewSimpleScorer()
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
     designer := plandesigner.NewSimplePlanDesigner()
+    monitor := monitor.NewManager()
 
-    c := handler.NewManager(q, scr, reqColl, designer)
+    if monitor == nil {
+        log.Panic().Msg("impossible to create monitor service")
+        return nil, err
+    }
+
+    c := handler.NewManager(q, scr, reqColl, designer, *monitor)
+
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
+                                monitor: monitor,
                                 server: conductorServer,
                                 connections: conductor.GetMusicianClients(),
                                 configuration: config}
@@ -75,11 +84,14 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
 func(c *ConductorService) Run() {
     // register services
-    deployment := handler.NewHandler(c.conductor)
+    conductorService := handler.NewHandler(c.conductor)
+    monitorService := monitor.NewHandler(c.monitor)
 
     // Server and registry
-    //grpcServer := grpc.NewServer()
-    pbConductor.RegisterConductorServer(c.server.Server,deployment)
+    // -- conductor service
+    pbConductor.RegisterConductorServer(c.server.Server, conductorService)
+    // -- monitor service
+    pbConductor.RegisterConductorMonitorServer(c.server.Server, monitorService)
 
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)

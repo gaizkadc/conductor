@@ -40,7 +40,7 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
 
     toReturn := pbConductor.DeploymentResponse{
         RequestId: request.RequestId,
-        InstanceId: instance.ApplicationID,
+        AppInstanceId: instance.InstanceID,
         Status: pbConductor.ApplicationStatus_QUEUED}
     log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
     return &toReturn, nil

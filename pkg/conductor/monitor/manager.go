@@ -13,8 +13,8 @@ import (
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor"
     "errors"
-    "sync"
     "fmt"
+    "github.com/nalej/conductor/internal/entities"
 )
 
 type Manager struct {
@@ -40,6 +40,8 @@ func (m *Manager) AddPlanToMonitor(plan *pbConductor.DeploymentPlan) {
 }
 
 func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpdateRequest) error {
+    log.Debug().Msgf("monitor received fragment update %v", request)
+
     // Check if we are monitoring the fragment
     found := m.pendingPlans.MonitoredFragment(request.FragmentId)
     if !found {
@@ -47,71 +49,22 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         return err
     }
 
+    if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
+        log.Info().Msgf("Deployment fragment %s was done",request.FragmentId)
+    }
+
+
+    /*
     // Update services status
     for _, status := range request.ServicesStatus {
         log.Debug().Msgf("service %s is known to be in %s", status.InstanceId, status.Status)
     }
+    */
+    return nil
+}
 
+func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
     return nil
 }
 
 
-// Struct to control pending deployment plans
-type PendingPlans struct {
-    // plan_id -> deployment plan
-    pending map[string]*pbConductor.DeploymentPlan
-    // fragment_id -> deployment_plan_id. Index just to improve searching.
-    pendingFragment map[string]string
-    // service_id -> fragment_id
-    pendingService map[string] string
-    // mutex
-    mu sync.Mutex
-}
-
-func NewPendingPlans () *PendingPlans {
-    return &PendingPlans{
-        pendingService: make(map[string]string,0),
-        pendingFragment: make(map[string]string,0),
-        pending: make(map[string]*pbConductor.DeploymentPlan),
-    }
-}
-
-
-func (p *PendingPlans) AddPendingPlan(plan *pbConductor.DeploymentPlan) {
-    log.Debug().Msgf("add plan of deployment %s to pending checks",plan.DeploymentId)
-    p.mu.Lock()
-    defer p.mu.Unlock()
-    p.pending[plan.DeploymentId] = plan
-    for _, frag := range plan.Fragments {
-        p.pendingFragment[frag.FragmentId] = plan.DeploymentId
-        for _, stage := range frag.Stages {
-            for _, serv := range stage.Services {
-                p.pendingService[serv.ServiceId] = frag.FragmentId
-            }
-        }
-    }
-
-}
-
-func (p *PendingPlans) RemovePendingPlan(plan *pbConductor.DeploymentPlan) {
-    log.Debug().Msgf("remove plan of deployment %s from pending checks",plan.DeploymentId)
-    p.mu.Lock()
-    defer p.mu.Unlock()
-    // remove fragments
-    for _, frag := range plan.Fragments {
-        delete(p.pendingFragment, frag.FragmentId)
-        for _, stage := range frag.Stages {
-            for _, serv := range stage.Services {
-                delete(p.pendingService, serv.ServiceId)
-            }
-        }
-    }
-    delete(p.pending, plan.DeploymentId)
-}
-
-func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
-    p.mu.Lock()
-    defer p.mu.Unlock()
-    _, exists := p.pendingFragment[fragmentID]
-    return exists
-}
