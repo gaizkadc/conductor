@@ -91,6 +91,6 @@ func init() {
     cobra.OnInitialize(initConfig)
     // initialization file
     RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file path")
-    RootCmd.PersistentFlags().BoolVar(&debugLevel, "debugLevel", false, "enable debugLevel mode")
+    RootCmd.PersistentFlags().BoolVar(&debugLevel, "debug", false, "enable debugLevel mode")
     RootCmd.PersistentFlags().BoolVar(&consoleLogging, "consoleLogging", false, "Pretty print logging")
 }

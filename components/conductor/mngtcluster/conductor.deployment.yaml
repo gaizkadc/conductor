@@ -1,0 +1,45 @@
+###
+# Musician configuration
+###
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    cluster: management
+    component: conductor
+  name: conductor
+  namespace: nalej
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      cluster: management
+      component: conductor
+  template:
+    metadata:
+      labels:
+        cluster: management
+        component: conductor
+    spec:
+      containers:
+      - name: conductor
+        image: nalej/conductor:VERSION
+        imagePullPolicy: Never
+        securityContext:
+          runAsUser: 2000
+        args:
+          - "run"
+          - "--debug"
+          - "--musicians=localhost:5100"
+          - "--systemmodel=ystem-model.nalej.svc.cluster.local:8800"
+        #  - "--system-model-address=http://system-model.nalej.svc.cluster.local:8800"
+        #  - "--logger-address=http://log-collector.kube-system.svc.cluster.local:8083"
+        ports:
+        - name: api-port
+          containerPort: 9000
+        # readinessProbe:
+        #  httpGet:
+        #    path: /ping
+        #    port: api-port

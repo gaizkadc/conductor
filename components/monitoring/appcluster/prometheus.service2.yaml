@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dprometheus
+  labels:
+    cluster: application
+    component: prometheus
+  namespace: nalej
+spec:
+  ports:
+  - port: 9020
+    protocol: TCP
+    targetPort: 9020
+  selector:
+    name: prometheus
+  type: ClusterIP
