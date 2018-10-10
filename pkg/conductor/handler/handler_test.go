@@ -7,11 +7,13 @@
 package handler
 
 import (
+    "github.com/nalej/conductor/pkg/utils"
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+    "github.com/rs/zerolog/log"
     "google.golang.org/grpc/test/bufconn"
     "google.golang.org/grpc"
     "context"
@@ -25,6 +27,7 @@ import (
 
 
 const (
+    // TODO Set an ENV variable.
     SystemModelAddress="127.0.0.1:8800"
 )
 
@@ -100,6 +103,12 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 
 var _ = ginkgo.Describe("Deployment server API", func() {
+
+    if ! utils.RunIntegrationTests() {
+        log.Warn().Msg("Integration tests are skipped")
+        return
+    }
+
     // grpc server
     var server *grpc.Server
     // conductor object

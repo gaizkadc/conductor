@@ -34,7 +34,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
         &pbApplication.AppDescriptorId{OrganizationId: app.OrganizationId, AppDescriptorId: app.AppDescriptorId})
     if err!=nil{
-        log.Error().Err(err).Msgf("error recovering application instance %s", )
+        log.Error().Err(err).Msg("error recovering application instance")
         return nil, err
     }
     // TODO this version assumes everything will go into a single cluster
