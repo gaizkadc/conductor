@@ -6,8 +6,10 @@
 
 package entities
 
-import "time"
-
+import (
+    "time"
+    pbConductor "github.com/nalej/grpc-conductor-go"
+)
 // System status representation.
 type Status struct {
     Timestamp time.Time `json:"timestamp"`
@@ -38,4 +40,44 @@ type DeploymentRequest struct {
     OrganizationID string
     ApplicationID string
     InstanceID string
+}
+
+// Fragment deployment status definition
+
+type DeploymentFragmentStatus int
+
+const (
+    FRAGMENT_WAITING   DeploymentFragmentStatus = iota
+    FRAGMENT_DEPLOYING
+    FRAGMENT_DONE
+    FRAGMENT_ERROR
+    FRAGMENT_RETRYING
+)
+
+var DeploymentStatusToGRPC = map[pbConductor.DeploymentFragmentStatus] DeploymentFragmentStatus {
+    pbConductor.DeploymentFragmentStatus_WAITING : FRAGMENT_WAITING,
+    pbConductor.DeploymentFragmentStatus_DEPLOYING : FRAGMENT_DEPLOYING,
+    pbConductor.DeploymentFragmentStatus_DONE : FRAGMENT_DONE,
+    pbConductor.DeploymentFragmentStatus_ERROR : FRAGMENT_ERROR,
+    pbConductor.DeploymentFragmentStatus_RETRYING : FRAGMENT_RETRYING,
+}
+
+// Service status definition
+
+type ServiceStatus int
+
+const (
+    SERVICE_SCHEDULED = iota
+    SERVICE_WAITING
+    SERVICE_DEPLOYING
+    SERVICE_RUNNING
+    SERVICE_ERROR
+)
+
+var ServiceStatusToGRPC = map[pbConductor.ServiceStatus] ServiceStatus {
+    pbConductor.ServiceStatus_SERVICE_SCHEDULED : SERVICE_SCHEDULED,
+    pbConductor.ServiceStatus_SERVICE_WAITING : SERVICE_WAITING,
+    pbConductor.ServiceStatus_SERVICE_DEPLOYING : SERVICE_DEPLOYING,
+    pbConductor.ServiceStatus_SERVICE_RUNNING : SERVICE_RUNNING,
+    pbConductor.ServiceStatus_SERVICE_ERROR : SERVICE_ERROR,
 }

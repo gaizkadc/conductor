@@ -48,6 +48,8 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         Services: toDeploy.Services}
 
     fragment := pbConductor.DeploymentFragment{
+        OrganizationId: app.OrganizationId,
+        AppInstanceId: app.AppInstanceId,
         FragmentId: fragmentUUID,
         DeploymentId: uuid.New().String(),
         Stages: []*pbConductor.DeploymentStage{&stage},
@@ -55,7 +57,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
 
     // Aggregate to a new plan
     newPlan := pbConductor.DeploymentPlan{
-        AppId: &pbApplication.AppDescriptorId{AppDescriptorId:app.AppDescriptorId, OrganizationId: app.OrganizationId},
+        AppInstanceId: app.AppInstanceId,
         DeploymentId: uuid.New().String(),
         OrganizationId: app.OrganizationId,
         Fragments: []*pbConductor.DeploymentFragment{&fragment},

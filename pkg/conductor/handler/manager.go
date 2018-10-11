@@ -17,6 +17,8 @@ import (
     "context"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/internal/entities"
+    "github.com/google/uuid"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -31,13 +33,15 @@ type Manager struct {
     Designer plandesigner.PlanDesigner
     // Queue for incoming requests
     Queue RequestsQueue
+    // Monitoring service
+    Monitor monitor.Manager
     // Application client
     appClient pbApplication.ApplicationsClient
 }
 
 
 func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
-    designer plandesigner.PlanDesigner) *Manager {
+    designer plandesigner.PlanDesigner, monitor monitor.Manager) *Manager {
     // initialize clients
     pool := conductor.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
@@ -46,7 +50,8 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
     }
     conn := pool.GetConnections()[0]
     appClient := pbApplication.NewApplicationsClient(conn)
-    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, appClient:appClient}
+    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, appClient:appClient,
+    Monitor: monitor}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -161,11 +166,14 @@ func(c *Manager) ProcessDeploymentRequest(){
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
 func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
+    // Start monitoring this fragment
+    c.Monitor.AddPlanToMonitor(plan)
+
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
         // TODO get cluster IP address from system model
-        conductor.GetDMClients().AddConnection("127.0.0.1:5002")
-        clusterIP := "127.0.0.1:5002"
+        conductor.GetDMClients().AddConnection("127.0.0.1:5200")
+        clusterIP := "127.0.0.1:5200"
         conn,err := conductor.GetDMClients().GetConnection(clusterIP)
         if err!=nil{
             log.Error().Err(err).Msgf("problem creating connection with %s",clusterIP)
@@ -174,7 +182,7 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
         }
 
         // build a request
-        request := pbDeploymentManager.DeployFragmentRequest{}
+        request := pbDeploymentManager.DeploymentFragmentRequest{RequestId: uuid.New().String(),Fragment: fragment}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
 
@@ -183,6 +191,7 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
             log.Error().Err(err).Msgf("problem deploying fragment %s", fragment.DeploymentId)
             return err
         }
+
         // TODO define how to modify the system model according to the response
     }
 
