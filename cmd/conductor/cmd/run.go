@@ -63,7 +63,7 @@ func RunConductor() {
         Musicians: musicians,
         SystemModelURL: systemModel,
     }
-
+    config.Print()
     conductorService, err := service.NewConductorService(&config)
     conductorService.SetMusicians(musicians)
     if err != nil {

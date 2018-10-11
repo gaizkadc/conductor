@@ -32,13 +32,13 @@ spec:
         args:
           - "run"
           - "--debug"
-          - "--musicians=localhost:5100"
-          - "--systemmodel=ystem-model.nalej.svc.cluster.local:8800"
+          - "--musicians=musician.nalej.svc.cluster.local:5100"
+          - "--systemmodel=system-model.nalej.svc.cluster.local:8800"
         #  - "--system-model-address=http://system-model.nalej.svc.cluster.local:8800"
         #  - "--logger-address=http://log-collector.kube-system.svc.cluster.local:8083"
         ports:
         - name: api-port
-          containerPort: 9000
+          containerPort: 5000
         # readinessProbe:
         #  httpGet:
         #    path: /ping

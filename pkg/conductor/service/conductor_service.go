@@ -27,6 +27,12 @@ type ConductorConfig struct {
     Musicians []string
 }
 
+func (conf * ConductorConfig) Print() {
+    log.Info().Uint32("port", conf.Port).Msg("gRPC port")
+    log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
+    log.Info().Strs("URL", conf.Musicians).Msg("Musicians")
+}
+
 
 type ConductorService struct {
     // Conductor manager

@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: musician
+  namespace: nalej
+  labels:
+    cluster: application
+    component: musician
+spec:
+  selector:
+    app: samurai
+    component: musician
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 5100
+    targetPort: 5100
