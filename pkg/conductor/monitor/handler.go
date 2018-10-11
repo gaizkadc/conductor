@@ -44,7 +44,10 @@ func (h *Handler) UpdateServiceStatus(ctx context.Context, request *pbConductor.
 
     // TODO finish this
     log.Debug().Msgf("UpdateServiceStatus receives %v", request)
-    return nil, nil
+    for _, serv := range request.List {
+        log.Debug().Msgf("--> %s-%s", serv.AppInstanceId,serv.Status)
+    }
+    return &pbCommon.Success{}, nil
 }
 
 

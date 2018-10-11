@@ -64,6 +64,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 }
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
+    log.Debug().Msgf("updateservicestatus %v", request)
     return nil
 }
 
