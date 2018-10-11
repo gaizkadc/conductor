@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    component: prometheus
+    cluster: application
+  name: node-exporter
+  namespace: nalej
+spec:
+  selector:
+    matchLabels:
+      daemon: node-exporter
+      grafanak8sapp: 'true'
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: node-exporter
+      labels:
+        daemon: node-exporter
+        grafanak8sapp: 'true'
+        k8s-app: node-exporter
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: node-exporter
+        image: quay.io/prometheus/node-exporter:v0.15.2
+        imagePullPolicy: IfNotPresent
+        args:
+        - --path.procfs=/host/proc
+        - --path.sysfs=/host/sys
+        - --collector.filesystem.ignored-mount-points
+        - '^/(sys|proc|dev|host|etc)($|/)'
+        ports:
+        - name: metrics
+          containerPort: 9100
+          protocol: TCP
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly:  true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+      hostNetwork: true
+      hostPID: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys

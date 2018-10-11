@@ -6,54 +6,40 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   labels:
-    app: samurai
-    component: musician
-  name: musician
+    cluster: management
+    component: conductor
+  name: conductor
   namespace: nalej
 spec:
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: samurai
-      component: musician
+      cluster: management
+      component: conductor
   template:
     metadata:
       labels:
-        app: samurai
-        component: musician
+        cluster: management
+        component: conductor
     spec:
       containers:
-      - name: musician
-        image: nalej/conductor:latest
+      - name: conductor
+        image: nalej/conductor:VERSION
         imagePullPolicy: Never
         securityContext:
           runAsUser: 2000
-        # args:
+        args:
+          - "run"
+          - "--debug"
+          - "--musicians=musician.nalej.svc.cluster.local:5100"
+          - "--systemmodel=system-model.nalej.svc.cluster.local:8800"
         #  - "--system-model-address=http://system-model.nalej.svc.cluster.local:8800"
         #  - "--logger-address=http://log-collector.kube-system.svc.cluster.local:8083"
         ports:
         - name: api-port
-          containerPort: 9000
+          containerPort: 5000
         # readinessProbe:
         #  httpGet:
         #    path: /ping
         #    port: api-port
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: musician
-  namespace: nalej
-  labels:
-    app: samurai
-    component: musician
-spec:
-  selector:
-    app: samurai
-    component: musician
-  type: ClusterIP
-  ports:
-    - protocol: TCP
-      port: 9000
-      targetPort: 9000

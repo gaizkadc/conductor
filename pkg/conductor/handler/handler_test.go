@@ -7,17 +7,20 @@
 package handler
 
 import (
+    "github.com/nalej/conductor/pkg/utils"
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+    "github.com/rs/zerolog/log"
     "google.golang.org/grpc/test/bufconn"
     "google.golang.org/grpc"
     "context"
     "github.com/nalej/grpc-utils/pkg/test"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
     "github.com/nalej/conductor/pkg/conductor"
@@ -25,6 +28,7 @@ import (
 
 
 const (
+    // TODO Set an ENV variable.
     SystemModelAddress="127.0.0.1:8800"
 )
 
@@ -100,6 +104,12 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 
 var _ = ginkgo.Describe("Deployment server API", func() {
+
+    if ! utils.RunIntegrationTests() {
+        log.Warn().Msg("Integration tests are skipped")
+        return
+    }
+
     // grpc server
     var server *grpc.Server
     // conductor object
@@ -132,6 +142,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         designer := plandesigner.NewSimplePlanDesigner()
         reqcoll := requirementscollector.NewSimpleRequirementsCollector()
         q = NewMemoryRequestQueue()
+        monitor := monitor.NewManager()
 
         conn, err := test.GetConn(*listener)
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -141,7 +152,8 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         appClient = pbApplication.NewApplicationsClient(connSM)
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
-        cond = NewManager(q, scorerMethod, reqcoll, designer)
+
+        cond = NewManager(q, scorerMethod, reqcoll, designer, *monitor)
         test.LaunchServer(server,listener)
 
         // Register the service.

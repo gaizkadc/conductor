@@ -1,0 +1,34 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  labels:
+    cluster: application
+    component: prometheus
+  name: prometheus-config
+  namespace: nalej
+data:
+  prometheus.yml: |
+    rule_files:
+      - '/opt/nalej/alerts/alerts.rules'
+    scrape_configs:
+    - job_name: 'kubernetes-kube-state'
+      scrape_interval: 60s
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+      - source_labels: [__meta_kubernetes_pod_label_grafanak8sapp]
+        regex: .*true.*
+        action: keep
+      - source_labels: ['__meta_kubernetes_pod_label_daemon', '__meta_kubernetes_pod_node_name']
+        regex: 'node-exporter;(.*)'
+        action: replace
+        target_label: nodename
+
