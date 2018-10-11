@@ -16,6 +16,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
 )
 
 type ConductorConfig struct {
@@ -37,6 +38,8 @@ func (conf * ConductorConfig) Print() {
 type ConductorService struct {
     // Conductor manager
     conductor *handler.Manager
+    // Conductor monitor
+    monitor *monitor.Manager
     // Server for incoming requests
     server *tools.GenericGRPCServer
     // Connections with musicians
@@ -47,10 +50,6 @@ type ConductorService struct {
 
 
 func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
-    q := handler.NewMemoryRequestQueue()
-    scr := scorer.NewSimpleScorer()
-    reqColl := requirementscollector.NewSimpleRequirementsCollector()
-    designer := plandesigner.NewSimplePlanDesigner()
 
     // Initialize connections pool with system model
     smPool := conductor.GetSystemModelClients()
@@ -60,12 +59,30 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
-    c := handler.NewManager(q, scr, reqColl, designer)
+    // Confligure cluster entries
+    // TODO get from the system model
+    InitPool(config.Musicians, conductor.GetMusicianClients())
+
+    q := handler.NewMemoryRequestQueue()
+    scr := scorer.NewSimpleScorer()
+    reqColl := requirementscollector.NewSimpleRequirementsCollector()
+    designer := plandesigner.NewSimplePlanDesigner()
+    monitor := monitor.NewManager()
+
+    if monitor == nil {
+        log.Panic().Msg("impossible to create monitor service")
+        return nil, err
+    }
+
+    c := handler.NewManager(q, scr, reqColl, designer, *monitor)
+
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
+                                monitor: monitor,
                                 server: conductorServer,
                                 connections: conductor.GetMusicianClients(),
                                 configuration: config}
+
     return &instance, nil
 }
 
@@ -73,11 +90,14 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
 func(c *ConductorService) Run() {
     // register services
-    deployment := handler.NewHandler(c.conductor)
+    conductorService := handler.NewHandler(c.conductor)
+    monitorService := monitor.NewHandler(c.monitor)
 
     // Server and registry
-    //grpcServer := grpc.NewServer()
-    pbConductor.RegisterConductorServer(c.server.Server,deployment)
+    // -- conductor service
+    pbConductor.RegisterConductorServer(c.server.Server, conductorService)
+    // -- monitor service
+    pbConductor.RegisterConductorMonitorServer(c.server.Server, monitorService)
 
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)
@@ -87,17 +107,14 @@ func(c *ConductorService) Run() {
 
 }
 
-// Set the musicians to be queried
-// TODO: this has to be removed and check the system model instead. This is only for initial testing.
-func(c *ConductorService) SetMusicians(musicians []string) {
-    c.configuration.Musicians=musicians
-    for _, target := range musicians {
-        _,err := c.connections.AddConnection(target)
+// Initialize a connections pool with a set of addresses.
+func InitPool(addresses []string, connections *tools.ConnectionsMap) {
+    for _, target := range addresses {
+        _,err := connections.AddConnection(target)
         if err != nil {
             log.Error().Err(err)
         } else {
-            log.Info().Str("address",target).Msg("musician address correctly added")
-            c.configuration.Musicians = append(c.configuration.Musicians, target)
+            log.Info().Str("address",target).Msg("correctly added to the connections pool")
         }
     }
 }

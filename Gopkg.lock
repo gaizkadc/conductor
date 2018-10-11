@@ -114,20 +114,20 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:8c959d11ce91e3ee5cbbc913f8324664ee96f8c3057c22707c48cc77a639cfeb"
+  digest = "1:8f411cb58ecc88fea2e332c10b48e720b95042d3ed7965cf7642feede1fe874b"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "b34af41fd8b8e7deee210b0f0ab0c6d55fb44143"
-  version = "v0.0.23"
+  revision = "6bd7ba9e414b4873ba1bef098231f31cff885c9c"
+  version = "v0.0.31"
 
 [[projects]]
-  digest = "1:f2def8eff282b4131c507e581f75a42465835cc097fea34cebcbbe4af592e3b2"
+  digest = "1:beae51b5a49f00a3680d6d9453589c9730f08bfbaa7df3284c3b8c404a9edb9e"
   name = "github.com/nalej/grpc-deployment-manager-go"
   packages = ["."]
   pruneopts = ""
-  revision = "2f3d6ea0b09e1b63028875a2d027432146776d5b"
-  version = "v0.0.6"
+  revision = "603217ff8c5669caabad9e3328f2a3e5ca725656"
+  version = "v0.0.10"
 
 [[projects]]
   digest = "1:d193f1b059feedcb68256dcd4a05a3c146de8df1b17fba6bab79a37195d07f59"
@@ -451,6 +451,7 @@
     "github.com/google/uuid",
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-application-go",
+    "github.com/nalej/grpc-common-go",
     "github.com/nalej/grpc-conductor-go",
     "github.com/nalej/grpc-deployment-manager-go",
     "github.com/nalej/grpc-organization-go",

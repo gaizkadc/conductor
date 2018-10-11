@@ -20,6 +20,7 @@ import (
     "github.com/nalej/grpc-utils/pkg/test"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
     "github.com/nalej/conductor/pkg/conductor"
@@ -141,6 +142,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         designer := plandesigner.NewSimplePlanDesigner()
         reqcoll := requirementscollector.NewSimpleRequirementsCollector()
         q = NewMemoryRequestQueue()
+        monitor := monitor.NewManager()
 
         conn, err := test.GetConn(*listener)
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -150,7 +152,8 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         appClient = pbApplication.NewApplicationsClient(connSM)
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
-        cond = NewManager(q, scorerMethod, reqcoll, designer)
+
+        cond = NewManager(q, scorerMethod, reqcoll, designer, *monitor)
         test.LaunchServer(server,listener)
 
         // Register the service.

@@ -14,7 +14,6 @@ import (
     "github.com/nalej/conductor/pkg/musician/service"
     "github.com/nalej/conductor/pkg/musician/scorer"
     "os"
-    "github.com/rs/zerolog"
 )
 
 var musicianCmd = &cobra.Command{
@@ -22,6 +21,7 @@ var musicianCmd = &cobra.Command{
     Short: "Run a musician service",
     Long: "Run a musician service for the cluster this node belongs to",
     Run: func(cmd *cobra.Command, args [] string) {
+        SetupLogging()
         RunMusician()
     },
 }
@@ -52,11 +52,6 @@ func RunMusician() {
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
-    if debugLevel {
-        zerolog.SetGlobalLevel(zerolog.DebugLevel)
-    } else {
-        zerolog.SetGlobalLevel(zerolog.InfoLevel)
-    }
 
     log.Info().Msg("launching musician...")
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)

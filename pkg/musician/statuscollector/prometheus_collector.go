@@ -145,7 +145,7 @@ func(coll *PrometheusStatusCollector) Run() error {
         if err != nil {
             log.Error().Msgf("error requesting memory %s",err)
         } else {
-            log.Debug().Msgf("memory: %f\n", mem)
+            log.Debug().Msgf("memory: %f", mem)
             coll.cached.Put("memory", mem)
         }
 
@@ -153,7 +153,7 @@ func(coll *PrometheusStatusCollector) Run() error {
         if err != nil {
             log.Error().Msgf("error requesting cpu %s",err)
         } else {
-            log.Debug().Msgf("cpu: %f\n", cpu)
+            log.Debug().Msgf("cpu: %f", cpu)
             coll.cached.Put("cpu", cpu)
         }
 
@@ -161,7 +161,7 @@ func(coll *PrometheusStatusCollector) Run() error {
         if err != nil {
             log.Error().Msgf("error requesting disk %s",err)
         } else {
-            log.Debug().Msgf("disk: %f\n", disk)
+            log.Debug().Msgf("disk: %f", disk)
             coll.cached.Put("disk", disk)
         }
 
