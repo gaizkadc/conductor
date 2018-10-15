@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: conductor
+  namespace: nalej
+  labels:
+    cluster: management
+    component: conductor
+spec:
+  selector:
+    cluster: management
+    component: conductor
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000

@@ -57,7 +57,7 @@ func RunConductor() {
         Musicians: musicians,
         SystemModelURL: systemModel,
     }
-
+    config.Print()
     conductorService, err := service.NewConductorService(&config)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")

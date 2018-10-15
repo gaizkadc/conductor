@@ -15,7 +15,7 @@
 #
 
 # Name of the target applications to be built
-APPS=conductor
+APPS=conductor monitoring
 
 # Target directory to store binaries and results
 TARGET=bin
@@ -44,7 +44,7 @@ LDFLAGS=-ldflags "-X main.MainVersion=${VERSION} -X main.MainCommit=${COMMIT}"
 COVERAGE_FILE=$(TARGET)/coverage.out
 
 .PHONY: all
-all: dep build test image
+all: dep build test yaml image
 
 .PHONY: dep
 dep:
@@ -96,14 +96,33 @@ build-linux: dep linux
 local:
 	$(info >>> Building ...)
 	for app in $(APPS); do \
+		if [ -d ./cmd/"$$app" ]; then \
             $(GOBUILD) $(LDFLAGS) -o $(TARGET)/"$$app" ./cmd/"$$app" ; \
+		fi ; \
 	done
 
 # Cross compilation to obtain a linux binary
 linux:
 	$(info >>> Bulding for Linux...)
 	for app in $(APPS); do \
-    	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(TARGET)/linux_amd64/"$$app" ./cmd/"$$app" ; \
+		if [ -d ./cmd/"$$app" ]; then \
+			CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(TARGET)/linux_amd64/"$$app" ./cmd/"$$app" ; \
+		fi ; \
+	done
+
+yaml:
+	$(info >>> Creating K8s files)
+	for app in $(APPS); do \
+		if [ -d components/"$$app"/appcluster ]; then \
+			mkdir -p $(TARGET)/yaml/appcluster ; \
+			cp components/"$$app"/appcluster/*.yaml $(TARGET)/yaml/appcluster/. ; \
+			cd $(TARGET)/yaml/appcluster && find . -type f -name '*.yaml' | xargs sed -i '' 's/VERSION/$(VERSION)/g' && cd - ; \
+		fi ; \
+		if [ -d components/"$$app"/mngtcluster ]; then \
+			mkdir -p $(TARGET)/yaml/mngtcluster ; \
+			cp components/"$$app"/mngtcluster/*.yaml $(TARGET)/yaml/mngtcluster/. ; \
+			cd $(TARGET)/yaml/mngtcluster && find . -type f -name '*.yaml' | xargs sed -i '' 's/VERSION/$(VERSION)/g' && cd - ; \
+		fi ; \
 	done
 
 # Package all images and components
