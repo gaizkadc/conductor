@@ -101,9 +101,9 @@
   digest = "1:a796685bae75f8b357c1c9f354948e8f2b953155708b9e0e4d430cc44e353de5"
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
-  pruneopts = ""
-  revision = "8f1f335894e98cf70e5802986f387fe44bdc742b"
-  version = "v0.0.8"
+  revision = "f2c7f61db91c5609b988094c3eb00156b8b5f238"
+  version = "v0.0.14"
+
 
 [[projects]]
   digest = "1:62eeb0cedcfd181a06a0bb5fe186879a96769dd9a6f9a4d02d5a4cc227777fa6"
@@ -117,9 +117,9 @@
   digest = "1:8f411cb58ecc88fea2e332c10b48e720b95042d3ed7965cf7642feede1fe874b"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
-  pruneopts = ""
-  revision = "6bd7ba9e414b4873ba1bef098231f31cff885c9c"
-  version = "v0.0.31"
+  revision = "19d7dd8d4c2ab5e8d49db7ab925e07c195f91914"
+  version = "v0.0.33"
+
 
 [[projects]]
   digest = "1:beae51b5a49f00a3680d6d9453589c9730f08bfbaa7df3284c3b8c404a9edb9e"
@@ -447,30 +447,7 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/google/uuid",
-    "github.com/nalej/golang-template/version",
-    "github.com/nalej/grpc-application-go",
-    "github.com/nalej/grpc-common-go",
-    "github.com/nalej/grpc-conductor-go",
-    "github.com/nalej/grpc-deployment-manager-go",
-    "github.com/nalej/grpc-organization-go",
-    "github.com/nalej/grpc-utils/pkg/test",
-    "github.com/nalej/grpc-utils/pkg/tools",
-    "github.com/nalej/service",
-    "github.com/onsi/ginkgo",
-    "github.com/onsi/gomega",
-    "github.com/phf/go-queue/queue",
-    "github.com/prometheus/client_golang/api",
-    "github.com/prometheus/client_golang/api/prometheus/v1",
-    "github.com/prometheus/common/model",
-    "github.com/rs/zerolog",
-    "github.com/rs/zerolog/log",
-    "github.com/spf13/cobra",
-    "github.com/spf13/viper",
-    "google.golang.org/grpc",
-    "google.golang.org/grpc/reflection",
-    "google.golang.org/grpc/test/bufconn",
-  ]
+  inputs-digest = "4710190852b9bd4d73a080dfa9364f32cbc19e01ebfff8bbc384623b4a7afe35"
+
   solver-name = "gps-cdcl"
   solver-version = 1

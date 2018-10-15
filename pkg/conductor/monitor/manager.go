@@ -15,6 +15,7 @@ import (
     "errors"
     "fmt"
     "github.com/nalej/conductor/internal/entities"
+    "context"
 )
 
 type Manager struct {
@@ -64,6 +65,21 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 }
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
+    log.Debug().Msgf("monitor received update service status %v", request)
+        for _, update := range request.List {
+        updateService := pbApplication.UpdateServiceStatusRequest{
+            OrganizationId: update.OrganizationId,
+            ServiceId: update.ServiceInstanceId,
+            AppInstanceId: update.ApplicationInstanceId,
+            Status: update.Status,
+        }
+        _, err := m.AppClient.UpdateServiceStatus(context.Background(), &updateService)
+        if err != nil {
+            log.Error().Err(err).Msgf("impossible to update service status [%v]", updateService)
+            return err
+        }
+    }
+
     return nil
 }
 
