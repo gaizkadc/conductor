@@ -215,6 +215,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
         Services: []*pbApplication.Service{&serv2,&serv3},
+        //Services: []*pbApplication.Service{&serv3},
         ConfigurationOptions: map[string]string{"conf1":"valueconf1", "conf2":"valueconf2"},
         Groups: []*pbApplication.ServiceGroup{&servGroup},
         Rules: []*pbApplication.SecurityRule{&secRule},

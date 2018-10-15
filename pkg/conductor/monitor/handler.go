@@ -3,7 +3,7 @@
  *
  */
 
- // The handler monitor collects information from deployment fragments and updates the status of services.
+// The handler monitor collects information from deployment fragments and updates the status of services.
 
 package monitor
 
@@ -45,8 +45,16 @@ func (h *Handler) UpdateServiceStatus(ctx context.Context, request *pbConductor.
     // TODO finish this
     log.Debug().Msgf("UpdateServiceStatus receives %v", request)
     for _, serv := range request.List {
-        log.Debug().Msgf("--> %s-%s", serv.AppInstanceId,serv.Status)
+        log.Debug().Msgf("--> %s-%s", serv.ServiceInstanceId,serv.Status)
     }
+
+    err := h.mng.UpdateServicesStatus(request)
+
+    if err != nil {
+        log.Error().Err(err).Msgf("error when updating service status in system model")
+        return nil, err
+    }
+
     return &pbCommon.Success{}, nil
 }
 
