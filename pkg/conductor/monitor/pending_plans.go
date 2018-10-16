@@ -47,6 +47,26 @@ func (p *PendingPlans) AddPendingPlan(plan *pbConductor.DeploymentPlan) {
     }
 }
 
+
+
+func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
+    log.Debug().Msgf("remove plan of deployment %s from pending checks",deploymentId)
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    for _, f := range p.pending[deploymentId].Fragments {
+        // remove the services we find across stages
+        for _, stage := range f.Stages {
+            for _, serv := range stage.Services {
+                delete(p.pendingService, serv.ServiceId)
+            }
+        }
+        // remove fragments
+        delete(p.pendingFragment, f.FragmentId)
+    }
+    // delete the plan
+    delete(p.pending, deploymentId)
+}
+/*
 func (p *PendingPlans) RemovePendingPlan(plan *pbConductor.DeploymentPlan) {
     log.Debug().Msgf("remove plan of deployment %s from pending checks",plan.DeploymentId)
     p.mu.Lock()
@@ -61,6 +81,15 @@ func (p *PendingPlans) RemovePendingPlan(plan *pbConductor.DeploymentPlan) {
         }
     }
     delete(p.pending, plan.DeploymentId)
+}
+*/
+
+// Check if this plan has ny pending fragment.
+func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    _, isThere := p.pendingFragment[deploymentId]
+    return isThere
 }
 
 func (p *PendingPlans) RemoveFragment(fragmentId string){

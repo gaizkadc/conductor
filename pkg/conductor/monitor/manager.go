@@ -52,6 +52,21 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
         log.Info().Msgf("Deployment fragment %s was done",request.FragmentId)
+        m.pendingPlans.RemoveFragment(request.FragmentId)
+    }
+
+    // If no more fragments are pending... we stop monitoring the deployment plan
+    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
+        log.Info().Msgf("deployment plan %s was done", request.DeploymentId)
+        // time to delete this plan
+        m.pendingPlans.RemovePendingPlan(request.DeploymentId)
+        // update the application status in the system model
+        req := pbApplication.UpdateAppStatusRequest{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+            Status: pbApplication.ApplicationStatus_RUNNING,
+        }
+        m.AppClient.UpdateAppStatus(context.Background(), &req)
     }
 
 
