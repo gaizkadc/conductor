@@ -45,22 +45,44 @@ func (p *PendingPlans) AddPendingPlan(plan *pbConductor.DeploymentPlan) {
             }
         }
     }
+    p.printStatus()
 }
 
-func (p *PendingPlans) RemovePendingPlan(plan *pbConductor.DeploymentPlan) {
-    log.Debug().Msgf("remove plan of deployment %s from pending checks",plan.DeploymentId)
+
+
+func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
+    log.Debug().Msgf("remove plan of deployment %s from pending checks",deploymentId)
     p.mu.Lock()
     defer p.mu.Unlock()
-    // remove fragments
-    for _, frag := range plan.Fragments {
-        delete(p.pendingFragment, frag.FragmentId)
-        for _, stage := range frag.Stages {
+    for _, f := range p.pending[deploymentId].Fragments {
+        // remove the services we find across stages
+        for _, stage := range f.Stages {
             for _, serv := range stage.Services {
                 delete(p.pendingService, serv.ServiceId)
             }
         }
+        // remove fragments
+        delete(p.pendingFragment, f.FragmentId)
     }
-    delete(p.pending, plan.DeploymentId)
+    // delete the plan
+    delete(p.pending, deploymentId)
+    p.printStatus()
+}
+
+// Check if this plan has ny pending fragment.
+func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    plan := p.pending[deploymentId]
+    for _, fragment := range plan.Fragments {
+        _, isPendingFragment := p.pendingFragment[fragment.FragmentId]
+        if isPendingFragment {
+            // we found a pending fragment
+            return true
+        }
+    }
+    // we iterated through the fragments and they are not pending
+    return false
 }
 
 func (p *PendingPlans) RemoveFragment(fragmentId string){
@@ -83,6 +105,7 @@ func (p *PendingPlans) RemoveFragment(fragmentId string){
     }
     // delete the fragment
     delete(p.pendingFragment,fragmentId)
+    p.printStatus()
 }
 
 func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
@@ -90,4 +113,9 @@ func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
     defer p.mu.Unlock()
     _, exists := p.pendingFragment[fragmentID]
     return exists
+}
+
+func (p *PendingPlans) printStatus() {
+    log.Info().Msgf("%d pending plans, %d pending fragments, %d pending services",
+        len(p.pending), len(p.pendingFragment), len(p.pendingService))
 }

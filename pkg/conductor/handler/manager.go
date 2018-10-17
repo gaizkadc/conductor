@@ -182,7 +182,10 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
         }
 
         // build a request
-        request := pbDeploymentManager.DeploymentFragmentRequest{RequestId: uuid.New().String(),Fragment: fragment}
+        request := pbDeploymentManager.DeploymentFragmentRequest{
+            RequestId: uuid.New().String(),
+            Fragment: fragment,
+            RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
 

@@ -41,7 +41,7 @@ func (m *Manager) AddPlanToMonitor(plan *pbConductor.DeploymentPlan) {
 }
 
 func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpdateRequest) error {
-    log.Debug().Msgf("monitor received fragment update %v", request)
+    //log.Debug().Msgf("monitor received fragment update %v", request)
 
     // Check if we are monitoring the fragment
     found := m.pendingPlans.MonitoredFragment(request.FragmentId)
@@ -51,21 +51,30 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
-        log.Info().Msgf("Deployment fragment %s was done",request.FragmentId)
+        log.Info().Msgf("deployment fragment %s was done",request.FragmentId)
+        m.pendingPlans.RemoveFragment(request.FragmentId)
+    }
+
+    // If no more fragments are pending... we stop monitoring the deployment plan
+    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
+        log.Info().Msgf("deployment plan %s was done", request.DeploymentId)
+        // time to delete this plan
+        m.pendingPlans.RemovePendingPlan(request.DeploymentId)
+        // update the application status in the system model
+        req := pbApplication.UpdateAppStatusRequest{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+            Status: pbApplication.ApplicationStatus_RUNNING,
+        }
+        m.AppClient.UpdateAppStatus(context.Background(), &req)
     }
 
 
-    /*
-    // Update services status
-    for _, status := range request.ServicesStatus {
-        log.Debug().Msgf("service %s is known to be in %s", status.InstanceId, status.Status)
-    }
-    */
     return nil
 }
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
-    log.Debug().Msgf("monitor received update service status %v", request)
+    //log.Debug().Msgf("monitor received update service status %v", request)
         for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,

@@ -47,18 +47,20 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         StageId: stageUUID,
         Services: toDeploy.Services}
 
+    planId := uuid.New().String()
+
     fragment := pbConductor.DeploymentFragment{
         OrganizationId: app.OrganizationId,
         AppInstanceId: app.AppInstanceId,
         FragmentId: fragmentUUID,
-        DeploymentId: uuid.New().String(),
+        DeploymentId: planId,
         Stages: []*pbConductor.DeploymentStage{&stage},
     }
 
     // Aggregate to a new plan
     newPlan := pbConductor.DeploymentPlan{
         AppInstanceId: app.AppInstanceId,
-        DeploymentId: uuid.New().String(),
+        DeploymentId: planId,
         OrganizationId: app.OrganizationId,
         Fragments: []*pbConductor.DeploymentFragment{&fragment},
     }

@@ -31,6 +31,10 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
         return nil, errors.New("invalid request")
     }
 
+    if !h.ValidDeploymentRequest(request) {
+        return nil, errors.New("mandatory parameters in this request are missing")
+    }
+
     // Enqueue request for later processing
     log.Debug().Msgf("enqueue request %s",request.RequestId)
     instance, err := h.c.PushRequest(request)
@@ -48,4 +52,12 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
 
 func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployRequest) (*pbCommon.Success, error) {
     panic("undeploy operation is not implemented yet")
+}
+
+func (h *Handler) ValidDeploymentRequest(request *pbConductor.DeploymentRequest) bool {
+    if request.RequestId == "" || request.Name == ""  || request.AppId == nil || request.AppId.OrganizationId == "" ||
+        request.AppId.AppDescriptorId == "" {
+            return false
+    }
+    return true
 }
