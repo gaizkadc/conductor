@@ -45,6 +45,7 @@ func (p *PendingPlans) AddPendingPlan(plan *pbConductor.DeploymentPlan) {
             }
         }
     }
+    p.printStatus()
 }
 
 
@@ -65,31 +66,23 @@ func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
     }
     // delete the plan
     delete(p.pending, deploymentId)
+    p.printStatus()
 }
-/*
-func (p *PendingPlans) RemovePendingPlan(plan *pbConductor.DeploymentPlan) {
-    log.Debug().Msgf("remove plan of deployment %s from pending checks",plan.DeploymentId)
-    p.mu.Lock()
-    defer p.mu.Unlock()
-    // remove fragments
-    for _, frag := range plan.Fragments {
-        delete(p.pendingFragment, frag.FragmentId)
-        for _, stage := range frag.Stages {
-            for _, serv := range stage.Services {
-                delete(p.pendingService, serv.ServiceId)
-            }
-        }
-    }
-    delete(p.pending, plan.DeploymentId)
-}
-*/
 
 // Check if this plan has ny pending fragment.
 func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     p.mu.Lock()
     defer p.mu.Unlock()
-    _, isThere := p.pendingFragment[deploymentId]
-    return isThere
+    plan := p.pending[deploymentId]
+    for _, fragment := range plan.Fragments {
+        _, isPendingFragment := p.pendingFragment[fragment.FragmentId]
+        if isPendingFragment {
+            // we found a pending fragment
+            return true
+        }
+    }
+    // we iterated through the fragments and they are not pending
+    return false
 }
 
 func (p *PendingPlans) RemoveFragment(fragmentId string){
@@ -112,6 +105,7 @@ func (p *PendingPlans) RemoveFragment(fragmentId string){
     }
     // delete the fragment
     delete(p.pendingFragment,fragmentId)
+    p.printStatus()
 }
 
 func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
@@ -119,4 +113,9 @@ func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
     defer p.mu.Unlock()
     _, exists := p.pendingFragment[fragmentID]
     return exists
+}
+
+func (p *PendingPlans) printStatus() {
+    log.Info().Msgf("%d pending plans, %d pending fragments, %d pending services",
+        len(p.pending), len(p.pendingFragment), len(p.pendingService))
 }

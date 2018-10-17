@@ -28,6 +28,11 @@ func (h *Handler) UpdateDeploymentFragmentStatus(ctx context.Context, request *p
         err := errors.New("non valid empty fragment id in DeploymentFragmentUpdateRequest")
         return nil, err
     }
+
+    if !h.ValidDeploymentFragmentUpdateRequest(request) {
+        return nil, errors.New("missing mandatory fields")
+    }
+
     err := h.mng.UpdateFragmentStatus(request)
     if err != nil {
         return nil, err
@@ -42,11 +47,7 @@ func (h *Handler) UpdateServiceStatus(ctx context.Context, request *pbConductor.
         return nil, err
     }
 
-    // TODO finish this
-    log.Debug().Msgf("UpdateServiceStatus receives %v", request)
-    for _, serv := range request.List {
-        log.Debug().Msgf("--> %s-%s", serv.ServiceInstanceId,serv.Status)
-    }
+
 
     err := h.mng.UpdateServicesStatus(request)
 
@@ -59,4 +60,10 @@ func (h *Handler) UpdateServiceStatus(ctx context.Context, request *pbConductor.
 }
 
 
-
+func (h *Handler) ValidDeploymentFragmentUpdateRequest(request *pbConductor.DeploymentFragmentUpdateRequest) bool {
+    if request.OrganizationId == "" || request.FragmentId == "" || request.AppInstanceId == "" ||
+        request.ClusterId == "" {
+        return false
+    }
+    return true
+}
