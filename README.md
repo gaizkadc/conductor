@@ -64,5 +64,13 @@ with the following example:
 grpc_cli call localhost:5000 conductor.Conductor.Deploy "request_id: 'req_001', app_id: {organization_id: 'org_001', app_descriptor_id: 'app_001'}, cpu:0.3, disk:2000, memory:3000"
 ```
 
+# Integration tests
+Many tests run by conductor require of other Nalej environment components to be up and running. The following table
+summarizes the set of expected testing variables.
+
+| Variable  | Example Value | Description |
+| ------------- | ------------- |------------- |
+| RUN_INTEGRATION_TEST  | true | Run integration tests |
+| IT_SYSTEM_MODEL | localhost:8800 | Address of an available system model server |
 
 

@@ -11,10 +11,15 @@ package conductor
 // When running tests, this pool uses listening buffers.
 
 import (
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
+    pbOrganization  "github.com/nalej/grpc-organization-go"
     "github.com/nalej/grpc-utils/pkg/tools"
+    "github.com/nalej/conductor/pkg/utils"
     "google.golang.org/grpc"
     "github.com/rs/zerolog/log"
     "sync"
+    "context"
+    "fmt"
 )
 
 var (
@@ -79,5 +84,38 @@ func dmClientFactory(address string) (*grpc.ClientConn, error) {
     }
     log.Info().Msgf("Connected to address at %s", address)
     return conn, err
+}
+
+// This is a common sharing function to check the system model and update the available clusters.
+// Additionally, the function updates the available connections.
+//  params:
+//   organizationId
+//  returns:
+//   list of available cluster hostnames
+func CheckAvailableClusters(organizationId string) []string{
+    cmClients := GetSystemModelClients()
+    // no available system model client
+    if cmClients.NumConnections() == 0 {
+        log.Error().Msg("there are no available system model clients")
+        return nil
+    }
+
+    // Get an infrastructure client and check the available clusters
+    client := pbInfrastructure.NewClustersClient(cmClients.GetConnections()[0])
+    req := pbOrganization.OrganizationId{OrganizationId:organizationId}
+    clusterList, err := client.ListClusters(context.Background(), &req)
+    if err != nil {
+        log.Error().Err(err).Msgf("there was a problem getting the list of " +
+            "available cluster for org %s",organizationId)
+        return nil
+    }
+
+    toReturn := make([]string,0)
+    musicians := GetMusicianClients()
+    for _, cluster := range clusterList.Clusters {
+        musicians.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.MUSICIAN_PORT))
+        toReturn = append(toReturn, cluster.Hostname)
+    }
+    return toReturn
 }
 

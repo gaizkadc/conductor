@@ -30,7 +30,6 @@ func init() {
     RootCmd.AddCommand(runCmd)
 
     runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
-    runCmd.Flags().StringSliceP("musicians", "m", make([]string,10),"list of addresses for musicians 192.168.1.1:3000 127.0.0.1:3000")
     runCmd.Flags().StringP("systemmodel","s","localhost:8800","host:port indicating where is available the system model")
 
     viper.BindPFlags(runCmd.Flags())
@@ -40,13 +39,10 @@ func init() {
 func RunConductor() {
     // Incoming requests port
     var port uint32
-    // Array of musician addresses
-    var musicians[]string
     // System model url
     var systemModel string
 
     port = uint32(viper.GetInt32("conductor-port"))
-    musicians = viper.GetStringSlice("musicians")
     systemModel = viper.GetString("systemmodel")
 
     log.Info().Msg("launching conductor...")
@@ -54,7 +50,6 @@ func RunConductor() {
 
     config := service.ConductorConfig{
         Port: port,
-        Musicians: musicians,
         SystemModelURL: systemModel,
     }
     config.Print()

@@ -46,14 +46,14 @@
 [[projects]]
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "fa473d140ef3c6adf42d6b391fe76707f1f243c8"
-  version = "v1.0.0"
+  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
+  version = "v1.1.2"
 
 [[projects]]
   branch = "master"
   name = "github.com/nalej/golang-template"
   packages = ["version"]
-  revision = "07a770bd10401011de703a9357df0d959e722ebd"
+  revision = "5e802ff04909c4578ba8345086e2ea7ea11d0b0f"
 
 [[projects]]
   name = "github.com/nalej/grpc-application-go"
@@ -64,37 +64,37 @@
 [[projects]]
   name = "github.com/nalej/grpc-common-go"
   packages = ["."]
-  revision = "6f63c4006bba4bbb6f6c9935a52621388658ee06"
-  version = "v0.0.4"
+  revision = "539f8345e40fc8a180b4c2cd31d448ca53eb7ac3"
+  version = "v0.0.7"
 
 [[projects]]
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
-  revision = "3538d98b61b57bd9e1b9553dba13c5958169a674"
-  version = "v0.0.40"
+  revision = "68b6897ad374f3d0576b9447b31450fc20515aaf"
+  version = "v0.0.42"
 
 [[projects]]
   name = "github.com/nalej/grpc-deployment-manager-go"
   packages = ["."]
-  revision = "6b0b176ddc4a630012dbc5e7c66694a5ac3799dc"
-  version = "v0.0.14"
+  revision = "b21d6ce13e18c845218458ccecdab4b1717764e0"
+  version = "v0.0.16"
 
 [[projects]]
   name = "github.com/nalej/grpc-infrastructure-go"
   packages = ["."]
-  revision = "c5c6c1ed327c620280b8f5ed3b0a384afba7b110"
-  version = "v0.0.5"
+  revision = "2cc5945f6243100819e3697804fe25f12c1a0f40"
+  version = "v0.0.8"
 
 [[projects]]
   name = "github.com/nalej/grpc-organization-go"
   packages = ["."]
-  revision = "8b9ade4c0d679f2d4deb4b00d95e1126f2ed3abf"
-  version = "v0.0.5"
+  revision = "41656bdce85baec387789f0358a8bc0bff841463"
+  version = "v0.0.8"
 
 [[projects]]
   name = "github.com/nalej/grpc-utils"
   packages = ["pkg/test","pkg/tools"]
-  revision = "5dd4662c03100806b57763212966a72e0c4b85e5"
+  revision = "120443cfc0335f46d85293d471189625d8b70483"
   version = "v1.1.0"
 
 [[projects]]
@@ -130,20 +130,20 @@
 [[projects]]
   name = "github.com/prometheus/client_golang"
   packages = ["api","api/prometheus/v1"]
-  revision = "967789050ba94deca04a5e84cce8ad472ce313c1"
-  version = "v0.9.0-pre1"
+  revision = "1cafe34db7fdec6022e17e00e1c1ea501022f3e4"
+  version = "v0.9.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/prometheus/common"
   packages = ["model"]
-  revision = "c7de2306084e37d54b8be01f3541a8464345e9a5"
+  revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
 
 [[projects]]
   name = "github.com/rs/zerolog"
   packages = [".","internal/cbor","internal/json","log"]
-  revision = "77db4b4f350e31be66a57c332acb7721cf9ff9bb"
-  version = "v1.8.0"
+  revision = "338f9bc14084d22cb8eeacd6492861f8449d715c"
+  version = "v1.9.1"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -172,26 +172,26 @@
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
-  version = "v1.0.2"
+  revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
+  version = "v1.0.3"
 
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "8fb642006536c8d3760c99d4fa2389f5e2205631"
-  version = "v1.2.0"
+  revision = "2c12c60302a5a0e62ee102ca9bc996277c2f64f5"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","html","html/atom","html/charset","http/httpguts","http2","http2/hpack","idna","internal/timeseries","trace"]
-  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
+  revision = "04a2e542c03f1d053ab3e4d6e5abcd4b66e2be8e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "d0be0721c37eeb5299f245a996a483160fc36940"
+  revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -203,7 +203,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "36d5787dc5356b711fe8f3040271aaf51c35955b"
+  revision = "94acd270e44e65579b9ee3cdab25034d33fed608"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -233,6 +233,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9886309cfb7e2560ab89babc278ae71665a40947c446339660f73cf0afa09e9f"
+  inputs-digest = "31c4b6ce6f0019543218180da9a39ea19d64263c30b72f33bd3edfc8b7faca7d"
   solver-name = "gps-cdcl"
   solver-version = 1

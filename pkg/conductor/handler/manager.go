@@ -133,7 +133,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     }
 
     // 2) score requirements
-    scoreResult, err := c.ScorerMethod.ScoreRequirements (foundRequirements)
+    scoreResult, err := c.ScorerMethod.ScoreRequirements (req.OrganizationID,foundRequirements)
 
     if err != nil {
         log.Error().Err(err).Msgf("error scoring request %s", req.RequestID)
@@ -172,6 +172,7 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
         // TODO get cluster IP address from system model
+        
         conductor.GetDMClients().AddConnection("127.0.0.1:5200")
         clusterIP := "127.0.0.1:5200"
         conn,err := conductor.GetDMClients().GetConnection(clusterIP)

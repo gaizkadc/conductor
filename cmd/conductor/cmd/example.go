@@ -13,6 +13,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
 
     "google.golang.org/grpc"
     "context"
@@ -82,8 +83,14 @@ func RunExample() {
 
     applicationClient := pbApplication.NewApplicationsClient(conn2)
     organizationClient := pbOrganization.NewOrganizationsClient(conn2)
+    clusterClient := pbInfrastructure.NewClustersClient(conn2)
 
-    desc := InitializeEntries(organizationClient, applicationClient)
+    orgId, orgErr := InitializeInfrastructure(organizationClient, clusterClient)
+    if orgErr != nil {
+        return
+    }
+
+    desc := InitializeEntries(orgId,applicationClient)
 
     log.Info().Msgf("%v",desc)
 
@@ -113,15 +120,36 @@ func RunExample() {
 
 }
 
-
-func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
+func InitializeInfrastructure(orgClient pbOrganization.OrganizationsClient,
+    clustersClient pbInfrastructure.ClustersClient) (string,error) {
     // add an organization
     orgRequest := pbOrganization.AddOrganizationRequest{Name: "org001"}
-    resp, err := orgClient.AddOrganization(context.Background(),&orgRequest)
+    orgResp, err := orgClient.AddOrganization(context.Background(),&orgRequest)
     if err != nil {
         log.Panic().Err(err).Msg("impossible to connect with system model to update organization")
-        return nil
+        return "",err
     }
+
+    // add a cluster
+    clusterReq := pbInfrastructure.AddClusterRequest{
+        Name: "cluster1",
+        OrganizationId: orgResp.OrganizationId,
+        Labels: map[string]string{"clusterlabel":"clastervalue"},
+        Description: "This is a simple testing value",
+        RequestId: "req001",
+        Hostname: "localhost",
+    }
+    _, err = clustersClient.AddCluster(context.Background(), &clusterReq)
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to add cluster")
+        return "",err
+    }
+    return orgResp.OrganizationId, nil
+}
+
+
+func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
+
 
 
     port1 := pbApplication.Port{Name: "webport", ExposedPort: 80}
@@ -148,7 +176,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     }*/
 
     serv2 := pbApplication.Service {
-        OrganizationId: resp.OrganizationId,
+        OrganizationId: orgId,
         ServiceId: "service_002",
         Name: "demo-wordpress",
         Image: "wordpress:4.8-apache",
@@ -167,7 +195,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     }
 
     serv3 := pbApplication.Service {
-        OrganizationId: resp.OrganizationId,
+        OrganizationId: orgId,
         ServiceId: "service_003",
         Name: "demo-mysql",
         Image: "mysql:5.6",
@@ -185,7 +213,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     }
 
     servGroup := pbApplication.ServiceGroup{
-        OrganizationId:resp.OrganizationId,
+        OrganizationId: orgId,
         Description:"a service group",
         AppDescriptorId: "app001",
         Name: "group001",
@@ -197,7 +225,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     secRule := pbApplication.SecurityRule{
         Name:"securityrule",
         AppDescriptorId: "app001",
-        OrganizationId: resp.OrganizationId,
+        OrganizationId: orgId,
         Access: pbApplication.PortAccess_ALL_APP_SERVICES,
         AuthServices: []string{"auth"},
         DeviceGroups: []string{"devgroup"},
@@ -211,7 +239,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         RequestId: "req001",
         Name:"app_descriptor_test",
         Description: "app_descriptor_test description",
-        OrganizationId: resp.OrganizationId,
+        OrganizationId: orgId,
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
         Services: []*pbApplication.Service{&serv2,&serv3},
@@ -221,6 +249,10 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         Rules: []*pbApplication.SecurityRule{&secRule},
     }
     desc, err := appClient.AddAppDescriptor(context.Background(),&appDescriptor)
+    if err != nil {
+        log.Error().Msg("impossible to add descriptor")
+        panic(err)
+    }
     return desc
 }
 
