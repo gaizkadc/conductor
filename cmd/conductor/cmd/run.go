@@ -11,6 +11,8 @@ import (
     "github.com/rs/zerolog/log"
     "github.com/spf13/viper"
     "github.com/nalej/conductor/pkg/conductor/service"
+    "fmt"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 
@@ -29,8 +31,9 @@ func init() {
 
     RootCmd.AddCommand(runCmd)
 
-    runCmd.Flags().Uint32P("conductor-port", "c",5000,"port where conductor listens to")
-    runCmd.Flags().StringP("systemmodel","s","localhost:8800","host:port indicating where is available the system model")
+    runCmd.Flags().Uint32P("conductor-port", "c",utils.CONDUCTOR_PORT,"port where conductor listens to")
+    runCmd.Flags().StringP("systemmodel","s",fmt.Sprintf("localhost:%d",utils.SYSTEM_MODEL_PORT),
+        "host:port indicating where is available the system model")
 
     viper.BindPFlags(runCmd.Flags())
 }
