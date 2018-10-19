@@ -1,5 +1,5 @@
 ###
-# Musician configuration
+# Conductor configuration
 ###
 
 kind: Deployment
@@ -32,10 +32,7 @@ spec:
         args:
           - "run"
           - "--debug"
-          - "--musicians=musician.nalej.svc.cluster.local:5100"
           - "--systemmodel=system-model.nalej.svc.cluster.local:8800"
-        #  - "--system-model-address=http://system-model.nalej.svc.cluster.local:8800"
-        #  - "--logger-address=http://log-collector.kube-system.svc.cluster.local:8083"
         ports:
         - name: api-port
           containerPort: 5000
