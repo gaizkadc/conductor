@@ -13,10 +13,11 @@
 
 [[constraint]]
     name="github.com/prometheus/common"
+    branch="master"
 
 [[constraint]]
-    name="github.com/beeker1121/goque"
-    version="v2.0.1"
+    name="github.com/yourbasic/graph"
+    version="v1.0.5"
 
 [[constraint]]
     name="github.com/nalej/grpc-utils"
@@ -43,10 +44,6 @@
     version="v0.0.8"
 
  [[constraint]]
-    name="github.com/grpc/grpc-go"
-    version="v1.15.0"
-
- [[constraint]]
    name="github.com/onsi/ginkgo"
    version="v1.6.0"
 
@@ -60,6 +57,7 @@
 
  [[constraint]]
     name = "github.com/phf/go-queue"
+    branch = "master"
 
  [[constraint]]
     name = "github.com/google/uuid"
