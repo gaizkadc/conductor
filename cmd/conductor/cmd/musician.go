@@ -14,6 +14,7 @@ import (
     "github.com/nalej/conductor/pkg/musician/service"
     "github.com/nalej/conductor/pkg/musician/scorer"
     "os"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 var musicianCmd = &cobra.Command{
@@ -31,7 +32,7 @@ func init() {
 
     RootCmd.AddCommand(musicianCmd)
 
-    musicianCmd.Flags().Uint32P("musician-port", "u",5100,"musician endpoint")
+    musicianCmd.Flags().Uint32P("musician-port", "u",utils.MUSICIAN_PORT,"musician endpoint")
     musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
     musicianCmd.Flags().Uint32P("sleep", "s",10000,"time to sleep between queries in milliseconds")
 

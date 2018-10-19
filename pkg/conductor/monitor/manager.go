@@ -36,7 +36,7 @@ func NewManager() *Manager {
 }
 
 // Add a plan to be monitored.
-func (m *Manager) AddPlanToMonitor(plan *pbConductor.DeploymentPlan) {
+func (m *Manager) AddPlanToMonitor(plan *entities.DeploymentPlan) {
     m.pendingPlans.AddPendingPlan(plan)
 }
 

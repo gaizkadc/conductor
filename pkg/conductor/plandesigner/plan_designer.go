@@ -7,7 +7,6 @@ package plandesigner
 
 import (
     "github.com/nalej/conductor/internal/entities"
-    pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
 )
 
@@ -23,5 +22,5 @@ type PlanDesigner interface {
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app *pbApplication.AppInstance,
-        score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error)
+        score *entities.ClusterScore) (*entities.DeploymentPlan, error)
 }

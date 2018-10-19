@@ -15,8 +15,9 @@ type Scorer interface {
 
     // For a existing set of deployment requirements score potential candidates.
     //  params:
+    //   organizationId where the request is taking place
     //   requirements to be fulfilled
     //  return:
     //   candidates score
-    ScoreRequirements (requirements *entities.Requirements) (*entities.ClusterScore, error)
+    ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.ClusterScore, error)
 }

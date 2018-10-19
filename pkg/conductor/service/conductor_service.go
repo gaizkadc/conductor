@@ -24,14 +24,11 @@ type ConductorConfig struct {
     Port uint32
     // URL where the system model is available
     SystemModelURL string
-    // List of musicians to be queried
-    Musicians []string
 }
 
 func (conf * ConductorConfig) Print() {
     log.Info().Uint32("port", conf.Port).Msg("gRPC port")
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
-    log.Info().Strs("URL", conf.Musicians).Msg("Musicians")
 }
 
 
@@ -59,9 +56,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
-    // Confligure cluster entries
-    // TODO get from the system model
-    InitPool(config.Musicians, conductor.GetMusicianClients())
+    //InitPool(config.Musicians, conductor.GetMusicianClients())
 
     q := handler.NewMemoryRequestQueue()
     scr := scorer.NewSimpleScorer()

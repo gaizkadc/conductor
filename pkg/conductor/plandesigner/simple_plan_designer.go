@@ -9,7 +9,6 @@ package plandesigner
 import (
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/internal/entities"
-    pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     "github.com/google/uuid"
     "context"
@@ -28,7 +27,7 @@ func NewSimplePlanDesigner () PlanDesigner {
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
-    score *entities.ClusterScore) (*pbConductor.DeploymentPlan, error) {
+    score *entities.ClusterScore) (*entities.DeploymentPlan, error) {
     // Build deployment stages for the application
 
     toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
@@ -42,27 +41,33 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     fragmentUUID := uuid.New().String()
     stageUUID := uuid.New().String()
 
-    stage := pbConductor.DeploymentStage{
+    servicesToDeploy := make([]entities.Service,len(toDeploy.Services))
+    for i, serv := range toDeploy.Services {
+        servicesToDeploy[i] = *entities.NewServiceFromGRPC(toDeploy.AppDescriptorId,serv)
+    }
+
+    stage := entities.DeploymentStage{
         FragmentId: fragmentUUID,
         StageId: stageUUID,
-        Services: toDeploy.Services}
+        Services: servicesToDeploy,
+    }
 
     planId := uuid.New().String()
 
-    fragment := pbConductor.DeploymentFragment{
+    fragment := entities.DeploymentFragment{
         OrganizationId: app.OrganizationId,
         AppInstanceId: app.AppInstanceId,
         FragmentId: fragmentUUID,
         DeploymentId: planId,
-        Stages: []*pbConductor.DeploymentStage{&stage},
+        Stages: []entities.DeploymentStage{stage},
     }
 
     // Aggregate to a new plan
-    newPlan := pbConductor.DeploymentPlan{
+    newPlan := entities.DeploymentPlan{
         AppInstanceId: app.AppInstanceId,
         DeploymentId: planId,
         OrganizationId: app.OrganizationId,
-        Fragments: []*pbConductor.DeploymentFragment{&fragment},
+        Fragments: []entities.DeploymentFragment{fragment},
     }
 
     return &newPlan, nil
