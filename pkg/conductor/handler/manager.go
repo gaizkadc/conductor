@@ -19,6 +19,8 @@ import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/google/uuid"
     "github.com/nalej/conductor/pkg/conductor/monitor"
+    "fmt"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -165,27 +167,26 @@ func(c *Manager) ProcessDeploymentRequest(){
 
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
-func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
+func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
     // Start monitoring this fragment
     c.Monitor.AddPlanToMonitor(plan)
 
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
         // TODO get cluster IP address from system model
-        
-        conductor.GetDMClients().AddConnection("127.0.0.1:5200")
-        clusterIP := "127.0.0.1:5200"
-        conn,err := conductor.GetDMClients().GetConnection(clusterIP)
+        dmAddress := fmt.Sprintf("%s:%d",fragment.ClusterId,utils.DEPLOYMENT_MANAGER_PORT)
+        conn,err := conductor.GetDMClients().GetConnection(dmAddress)
+
         if err!=nil{
-            log.Error().Err(err).Msgf("problem creating connection with %s",clusterIP)
-            // TODO define what to do in this case. Run rollback?
+            log.Error().Err(err).Msgf("problem creating connection with %s",dmAddress)
+            // TODO define what to do in this case.
             return err
         }
 
         // build a request
         request := pbDeploymentManager.DeploymentFragmentRequest{
             RequestId: uuid.New().String(),
-            Fragment: fragment,
+            Fragment: fragment.ToGRPC(),
             RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
@@ -195,8 +196,6 @@ func (c *Manager) DeployPlan(plan *pbConductor.DeploymentPlan) error {
             log.Error().Err(err).Msgf("problem deploying fragment %s", fragment.DeploymentId)
             return err
         }
-
-        // TODO define how to modify the system model according to the response
     }
 
     return nil

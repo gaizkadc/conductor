@@ -28,7 +28,7 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
-    version="v0.0.14"
+    version="v0.0.15"
 
 [[constraint]]
     name="github.com/nalej/grpc-organization-go"
@@ -41,10 +41,6 @@
 [[constraint]]
     name="github.com/nalej/grpc-infrastructure-go"
     version="v0.0.8"
-
- [[constraint]]
-    name="github.com/nalej/system-model"
-    branch="master"
 
  [[constraint]]
     name="github.com/grpc/grpc-go"

@@ -13,7 +13,6 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
-    "github.com/rs/zerolog/log"
     "google.golang.org/grpc/test/bufconn"
     "google.golang.org/grpc"
     "context"
@@ -24,13 +23,10 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
     "github.com/nalej/conductor/pkg/conductor"
+    "os"
+    "fmt"
 )
 
-
-const (
-    // TODO Set an ENV variable.
-    SystemModelAddress="127.0.0.1:8800"
-)
 
 func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
     // add an organization
@@ -104,12 +100,8 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 
 var _ = ginkgo.Describe("Deployment server API", func() {
-
-    if ! utils.RunIntegrationTests() {
-        log.Warn().Msg("Integration tests are skipped")
-        return
-    }
-
+    // Suystem model address
+    var systemModelAdd string
     // grpc server
     var server *grpc.Server
     // conductor object
@@ -129,11 +121,25 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     // Used application descriptor
     var appDescriptor *pbApplication.AppDescriptor
 
+
     ginkgo.BeforeSuite(func(){
+
+        if ! utils.RunIntegrationTests() {
+            ginkgo.Fail("Integration environment was not set")
+            return
+        } else {
+            systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
+            if systemModelAdd == "" {
+                ginkgo.Fail(fmt.Sprintf("no %s variable defined", utils.IT_SYSTEM_MODEL))
+                return
+            }
+        }
+
+
         // connect with external system model using the pool
         pool := conductor.GetSystemModelClients()
         var err error
-        connSM, err = pool.AddConnection(SystemModelAddress)
+        connSM, err = pool.AddConnection(systemModelAdd)
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
         listener = test.GetDefaultListener()
@@ -164,9 +170,11 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     })
 
     ginkgo.AfterSuite(func(){
-        listener.Close()
-        server.Stop()
-        connSM.Close()
+        if utils.RunIntegrationTests() {
+            listener.Close()
+            server.Stop()
+            connSM.Close()
+        }
     })
 
 

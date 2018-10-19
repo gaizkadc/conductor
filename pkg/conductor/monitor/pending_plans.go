@@ -6,7 +6,7 @@
 package monitor
 
 import (
-    pbConductor "github.com/nalej/grpc-conductor-go"
+    "github.com/nalej/conductor/internal/entities"
     "sync"
     "github.com/rs/zerolog/log"
 )
@@ -14,7 +14,7 @@ import (
 // Struct to control pending deployment plans
 type PendingPlans struct {
     // plan_id -> deployment plan
-    pending map[string]*pbConductor.DeploymentPlan
+    pending map[string]*entities.DeploymentPlan
     // fragment_id -> deployment_plan_id. Index just to improve searching.
     pendingFragment map[string]string
     // service_id -> fragment_id
@@ -27,12 +27,12 @@ func NewPendingPlans () *PendingPlans {
     return &PendingPlans{
         pendingService: make(map[string]string,0),
         pendingFragment: make(map[string]string,0),
-        pending: make(map[string]*pbConductor.DeploymentPlan),
+        pending: make(map[string]*entities.DeploymentPlan),
     }
 }
 
 
-func (p *PendingPlans) AddPendingPlan(plan *pbConductor.DeploymentPlan) {
+func (p *PendingPlans) AddPendingPlan(plan *entities.DeploymentPlan) {
     log.Debug().Msgf("add plan of deployment %s to pending checks",plan.DeploymentId)
     p.mu.Lock()
     defer p.mu.Unlock()

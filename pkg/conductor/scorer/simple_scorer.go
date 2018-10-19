@@ -78,7 +78,7 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
 // Internal method to query known clusters about requirements scoring.
 func (s SimpleScorer) collectScores(organizationId string, requirements *entities.Requirements)[]*pbConductor.ClusterScoreResponse{
 
-    clusters := conductor.CheckAvailableClusters(organizationId)
+    clusters := conductor.UpdateClusterConnections(organizationId)
     if clusters == nil || len(clusters) == 0 {
         log.Error().Msgf("no clusters found for oganization %s", organizationId)
         return nil

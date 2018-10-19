@@ -87,12 +87,13 @@ func dmClientFactory(address string) (*grpc.ClientConn, error) {
 }
 
 // This is a common sharing function to check the system model and update the available clusters.
-// Additionally, the function updates the available connections.
+// Additionally, the function updates the available connections for musicians and deployment managers.
 //  params:
 //   organizationId
 //  returns:
 //   list of available cluster hostnames
-func CheckAvailableClusters(organizationId string) []string{
+func UpdateClusterConnections(organizationId string) []string{
+    log.Debug().Msg("update cluster connections...")
     cmClients := GetSystemModelClients()
     // no available system model client
     if cmClients.NumConnections() == 0 {
@@ -112,8 +113,10 @@ func CheckAvailableClusters(organizationId string) []string{
 
     toReturn := make([]string,0)
     musicians := GetMusicianClients()
+    dms := GetDMClients()
     for _, cluster := range clusterList.Clusters {
         musicians.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.MUSICIAN_PORT))
+        dms.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.DEPLOYMENT_MANAGER_PORT))
         toReturn = append(toReturn, cluster.Hostname)
     }
     return toReturn
