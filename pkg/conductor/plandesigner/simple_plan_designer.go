@@ -39,18 +39,39 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     // TODO this version assumes everything will go into a single cluster
 
     fragmentUUID := uuid.New().String()
-    stageUUID := uuid.New().String()
+    index := make(map[string]entities.Service,0)
 
     servicesToDeploy := make([]entities.Service,len(toDeploy.Services))
     for i, serv := range toDeploy.Services {
-        servicesToDeploy[i] = *entities.NewServiceFromGRPC(toDeploy.AppDescriptorId,serv)
+        ent := *entities.NewServiceFromGRPC(toDeploy.AppDescriptorId,serv)
+        servicesToDeploy[i] = ent
+        index[serv.ServiceId] = ent
     }
 
-    stage := entities.DeploymentStage{
-        FragmentId: fragmentUUID,
-        StageId: stageUUID,
-        Services: servicesToDeploy,
+    // Create dependency graph
+    depGraph := NewDependencyGraph(servicesToDeploy)
+
+    // Split it into independent components
+    groups, err := depGraph.GetDependencyOrderByGroups()
+    if err != nil {
+        log.Error().Err(err).Msgf("impossible to define deployment stages for app instance %s",app.AppInstanceId)
+        return nil, err
     }
+
+    stages := make([]entities.DeploymentStage, len(groups))
+    for stageNumber, servicesPerStage := range groups {
+        inThisStage := make([]entities.Service, len(servicesPerStage))
+        for i, serviceId := range servicesPerStage {
+            inThisStage[i] = index[serviceId]
+        }
+
+        stages[stageNumber] = entities.DeploymentStage{
+            FragmentId: fragmentUUID,
+            StageId: uuid.New().String(),
+            Services: inThisStage,
+        }
+    }
+
 
     planId := uuid.New().String()
 
@@ -59,7 +80,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         AppInstanceId: app.AppInstanceId,
         FragmentId: fragmentUUID,
         DeploymentId: planId,
-        Stages: []entities.DeploymentStage{stage},
+        Stages: stages,
     }
 
     // Aggregate to a new plan

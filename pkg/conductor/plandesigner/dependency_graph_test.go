@@ -53,15 +53,16 @@ var  _ = ginkgo.Describe("Check graph dependencies" , func(){
             gomega.Expect(g.NumServices()).To(gomega.Equal(5))
          })
 
-         ginkgo.It("Compute topological order", func(){
+         ginkgo.It("Compute group topological order", func(){
              g := NewDependencyGraph(services)
-             order := g.GetDependencyOrderByGroups()
+             order, err := g.GetDependencyOrderByGroups()
+             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
              log.Info().Msgf("order %v",order)
-             expected := [][]int{
-                 []int{1,3},
-                 []int{0},
-                 []int{4},
-                 []int{2}}
+             expected := [][]string{
+                 []string{"serv1","serv3"},
+                 []string{"serv0"},
+                 []string{"serv4"},
+                 []string{"serv2"}}
              gomega.Expect(order).To(gomega.Equal(expected))
 
          })

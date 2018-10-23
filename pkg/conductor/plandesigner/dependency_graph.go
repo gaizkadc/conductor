@@ -8,14 +8,18 @@ package plandesigner
 import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/yourbasic/graph"
+    "errors"
 )
 
 // DependencyGraph represents the connectivity between different services inside a Nalej application.
 type DependencyGraph struct {
     // The internal graph object
     graph *graph.Mutable
-    // A reference map to translate between services id and vertex ids
-    reference map[string]int
+    // A id2graph map to translate between services id and vertex ids
+    id2graph map[string]int
+    // Array where the i-th node id corresponds to the i-th service id in the array
+    graph2id []string
+
 }
 
 // NewDeopendencyGraph build a dependency graph from a list of service entities. This graphs represents
@@ -26,8 +30,11 @@ func NewDependencyGraph(services []entities.Service) *DependencyGraph {
     g := graph.New(len(services))
     // Build a map to translate serviceid->array position
     reference := make(map[string]int,0)
+    // Build the array to translate nodeid -> serviceid
+    greference := make([]string, len(services))
     for i, serv := range services {
         reference[serv.ServiceId] = i
+        greference[i] = serv.ServiceId
     }
     for _, serv := range services {
         if serv.DeployAfter != nil && len(serv.DeployAfter) >0 {
@@ -35,11 +42,12 @@ func NewDependencyGraph(services []entities.Service) *DependencyGraph {
             for _, afterId := range serv.DeployAfter {
                 targetVertex := reference[afterId]
                 //g.Add(sourceVertex, targetVertex)
+                // create graph in temporal order
                 g.Add(targetVertex, sourceVertex)
             }
         }
     }
-    return &DependencyGraph{graph: g, reference: reference}
+    return &DependencyGraph{graph: g, id2graph: reference, graph2id: greference}
 }
 
 func (dg *DependencyGraph) NumServices() int {
@@ -54,15 +62,18 @@ func (dg *DependencyGraph) NumDependencies() int {
     return sum
 }
 
-func (dg *DependencyGraph) GetDependencyOrderByGroups() [][]int {
-    // Follow https://stackoverflow.com/questions/4073119/topological-sort-with-grouping
-    //order, _ := graph.TopSort(dg.graph)
-    //return order
+// GetDependencyOrderByGraph returns a array of arrays with the stages and the ids of the services that can be
+// executed in parallel in at the same time when the previous stage finishes.
+// return:
+//  array of services per group. E.g.: [[service2,service3], [service0], [service1]]
+func (dg *DependencyGraph) GetDependencyOrderByGroups() ([][]string, error) {
+
 
     // This must be an acyclic graph
     isAcyclic := graph.Acyclic(dg.graph)
     if !isAcyclic {
-        return nil
+        error := errors.New("cyclic dependency graph")
+        return nil, error
     }
 
     groups := make([]int, dg.NumServices())
@@ -98,17 +109,17 @@ func (dg *DependencyGraph) GetDependencyOrderByGroups() [][]int {
 
     //log.Debug().Msgf("list of groups %v",groups)
 
-    toReturn := make([][]int,maxGroupId+1)
+    toReturn := make([][]string,maxGroupId+1)
     // fill the list of groups
     for index, group := range groups {
         // log.Debug().Msgf("node %d goes to group %d", index, group)
         if toReturn[group] == nil {
-            toReturn[group] = make([]int,0)
+            toReturn[group] = make([]string,0)
         }
-        toReturn[group] = append(toReturn[group],index)
+        toReturn[group] = append(toReturn[group],dg.graph2id[index])
     }
 
-    return toReturn
+    return toReturn, nil
 }
 
 func (dg *DependencyGraph) String() string {

@@ -100,7 +100,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 
 var _ = ginkgo.Describe("Deployment server API", func() {
-    // Suystem model address
+    // System model address
     var systemModelAdd string
     // grpc server
     var server *grpc.Server

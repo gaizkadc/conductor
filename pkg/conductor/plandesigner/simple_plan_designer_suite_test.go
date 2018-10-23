@@ -15,5 +15,5 @@ import (
 
 func TestApiTest(t *testing.T) {
     RegisterFailHandler(Fail)
-    RunSpecs(t, "Dependency graph Test Suite")
+    RunSpecs(t, "Plan designer Test Suite")
 }
