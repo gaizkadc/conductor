@@ -12,6 +12,9 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
+    "os"
+    "github.com/nalej/conductor/pkg/utils"
+    "github.com/rs/zerolog/log"
 )
 
 type MusicianService struct {
@@ -27,6 +30,11 @@ func NewMusicianService(port uint32, collector *statuscollector.StatusCollector,
 }
 
 func(c *MusicianService) Run() {
+
+    if os.Getenv(utils.MUSICIAN_CLUSTER_ID)==""{
+        log.Panic().Msgf("%s variable has to be set before running the musician service", utils.MUSICIAN_CLUSTER_ID)
+    }
+
     // register services
     deployment := handler.NewHandler(c.musician)
 

@@ -49,6 +49,9 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
         // Check this are integration tests
         gomega.Expect(utils.RunIntegrationTests()).Should(gomega.BeTrue())
         smAddress = os.Getenv(utils.IT_SYSTEM_MODEL)
+        if !gomega.Expect(smAddress).NotTo(gomega.BeEmpty()){
+            ginkgo.Skip("system model variable was not set")
+        }
         gomega.Expect(smAddress).NotTo(gomega.BeEmpty())
 
         // initialize a system model

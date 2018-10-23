@@ -60,7 +60,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
         ginkgo.It("create the expected deployment plan", func(){
             appInstance := CreateApp1(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
-            score := entities.ClusterScore{RequestID:"001", TotalEvaluated: 1, ClusterID: "cluster1", Score: 0.99}
+            score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment
@@ -81,7 +81,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
         ginkgo.It("create the expected deployment plan", func(){
             appInstance := CreateApp2(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
-            score := entities.ClusterScore{RequestID:"001", TotalEvaluated: 1, ClusterID: "cluster1", Score: 0.99}
+            score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment
@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
         ginkgo.It("create the expected deployment plan", func(){
             appInstance := CreateApp3(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
-            score := entities.ClusterScore{RequestID:"001", TotalEvaluated: 1, ClusterID: "cluster1", Score: 0.99}
+            score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment

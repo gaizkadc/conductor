@@ -124,16 +124,15 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
     ginkgo.BeforeSuite(func(){
 
-        if ! utils.RunIntegrationTests() {
-            ginkgo.Fail("Integration environment was not set")
-            return
+        if !utils.RunIntegrationTests() {
+            ginkgo.Skip("Integration environment was not set")
         } else {
             systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
             if systemModelAdd == "" {
                 ginkgo.Fail(fmt.Sprintf("no %s variable defined", utils.IT_SYSTEM_MODEL))
-                return
             }
         }
+
 
 
         // connect with external system model using the pool
@@ -196,6 +195,17 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
 
         ginkgo.It("receive an expected message", func() {
+
+            if !utils.RunIntegrationTests() {
+                ginkgo.Skip("Integration environment was not set")
+            } else {
+                systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
+                if systemModelAdd == "" {
+                    ginkgo.Fail(fmt.Sprintf("no %s variable defined", utils.IT_SYSTEM_MODEL))
+                }
+            }
+
+
             resp, err := client.Deploy(context.Background(), &request)
             //gomega.Expect(resp.String()).To(gomega.Equal(response.String()))
             gomega.Expect(resp.RequestId).To(gomega.Equal(response.RequestId))

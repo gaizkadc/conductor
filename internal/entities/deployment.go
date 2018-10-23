@@ -13,19 +13,20 @@ import (
 
 // Representation of the score for a potential deployment candidate.
 type ClusterScore struct {
-    RequestID string
-    ClusterID string
-    Score float32
+    RequestId      string
+    ClusterId      string
+    ClusterIP      string
+    Score          float32
     TotalEvaluated int
 }
 
 // Objects describing received deployment requests. These objects are designed to be stored into
 // a storage structure such as a queue.
 type DeploymentRequest struct {
-    RequestID string
-    OrganizationID string
-    ApplicationID string
-    InstanceID string
+    RequestId      string
+    OrganizationId string
+    ApplicationId  string
+    InstanceId     string
 }
 
 // Fragment deployment status definition

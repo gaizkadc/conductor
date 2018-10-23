@@ -10,6 +10,8 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
+    "os"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 type SimpleScorer struct {
@@ -48,5 +50,7 @@ func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConduc
     //    float32(status.CPU),request.Cpu,float32(status.Mem),request.Memory,float32(status.Disk),request.Disk)
     log.Debug().Str("component", "musician").Msgf("%f + %f + %f = %f",dCPU, dMem, dDisk, score)
 
-    return &pbConductor.ClusterScoreResponse{RequestId: request.RequestId, Score: score, ClusterId: "someId"}, nil
+    // TODO recover cluster id from a cluster environment variable
+    return &pbConductor.ClusterScoreResponse{RequestId: request.RequestId, Score: score,
+        ClusterId: os.Getenv(utils.MUSICIAN_CLUSTER_ID)}, nil
 }

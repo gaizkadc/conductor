@@ -20,6 +20,7 @@ import (
     "sync"
     "context"
     "fmt"
+    "errors"
 )
 
 var (
@@ -32,7 +33,8 @@ var (
     // Singleton instance of connections with the system model
     SMClients *tools.ConnectionsMap
     onceSM sync.Once
-
+    // Translation map between cluster ids and their ip addresses
+    ClusterReference map[string]string
 )
 
 func GetSystemModelClients() *tools.ConnectionsMap {
@@ -47,6 +49,9 @@ func GetSystemModelClients() *tools.ConnectionsMap {
 func GetMusicianClients() *tools.ConnectionsMap {
     onceMusicians.Do(func(){
         MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
+        if ClusterReference == nil {
+            ClusterReference = make(map[string]string, 0)
+        }
     })
     return MusicianClients
 }
@@ -54,6 +59,9 @@ func GetMusicianClients() *tools.ConnectionsMap {
 func GetDMClients() *tools.ConnectionsMap {
     onceDM.Do(func() {
         DMClients = tools.NewConnectionsMap(dmClientFactory)
+        if ClusterReference == nil {
+            ClusterReference = make(map[string]string, 0)
+        }
     })
     return DMClients
 }
@@ -88,17 +96,19 @@ func dmClientFactory(address string) (*grpc.ClientConn, error) {
 
 // This is a common sharing function to check the system model and update the available clusters.
 // Additionally, the function updates the available connections for musicians and deployment managers.
+// The common ClusterReference object is updated with the cluster ids and the corresponding ip.
 //  params:
 //   organizationId
-//  returns:
-//   list of available cluster hostnames
-func UpdateClusterConnections(organizationId string) []string{
+func UpdateClusterConnections(organizationId string) error{
     log.Debug().Msg("update cluster connections...")
+    // Rebuild the map
+    ClusterReference = make(map[string]string,0)
+
     cmClients := GetSystemModelClients()
     // no available system model client
     if cmClients.NumConnections() == 0 {
         log.Error().Msg("there are no available system model clients")
-        return nil
+        return errors.New("there are no available system model clients")
     }
 
     // Get an infrastructure client and check the available clusters
@@ -106,19 +116,22 @@ func UpdateClusterConnections(organizationId string) []string{
     req := pbOrganization.OrganizationId{OrganizationId:organizationId}
     clusterList, err := client.ListClusters(context.Background(), &req)
     if err != nil {
-        log.Error().Err(err).Msgf("there was a problem getting the list of " +
+        msg := fmt.Sprintf("there was a problem getting the list of " +
             "available cluster for org %s",organizationId)
-        return nil
+        log.Error().Err(err).Msg(msg)
+        return errors.New(msg)
     }
 
     toReturn := make([]string,0)
     musicians := GetMusicianClients()
     dms := GetDMClients()
     for _, cluster := range clusterList.Clusters {
+        log.Debug().Msgf("add connection to cluster with id %s and hostname %s",cluster.ClusterId, cluster.Hostname)
+        ClusterReference[cluster.ClusterId] = cluster.Hostname
         musicians.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.MUSICIAN_PORT))
         dms.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.DEPLOYMENT_MANAGER_PORT))
         toReturn = append(toReturn, cluster.Hostname)
     }
-    return toReturn
+    return nil
 }
 
