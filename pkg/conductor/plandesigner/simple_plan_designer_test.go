@@ -14,12 +14,13 @@ import (
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
     "os"
-    "fmt"
     "context"
     "github.com/nalej/conductor/internal/entities"
 )
 
 var _ = ginkgo.Describe("Check plan designer", func(){
+
+    var isReady bool
 
     var localPlanDesigner PlanDesigner
 
@@ -34,14 +35,17 @@ var _ = ginkgo.Describe("Check plan designer", func(){
 
 
     ginkgo.BeforeSuite(func(){
-        if ! utils.RunIntegrationTests() {
-            ginkgo.Skip("Integration environment was not set")
-        } else {
+        isReady = false
+
+        if utils.RunIntegrationTests() {
             systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
-            if systemModelAdd == "" {
-                ginkgo.Fail(fmt.Sprintf("no %s variable defined", utils.IT_SYSTEM_MODEL))
-                return
+            if systemModelAdd != "" {
+                isReady = true
             }
+        }
+
+        if !isReady {
+            return
         }
 
         // connect with external system model using the pool
@@ -58,6 +62,9 @@ var _ = ginkgo.Describe("Check plan designer", func(){
 
     ginkgo.Context("single fragment two stages", func(){
         ginkgo.It("create the expected deployment plan", func(){
+            if !isReady {
+                ginkgo.Skip("run integration test not configured")
+            }
             appInstance := CreateApp1(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
             score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}
@@ -79,6 +86,9 @@ var _ = ginkgo.Describe("Check plan designer", func(){
 
     ginkgo.Context("single fragment two stages with different services", func(){
         ginkgo.It("create the expected deployment plan", func(){
+            if !isReady {
+                ginkgo.Skip("run integration test not configured")
+            }
             appInstance := CreateApp2(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
             score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}
@@ -101,6 +111,9 @@ var _ = ginkgo.Describe("Check plan designer", func(){
 
     ginkgo.Context("single fragment twe stages with 1, 2 and 3 services", func(){
         ginkgo.It("create the expected deployment plan", func(){
+            if !isReady {
+                ginkgo.Skip("run integration test not configured")
+            }
             appInstance := CreateApp3(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner()
             score := entities.ClusterScore{RequestId:"001", TotalEvaluated: 1, ClusterId: "cluster1", Score: 0.99}

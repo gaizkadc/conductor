@@ -29,6 +29,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     // grpc test listener
     var listener *bufconn.Listener
 
+
     ginkgo.BeforeEach(func(){
         collector := statuscollector.NewFakeCollector()
         listener = test.GetDefaultListener()

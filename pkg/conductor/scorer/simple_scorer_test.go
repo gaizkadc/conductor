@@ -27,6 +27,7 @@ import (
 
 
 var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func() {
+    var isReady bool
     // grpc servers
     var servers []*tools.GenericGRPCServer
     // scorer
@@ -47,12 +48,18 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
 
     ginkgo.BeforeSuite(func(){
         // Check this are integration tests
-        gomega.Expect(utils.RunIntegrationTests()).Should(gomega.BeTrue())
-        smAddress = os.Getenv(utils.IT_SYSTEM_MODEL)
-        if !gomega.Expect(smAddress).NotTo(gomega.BeEmpty()){
-            ginkgo.Skip("system model variable was not set")
+        isReady = false
+        if utils.RunIntegrationTests() {
+            smAddress = os.Getenv(utils.IT_SYSTEM_MODEL)
+            if smAddress != "" {
+                isReady=true
+            }
         }
-        gomega.Expect(smAddress).NotTo(gomega.BeEmpty())
+
+        if !isReady {
+            return
+        }
+
 
         // initialize a system model
         sm := conductor.GetSystemModelClients()
@@ -147,6 +154,9 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
 
         ginkgo.Context("the cluster with lowest occupation is chosen", func(){
             ginkgo.It("second cluster has the highest score", func(){
+                if !isReady {
+                    ginkgo.Skip("integration tests were not set")
+                }
                 response, err := scorerMethod.ScoreRequirements(organizationId,&request)
                 gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
                 gomega.Expect(response).NotTo(gomega.BeNil())

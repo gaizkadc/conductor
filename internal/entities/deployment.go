@@ -15,7 +15,6 @@ import (
 type ClusterScore struct {
     RequestId      string
     ClusterId      string
-    ClusterIP      string
     Score          float32
     TotalEvaluated int
 }
@@ -77,8 +76,6 @@ type DeploymentFragment struct{
     FragmentId string `json:"fragment_id,omitempty"`
     // Cluster id
     ClusterId string `json:"cluster_id,omitempty"`
-    // Cluster Ip
-    ClusterIp string `json:"cluster_ip,omitempty"`
     // Deployment stages belonging to this fragment
     Stages []DeploymentStage `json:"stages,omitempty"`
 }
