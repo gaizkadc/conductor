@@ -13,19 +13,19 @@ import (
 
 // Representation of the score for a potential deployment candidate.
 type ClusterScore struct {
-    RequestID string
-    ClusterID string
-    Score float32
+    RequestId      string
+    ClusterId      string
+    Score          float32
     TotalEvaluated int
 }
 
 // Objects describing received deployment requests. These objects are designed to be stored into
 // a storage structure such as a queue.
 type DeploymentRequest struct {
-    RequestID string
-    OrganizationID string
-    ApplicationID string
-    InstanceID string
+    RequestId      string
+    OrganizationId string
+    ApplicationId  string
+    InstanceId     string
 }
 
 // Fragment deployment status definition
@@ -76,8 +76,6 @@ type DeploymentFragment struct{
     FragmentId string `json:"fragment_id,omitempty"`
     // Cluster id
     ClusterId string `json:"cluster_id,omitempty"`
-    // Cluster Ip
-    ClusterIp string `json:"cluster_ip,omitempty"`
     // Deployment stages belonging to this fragment
     Stages []DeploymentStage `json:"stages,omitempty"`
 }

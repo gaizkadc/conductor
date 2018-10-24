@@ -20,4 +20,7 @@ const (
     MUSICIAN_PORT = 5100
     // Standard deployment manager port
     DEPLOYMENT_MANAGER_PORT = 5200
+    // ID for a musician cluster
+    MUSICIAN_CLUSTER_ID = "CLUSTER_ID"
+
 )

@@ -20,6 +20,7 @@ import (
     "bufio"
     "os"
     "os/exec"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 
@@ -94,6 +95,9 @@ func RunExample() {
 
     log.Info().Msgf("%v",desc)
 
+    log.Info().Msg("\nPress any key to run a deployment request")
+    bufio.NewReader(os.Stdin).ReadBytes('\n')
+
     request := pbConductor.DeploymentRequest{
         RequestId: "req0001",
         Name: "Conductor demo deployment",
@@ -132,52 +136,38 @@ func InitializeInfrastructure(orgClient pbOrganization.OrganizationsClient,
 
     // add a cluster
     clusterReq := pbInfrastructure.AddClusterRequest{
-        Name: "cluster1",
+        Name: "cluster001",
         OrganizationId: orgResp.OrganizationId,
-        Labels: map[string]string{"clusterlabel":"clastervalue"},
+        Labels: map[string]string{"clusterlabel":"clustervalue"},
         Description: "This is a simple testing value",
         RequestId: "req001",
         Hostname: "localhost",
     }
-    _, err = clustersClient.AddCluster(context.Background(), &clusterReq)
+    addedCluster, err := clustersClient.AddCluster(context.Background(), &clusterReq)
+
     if err != nil {
         log.Panic().Err(err).Msg("impossible to add cluster")
         return "",err
     }
+
+    log.Info().Msgf("set %s variable with %s",utils.MUSICIAN_CLUSTER_ID, addedCluster.ClusterId)
+    os.Setenv(utils.MUSICIAN_CLUSTER_ID,addedCluster.ClusterId)
+
     return orgResp.OrganizationId, nil
 }
 
 
 func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
 
-
-
     port1 := pbApplication.Port{Name: "webport", ExposedPort: 80}
     port2 := pbApplication.Port{Name: "mysqlport", ExposedPort: 3306}
 
     credentials := pbApplication.ImageCredentials{Username: "user1", Password: "password1", Email: "email@email.com"}
-    /*
-    serv1 := pbApplication.Service{
-        OrganizationId: resp.OrganizationId,
-        ServiceId: "service_001",
-        Name: "demo-nginx",
-        Image: "nginx:1.12",
-        ExposedPorts: []*pbApplication.Port{&port1},
-        Labels: map[string]string { "app":"test-nginx", "component":"my-component"},
-        Specs: &pbApplication.DeploySpecs{Replicas: 2},
-        AppDescriptorId: "app001",
-        Description: "Test service",
-        EnvironmentVariables: map[string]string{"var1":"var1"},
-        Type: pbApplication.ServiceType_DOCKER,
-        DeployAfter: []string{},
-        Storage: []*pbApplication.Storage{&pbApplication.Storage{MountPath: "/tmp",}},
-        Credentials: &credentials,
-        Configs: []*pbApplication.ConfigFile{&pbApplication.ConfigFile{MountPath:"/tmp"}},
-    }*/
 
-    serv2 := pbApplication.Service {
+
+    serv1 := pbApplication.Service {
         OrganizationId: orgId,
-        ServiceId: "service_002",
+        ServiceId: "service_001",
         Name: "demo-wordpress",
         Image: "wordpress:4.8-apache",
         ExposedPorts: []*pbApplication.Port{&port1},
@@ -194,9 +184,9 @@ func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient)
         Configs: []*pbApplication.ConfigFile{&pbApplication.ConfigFile{MountPath:"/tmp"}},
     }
 
-    serv3 := pbApplication.Service {
+    serv2 := pbApplication.Service {
         OrganizationId: orgId,
-        ServiceId: "service_003",
+        ServiceId: "service_002",
         Name: "demo-mysql",
         Image: "mysql:5.6",
         ExposedPorts: []*pbApplication.Port{&port2},
@@ -206,7 +196,7 @@ func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient)
         Description: "A mysql demo",
         EnvironmentVariables: map[string]string{"MYSQL_ROOT_PASSWORD":"root"},
         Type: pbApplication.ServiceType_DOCKER,
-        DeployAfter: []string{},
+        DeployAfter: []string{"service_001"},
         Storage: []*pbApplication.Storage{&pbApplication.Storage{MountPath: "/tmp",}},
         Credentials: &credentials,
         Configs: []*pbApplication.ConfigFile{&pbApplication.ConfigFile{MountPath:"/tmp"}},
@@ -217,7 +207,7 @@ func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient)
         Description:"a service group",
         AppDescriptorId: "app001",
         Name: "group001",
-        Services: []string{serv2.Name, serv3.Name},
+        Services: []string{serv1.Name, serv2.Name},
         Policy: pbApplication.CollocationPolicy_SAME_CLUSTER,
         ServiceGroupId: "group-id",
     }
@@ -242,7 +232,7 @@ func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient)
         OrganizationId: orgId,
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
-        Services: []*pbApplication.Service{&serv2,&serv3},
+        Services: []*pbApplication.Service{&serv1,&serv2},
         //Services: []*pbApplication.Service{&serv3},
         ConfigurationOptions: map[string]string{"conf1":"valueconf1", "conf2":"valueconf2"},
         Groups: []*pbApplication.ServiceGroup{&servGroup},

@@ -24,7 +24,6 @@ import (
 
     "github.com/nalej/conductor/pkg/conductor"
     "os"
-    "fmt"
 )
 
 
@@ -100,7 +99,8 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 
 var _ = ginkgo.Describe("Deployment server API", func() {
-    // Suystem model address
+    var isReady bool
+    // System model address
     var systemModelAdd string
     // grpc server
     var server *grpc.Server
@@ -123,17 +123,19 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
 
     ginkgo.BeforeSuite(func(){
+        isReady = false
 
-        if ! utils.RunIntegrationTests() {
-            ginkgo.Fail("Integration environment was not set")
-            return
-        } else {
+        if utils.RunIntegrationTests() {
             systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
-            if systemModelAdd == "" {
-                ginkgo.Fail(fmt.Sprintf("no %s variable defined", utils.IT_SYSTEM_MODEL))
-                return
+            if systemModelAdd != "" {
+                isReady = true
             }
         }
+
+        if !isReady {
+            return
+        }
+
 
 
         // connect with external system model using the pool
@@ -170,7 +172,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     })
 
     ginkgo.AfterSuite(func(){
-        if utils.RunIntegrationTests() {
+        if isReady {
             listener.Close()
             server.Stop()
             connSM.Close()
@@ -183,6 +185,9 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         var response pbConductor.DeploymentResponse
 
         ginkgo.BeforeEach(func() {
+            if !isReady {
+                return
+            }
             request = pbConductor.DeploymentRequest{
                 RequestId: "myrequestId",
                 AppId: &pbApplication.AppDescriptorId{OrganizationId:appDescriptor.OrganizationId,AppDescriptorId: appDescriptor.AppDescriptorId},
@@ -196,6 +201,10 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
 
         ginkgo.It("receive an expected message", func() {
+            if !isReady {
+                ginkgo.Skip("Integration environment was not set")
+            }
+
             resp, err := client.Deploy(context.Background(), &request)
             //gomega.Expect(resp.String()).To(gomega.Equal(response.String()))
             gomega.Expect(resp.RequestId).To(gomega.Equal(response.RequestId))

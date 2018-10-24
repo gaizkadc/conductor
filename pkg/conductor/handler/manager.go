@@ -21,6 +21,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
+    "errors"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -51,6 +52,7 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
         return nil
     }
     conn := pool.GetConnections()[0]
+    // Create associated clients
     appClient := pbApplication.NewApplicationsClient(conn)
     return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, appClient:appClient,
     Monitor: monitor}
@@ -92,10 +94,10 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
     }
 
     toEnqueue := entities.DeploymentRequest{
-        RequestID: req.RequestId,
-        InstanceID: instance.AppInstanceId,
-        OrganizationID: req.AppId.OrganizationId,
-        ApplicationID: req.AppId.AppDescriptorId,
+        RequestId:      req.RequestId,
+        InstanceId:     instance.AppInstanceId,
+        OrganizationId: req.AppId.OrganizationId,
+        ApplicationId:  req.AppId.AppDescriptorId,
     }
     err = c.Queue.PushRequest(&toEnqueue)
     if err != nil {
@@ -121,7 +123,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     // Get the ServiceGroup structure
 
     appInstance, err  := c.appClient.GetAppInstance(context.Background(),
-        &pbApplication.AppInstanceId{OrganizationId: req.OrganizationID, AppInstanceId: req.InstanceID})
+        &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
     if err != nil {
         log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
         return
@@ -135,15 +137,15 @@ func(c *Manager) ProcessDeploymentRequest(){
     }
 
     // 2) score requirements
-    scoreResult, err := c.ScorerMethod.ScoreRequirements (req.OrganizationID,foundRequirements)
+    scoreResult, err := c.ScorerMethod.ScoreRequirements (req.OrganizationId,foundRequirements)
 
     if err != nil {
-        log.Error().Err(err).Msgf("error scoring request %s", req.RequestID)
+        log.Error().Err(err).Msgf("error scoring request %s", req.RequestId)
         return
     }
 
     log.Info().Msgf("conductor maximum score for %s is for cluster %s among %d possible",
-        scoreResult.RequestID, scoreResult.ClusterID, scoreResult.TotalEvaluated)
+        scoreResult.RequestId, scoreResult.ClusterId, scoreResult.TotalEvaluated)
 
 
     // 3) design plan
@@ -152,7 +154,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     plan, err := c.Designer.DesignPlan(appInstance, scoreResult)
 
     if err != nil{
-        log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestID)
+        log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestId)
         return
     }
 
@@ -160,7 +162,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     // Tell deployment managers to execute plans
     err = c.DeployPlan(plan)
     if err != nil {
-        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestID)
+        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
         return
     }
 }
@@ -173,8 +175,17 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
 
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
-        // TODO get cluster IP address from system model
-        dmAddress := fmt.Sprintf("%s:%d",fragment.ClusterId,utils.DEPLOYMENT_MANAGER_PORT)
+
+        targetHostname, found := conductor.ClusterReference[fragment.ClusterId]
+        if !found {
+            msg := fmt.Sprintf("unknown target address for cluster with id %s",fragment.ClusterId)
+            err := errors.New(msg)
+            log.Error().Msgf(msg)
+            return err
+        }
+
+        dmAddress := fmt.Sprintf("%s:%d",targetHostname,utils.DEPLOYMENT_MANAGER_PORT)
+
         conn,err := conductor.GetDMClients().GetConnection(dmAddress)
 
         if err!=nil{

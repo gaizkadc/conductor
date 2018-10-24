@@ -66,10 +66,11 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
         return nil, no_candidate
     }
 
-    finalScore := entities.ClusterScore{RequestID: candidate.RequestId,
-                                        ClusterID: candidate.ClusterId,
+    finalScore := entities.ClusterScore{RequestId: candidate.RequestId,
+                                        ClusterId: candidate.ClusterId,
+                                        TotalEvaluated: evaluated,
                                         Score: candidate.Score,
-                                        TotalEvaluated: evaluated}
+                                        }
 
     log.Debug().Str("component","conductor").Interface("score",finalScore).Msg("final score found")
     return &finalScore,nil
@@ -78,23 +79,29 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
 // Internal method to query known clusters about requirements scoring.
 func (s SimpleScorer) collectScores(organizationId string, requirements *entities.Requirements)[]*pbConductor.ClusterScoreResponse{
 
-    clusters := conductor.UpdateClusterConnections(organizationId)
-    if clusters == nil || len(clusters) == 0 {
-        log.Error().Msgf("no clusters found for oganization %s", organizationId)
+    err := conductor.UpdateClusterConnections(organizationId)
+    if err != nil {
+        log.Error().Err(err).Msg("problem ")
+        return nil
+    }
+    if len(conductor.ClusterReference) == 0 {
+        log.Error().Msgf("no clusters found for organization %s", organizationId)
         return nil
     }
 
 
     // we expect as many scores as musicians we have
-    log.Debug().Msgf("we have %d known clusters",len(clusters))
-    collected_scores := make([]*pbConductor.ClusterScoreResponse,0,len(clusters))
+    log.Debug().Msgf("we have %d known clusters",len(conductor.ClusterReference))
+    collected_scores := make([]*pbConductor.ClusterScoreResponse,0,len(conductor.ClusterReference))
     found_scores := 0
-    for _, c := range  clusters {
-        log.Debug().Interface("musician", c).Msg("conductor query score")
 
-        conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",c,utils.MUSICIAN_PORT))
+    for clusterId, clusterHost := range conductor.ClusterReference {
+
+        log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
+
+        conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.MUSICIAN_PORT))
         if err != nil {
-            log.Error().Err(err).Msgf("impossible to get connection for %s",c)
+            log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
         }
 
         c := pbConductor.NewMusicianClient(conn)
@@ -109,7 +116,6 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
             log.Warn().Msgf("querying musician %s failed, ignore it",c)
         }
     }
-
 
     if found_scores==0 {
         log.Debug().Msg("not found scores")
