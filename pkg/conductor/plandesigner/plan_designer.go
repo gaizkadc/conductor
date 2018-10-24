@@ -22,5 +22,5 @@ type PlanDesigner interface {
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app *pbApplication.AppInstance,
-        score *entities.ClusterScore) (*entities.DeploymentPlan, error)
+        score *entities.ClustersScore) (*entities.DeploymentPlan, error)
 }

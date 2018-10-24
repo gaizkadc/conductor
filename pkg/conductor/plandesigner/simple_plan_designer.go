@@ -13,6 +13,8 @@ import (
     "github.com/google/uuid"
     "context"
     "github.com/rs/zerolog/log"
+    "fmt"
+    "errors"
 )
 
 
@@ -27,7 +29,16 @@ func NewSimplePlanDesigner () PlanDesigner {
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
-    score *entities.ClusterScore) (*entities.DeploymentPlan, error) {
+    score *entities.ClustersScore) (*entities.DeploymentPlan, error) {
+
+    // Check scores are available and the application fits
+    targetCluster := p.findTargetCluster(score)
+    if targetCluster == "" {
+        msg := fmt.Sprintf("no available target cluster was found for app %s",app.AppInstanceId)
+        log.Error().Msg(msg)
+        return nil, errors.New(msg)
+    }
+
     // Build deployment stages for the application
 
     toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
@@ -36,7 +47,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         log.Error().Err(err).Msg("error recovering application instance")
         return nil, err
     }
-    // TODO this version assumes everything will go into a single cluster
+    // TODO this current version is limited to deployments contained into a single cluster
 
     fragmentUUID := uuid.New().String()
     index := make(map[string]entities.Service,0)
@@ -72,7 +83,6 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         }
     }
 
-
     planId := uuid.New().String()
 
     fragment := entities.DeploymentFragment{
@@ -81,7 +91,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         FragmentId: fragmentUUID,
         DeploymentId: planId,
         Stages: stages,
-        ClusterId: score.ClusterId,
+        ClusterId: targetCluster,
     }
 
     // Aggregate to a new plan
@@ -93,6 +103,19 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     }
 
     return &newPlan, nil
+}
+
+func (p SimplePlanDesigner) findTargetCluster(scores *entities.ClustersScore) string {
+    var max float32
+    max = 0
+    targetCluster := ""
+    for _, s := range scores.Scoring {
+        if s.Score > max {
+            targetCluster = s.ClusterId
+            max = s.Score
+        }
+    }
+    return targetCluster
 }
 
 

@@ -12,11 +12,28 @@ import (
 
 
 // Representation of the score for a potential deployment candidate.
+type ClustersScore struct {
+    // RequestId for this score request
+    Scoring  [] ClusterScore `json:"scoring,omitempty"`
+    TotalEvaluated int `json:"total_evaluated,omitempty"`
+}
+
+func NewClustersScore() ClustersScore {
+    return ClustersScore{TotalEvaluated: 0, Scoring: make([]ClusterScore,0)}
+}
+
+// AddClusterScore appends a cluster score and updates the set of total evaluated clusters
+func (c *ClustersScore) AddClusterScore(score ClusterScore) {
+    c.Scoring = append(c.Scoring, score)
+    c.TotalEvaluated = c.TotalEvaluated + 1
+}
+
+// Scoring returned by a certain cluster
 type ClusterScore struct {
-    RequestId      string
-    ClusterId      string
-    Score          float32
-    TotalEvaluated int
+    // ClusterId for the queried cluster
+    ClusterId string `json:"cluster_id,omitempty"`
+    // Score returned by this cluster
+    Score float32 `json:"score,omitempty"`
 }
 
 // Objects describing received deployment requests. These objects are designed to be stored into

@@ -25,73 +25,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:656fa20050cd26ad8466215aa4260507711e124243ab033a1adf69bfa2ee789b"
-  name = "github.com/gonum/blas"
-  packages = [
-    ".",
-    "blas64",
-    "native",
-    "native/internal/math32",
-  ]
-  pruneopts = ""
-  revision = "e7c5890b24cf6f3bb173f76e1bd71e80e887e3f9"
-
-[[projects]]
-  branch = "master"
-  digest = "1:dce3e694686fabe0dfef1a2bead8786853ce6e17e58f284256e7901d31ce471b"
-  name = "github.com/gonum/floats"
-  packages = ["."]
-  pruneopts = ""
-  revision = "7de1f4ea7ab57890bfd427af68c7994cd67975d4"
-
-[[projects]]
-  branch = "master"
-  digest = "1:4db121898053c254a7f3df4c7ad8c47e382122e99dd899c6851fa80426dc5d3f"
-  name = "github.com/gonum/graph"
-  packages = [
-    ".",
-    "internal/ordered",
-    "simple",
-  ]
-  pruneopts = ""
-  revision = "c4cbede16745cb4e2c9313b67bbdb6bb381ecf99"
-
-[[projects]]
-  branch = "master"
-  digest = "1:efa2681ef96af34406c6d2f2121105d2d8a31614e3994eec99aa29744e79569a"
-  name = "github.com/gonum/internal"
-  packages = [
-    "asm/f32",
-    "asm/f64",
-  ]
-  pruneopts = ""
-  revision = "fda53f8d25717c07e2dac25758075a182bd74235"
-
-[[projects]]
-  branch = "master"
-  digest = "1:619c6643dad28d4605c6a8e32815ff0b2f37272b03520e832d1f22f70959928d"
-  name = "github.com/gonum/lapack"
-  packages = [
-    ".",
-    "lapack64",
-    "native",
-  ]
-  pruneopts = ""
-  revision = "f0b8b25edeceafb3a2752941c7bf0cda962df112"
-
-[[projects]]
-  branch = "master"
-  digest = "1:967455b185ce6566c84af290fdaed8d93e082c150e85a08d9e3404da7cd906bd"
-  name = "github.com/gonum/matrix"
-  packages = [
-    ".",
-    "mat64",
-  ]
-  pruneopts = ""
-  revision = "a41cc49d4c29f7451775f4379a5cc6ec6239dfab"
-
-[[projects]]
   digest = "1:5247b135b5492aa232a731acdcb52b08f32b874cb398f21ab460396eadbe866b"
   name = "github.com/google/uuid"
   packages = ["."]
@@ -181,12 +114,12 @@
   version = "v0.0.7"
 
 [[projects]]
-  digest = "1:d26aa42f6a0c2d6d6e7ae3fe0f5afe8693ff5b2ec6332bd523f348980c9179a1"
+  digest = "1:f5ad7aba977b5fe1456a89380a583b37d150ccc4c6597438dc5a7c0a209903ec"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "68b6897ad374f3d0576b9447b31450fc20515aaf"
-  version = "v0.0.42"
+  revision = "87d2d97bd52a638906f05999d339641b96a5d8f5"
+  version = "v0.0.46"
 
 [[projects]]
   digest = "1:f17d69c3a7fa1a7feb2ed30cac8c5c111aa125d42e5c523405f2c651e54a1e0e"
@@ -450,14 +383,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:82ccb6c2d7281541440010c216e7e1eeab3f056f83e3d44911a69fca2e746443"
-  name = "golang.org/x/tools"
-  packages = ["container/intsets"]
-  pruneopts = ""
-  revision = "6adeb8aab2ded9eb693b831d5fd090c10a6ebdfa"
-
-[[projects]]
-  branch = "master"
   digest = "1:849525811c9f6ae1f5bd9b866adb4c9436f4a12d767f48e33bf343596d4aafd7"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
@@ -531,7 +456,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/gonum/graph/simple",
     "github.com/google/uuid",
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-application-go",
