@@ -10,6 +10,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
+    pbNetwork "github.com/nalej/grpc-network-go"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "time"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
@@ -40,6 +41,8 @@ type Manager struct {
     Monitor monitor.Manager
     // Application client
     appClient pbApplication.ApplicationsClient
+    // Networking manager client
+    netClient pbNetwork.NetworksClient
 }
 
 
@@ -144,8 +147,8 @@ func(c *Manager) ProcessDeploymentRequest(){
         return
     }
 
-    log.Info().Msgf("conductor maximum score for %s is for cluster %s among %d possible",
-        scoreResult.RequestId, scoreResult.ClusterId, scoreResult.TotalEvaluated)
+    log.Info().Msgf("conductor maximum score for %s from %d potential candidates",
+        req.RequestId, scoreResult.Scoring, scoreResult.TotalEvaluated)
 
 
     // 3) design plan
@@ -158,7 +161,10 @@ func(c *Manager) ProcessDeploymentRequest(){
         return
     }
 
-    // 4) deploy fragments
+    // 4) Create ZT-network with Network manager
+
+
+    // 5) deploy fragments
     // Tell deployment managers to execute plans
     err = c.DeployPlan(plan)
     if err != nil {
@@ -198,6 +204,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
         request := pbDeploymentManager.DeploymentFragmentRequest{
             RequestId: uuid.New().String(),
             Fragment: fragment.ToGRPC(),
+            ZtNetworkId: "9bee8941b55257cf",
             RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)

@@ -32,7 +32,20 @@ minikube service list
 ```
 
 The cluster identifier must be available in an environment variable called CLUSTER_ID. If the variable is not set
-an error will be displayed and the musician will not start.
+an error will be displayed and the musician will not start. If the onboard conductor demo is used, it will display
+a plausible clusterid to be used in the deployment process.
+
+```bash
+./bin/conductor demo
+...
+{"level":"info","time":1540915189,"message":"The output instance works with id: bd3e31c6-4d48-48d0-9206-49c3592716b6"}
+...
+```
+Now use the id for musician to identify its clusterid.
+```bash
+export CLUSTER_ID="9c9ccc95-f7c3-436b-8d43-953640ba6724"
+```
+
 
 Execute a musician pointing the Nalej prometheus service.
 ```bash

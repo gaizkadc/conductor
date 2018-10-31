@@ -67,15 +67,6 @@ func RunExample() {
     fmt.Println()
     fmt.Println(msg)
 
-    log.Info().Msg("connect with conductor api at port ")
-
-    conn, err := grpc.Dial("localhost:5000", grpc.WithInsecure())
-    if err != nil {
-        log.Panic().Err(err).Msg("impossible to connect with conductor at port 5000")
-        return
-    }
-    conductorClient := pbConductor.NewConductorClient(conn)
-
     conn2, err := grpc.Dial("localhost:8800", grpc.WithInsecure())
     if err != nil {
         log.Panic().Err(err).Msg("impossible to connect with system model at port 8800")
@@ -95,8 +86,21 @@ func RunExample() {
 
     log.Info().Msgf("%v",desc)
 
-    log.Info().Msg("\nPress any key to run a deployment request")
+    log.Info().Msg("\nNow start conductor and musician then, press any key to run a deployment request")
     bufio.NewReader(os.Stdin).ReadBytes('\n')
+
+
+
+    log.Info().Msg("connect with conductor api at port ")
+
+    conn, err := grpc.Dial("localhost:5000", grpc.WithInsecure())
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to connect with conductor at port 5000")
+        return
+    }
+    conductorClient := pbConductor.NewConductorClient(conn)
+
+
 
     request := pbConductor.DeploymentRequest{
         RequestId: "req0001",
@@ -109,7 +113,7 @@ func RunExample() {
         log.Panic().Err(err).Msg("impossible to connect with conductor for deployment")
     }
 
-    log.Info().Msgf("The output instance works with id: %s",x.AppInstanceId)
+    //log.Info().Msgf("The output instance works with id: %s",x.AppInstanceId)
 
     log.Info().Msg("\nPress any key to delete the generated namespace")
     bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -150,7 +154,7 @@ func InitializeInfrastructure(orgClient pbOrganization.OrganizationsClient,
         return "",err
     }
 
-    log.Info().Msgf("set %s variable with %s",utils.MUSICIAN_CLUSTER_ID, addedCluster.ClusterId)
+    log.Info().Msgf("set export %s=%s",utils.MUSICIAN_CLUSTER_ID, addedCluster.ClusterId)
     os.Setenv(utils.MUSICIAN_CLUSTER_ID,addedCluster.ClusterId)
 
     return orgResp.OrganizationId, nil

@@ -5,6 +5,10 @@
 
 package entities
 
+import (
+    pbConductor "github.com/nalej/grpc-conductor-go"
+)
+
 // List of requirements demanded by an app
 type Requirements struct {
     List []Requirement `json:"list, omitempty"`
@@ -19,10 +23,24 @@ func (r *Requirements) AddRequirement (req Requirement) {
     r.List = append(r.List, req)
 }
 
+func (r *Requirements) ToGRPC() []*pbConductor.Requirement {
+    toReturn:= make([]*pbConductor.Requirement, len(r.List))
+    for i, req := range r.List {
+        toReturn[i] = &pbConductor.Requirement{
+            Replicas: req.Replicas,
+            Storage: req.Storage,
+            Memory: req.Memory,
+            Cpu: req.CPU,
+            ServiceId: req.ServiceId,
+        }
+    }
+    return toReturn
+}
+
 // Requirement for an app.
 type Requirement struct {
     //Application id
-    AppId string `json:"app_id, omitempty"`
+    ServiceId string `json:"service_id, omitempty"`
     // Amount of CPU
     CPU int64 `json:"cpu, omitempty"`
     // Amount of memory
@@ -34,5 +52,5 @@ type Requirement struct {
 }
 
 func NewRequirement(appId string, cpu int64, memory int64, storage int64, replicas int32) Requirement {
-    return Requirement{AppId: appId, CPU: cpu, Memory: memory, Storage: storage, Replicas: replicas}
+    return Requirement{ServiceId: appId, CPU: cpu, Memory: memory, Storage: storage, Replicas: replicas}
 }

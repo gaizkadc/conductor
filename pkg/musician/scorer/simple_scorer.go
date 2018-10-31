@@ -22,7 +22,6 @@ func NewSimpleScorer(collector statuscollector.StatusCollector) Scorer {
     return &SimpleScorer{collector}
 }
 
-// TODO collect cluster id
 func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConductor.ClusterScoreResponse, error){
     log.Debug().Msg("musician simple scorer queried")
     // check
@@ -34,10 +33,23 @@ func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConduc
     }
 
     log.Debug().Interface("status",status).Msg("musician found status")
+    // TODO check the coherence of this data type.
+    var totalCPU float32 = 0
+    var totalMem float32 = 0
+    var totalStorage float32 = 0
+
+    for _, req := range request.Requirements {
+        totalCPU = totalCPU + float32(req.Cpu)
+        totalMem = totalMem + float32(req.Memory)
+        totalStorage = totalStorage + float32(req.Storage)
+    }
+
+
+
     // compute score based on requested and available
-    dCPU := (1-float32(status.CPU)) - request.Cpu
-    dMem := (float32(status.Mem) - request.Memory) / float32(status.Mem)
-    dDisk := (float32(status.Disk) - request.Disk) / float32(status.Disk)
+    dCPU := (1-float32(status.CPU)) - totalCPU
+    dMem := (float32(status.Mem) - totalMem) / float32(status.Mem)
+    dDisk := (float32(status.Disk) - totalStorage) / float32(status.Disk)
 
     var score float32
     if dCPU * dMem * dDisk < 0 {

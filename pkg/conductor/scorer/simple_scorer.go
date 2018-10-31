@@ -112,10 +112,10 @@ func (s SimpleScorer) queryMusician(musicianClient pbConductor.MusicianClient, r
     ctx, cancel := context.WithTimeout(context.Background(), time.Second)
     defer cancel()
 
-    req:=pbConductor.ClusterScoreRequest{RequestId: uuid.New().String(),
-        Disk: requirements.Disk,
-        Memory: requirements.Memory,
-        Cpu: requirements.CPU}
+    req:=pbConductor.ClusterScoreRequest{
+        RequestId: uuid.New().String(),
+        Requirements: requirements.ToGRPC(),
+    }
     res, err := musicianClient.Score(ctx,&req)
 
     if err != nil {

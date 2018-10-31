@@ -92,6 +92,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         DeploymentId: planId,
         Stages: stages,
         ClusterId: targetCluster,
+
     }
 
     // Aggregate to a new plan
