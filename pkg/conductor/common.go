@@ -33,6 +33,9 @@ var (
     // Singleton instance of connections with the system model
     SMClients *tools.ConnectionsMap
     onceSM sync.Once
+    // Singleton instance of connections with the network client
+    NetworkingClients *tools.ConnectionsMap
+    onceNC sync.Once
     // Translation map between cluster ids and their ip addresses
     ClusterReference map[string]string
 )
@@ -66,12 +69,23 @@ func GetDMClients() *tools.ConnectionsMap {
     return DMClients
 }
 
-// Factory in charge of generating new connections for Conductor->Musician communication.
+func GetNetworkingClients() *tools.ConnectionsMap {
+    onceNC.Do(func() {
+        NetworkingClients = tools.NewConnectionsMap(networkingClientFactory)
+        if NetworkingClients == nil {
+            NetworkingClients = tools.NewConnectionsMap(networkingClientFactory)
+        }
+    })
+    return NetworkingClients
+}
+
+
+// Factory in charge of generating new basic connections with a grpc server.
 //  params:
 //   address the communication has to be done with
 //  return:
 //   client and error if any
-func conductorClientFactory(address string) (*grpc.ClientConn, error) {
+func basicClientFactory(address string) (*grpc.ClientConn, error) {
     conn, err := grpc.Dial(address, grpc.WithInsecure())
     if err != nil {
         log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
@@ -80,18 +94,33 @@ func conductorClientFactory(address string) (*grpc.ClientConn, error) {
     return conn, err
 }
 
+// Factory in charge of generating new connections for Conductor->Musician communication.
+//  params:
+//   address the communication has to be done with
+//  return:
+//   client and error if any
+func conductorClientFactory(address string) (*grpc.ClientConn, error) {
+    return basicClientFactory(address)
+}
+
+
+// Factory in charge of generating new connections for Conductor->Musician communication.
+//  params:
+//   address the communication has to be done with
+//  return:
+//   client and error if any
+func networkingClientFactory(address string) (*grpc.ClientConn, error) {
+    return basicClientFactory(address)
+}
+
+
 // Factory in charge of generating new connections for Conductor->DM communication.
 //  params:
 //   address the communication has to be done with
 //  return:
 //   client and error if any
 func dmClientFactory(address string) (*grpc.ClientConn, error) {
-    conn, err := grpc.Dial(address, grpc.WithInsecure())
-    if err != nil {
-        log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
-    }
-    log.Info().Msgf("Connected to address at %s", address)
-    return conn, err
+    return basicClientFactory(address)
 }
 
 // This is a common sharing function to check the system model and update the available clusters.

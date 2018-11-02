@@ -87,5 +87,6 @@ summarizes the set of expected testing variables.
 | RUN_INTEGRATION_TEST  | true | Run integration tests |
 | IT_SYSTEM_MODEL | localhost:8800 | Address of an available system model server |
 | CLUSTER_ID | 28602103-1462-43cf-bb38-44e880fa1933 | Cluster id where musician is running |
+| IT_NETWORKING_MANAGER | localhost:8000 | Address of an available networking manager |
 
 

@@ -32,8 +32,10 @@ func init() {
     RootCmd.AddCommand(runCmd)
 
     runCmd.Flags().Uint32P("conductor-port", "c",utils.CONDUCTOR_PORT,"port where conductor listens to")
-    runCmd.Flags().StringP("systemmodel","s",fmt.Sprintf("localhost:%d",utils.SYSTEM_MODEL_PORT),
-        "host:port indicating where is available the system model")
+    runCmd.Flags().StringP("system-model","s",fmt.Sprintf("localhost:%d",utils.SYSTEM_MODEL_PORT),
+        "host:port address for system model")
+    runCmd.Flags().StringP("networking-manager", "n", fmt.Sprintf("localhost:%d", utils.NETWORKING_SERVICE_PORT),
+        "host:port address for networking manager")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -44,9 +46,12 @@ func RunConductor() {
     var port uint32
     // System model url
     var systemModel string
+    // Networking service url
+    var networkingService string
 
     port = uint32(viper.GetInt32("conductor-port"))
-    systemModel = viper.GetString("systemmodel")
+    systemModel = viper.GetString("system-model")
+    networkingService = viper.GetString("networking-manager")
 
     log.Info().Msg("launching conductor...")
 
@@ -54,6 +59,7 @@ func RunConductor() {
     config := service.ConductorConfig{
         Port: port,
         SystemModelURL: systemModel,
+        NetworkingServiceURL: networkingService,
     }
     config.Print()
     conductorService, err := service.NewConductorService(&config)

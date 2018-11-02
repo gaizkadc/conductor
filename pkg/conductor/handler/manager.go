@@ -40,9 +40,9 @@ type Manager struct {
     // Monitoring service
     Monitor monitor.Manager
     // Application client
-    appClient pbApplication.ApplicationsClient
+    AppClient pbApplication.ApplicationsClient
     // Networking manager client
-    netClient pbNetwork.NetworksClient
+    NetClient pbNetwork.NetworksClient
 }
 
 
@@ -57,8 +57,15 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
     conn := pool.GetConnections()[0]
     // Create associated clients
     appClient := pbApplication.NewApplicationsClient(conn)
-    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, appClient:appClient,
-    Monitor: monitor}
+    // Network client
+    netPool := conductor.GetNetworkingClients()
+    if netPool != nil && len(netPool.GetConnections())==0{
+        log.Panic().Msg("networking client was not started")
+        return nil
+    }
+    netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
+    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, AppClient:appClient,
+    Monitor: monitor, NetClient: netClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -77,7 +84,7 @@ func (c *Manager) Run() {
 // Push a request into the queue.
 func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
     log.Debug().Msgf("push request %s", req.RequestId)
-    desc, err := c.appClient.GetAppDescriptor(context.Background(), req.AppId)
+    desc, err := c.AppClient.GetAppDescriptor(context.Background(), req.AppId)
     if err!= nil {
         log.Error().Err(err).Msg("error getting application descriptor")
         return nil,err
@@ -90,7 +97,7 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         Description: req.Description,
     }
     // Add instance, by default this is created with queue status
-    instance,err := c.appClient.AddAppInstance(context.Background(),&addReq)
+    instance,err := c.AppClient.AddAppInstance(context.Background(),&addReq)
     if err != nil {
         log.Error().Err(err).Msg("error adding application instance")
         return nil,err
@@ -125,7 +132,7 @@ func(c *Manager) ProcessDeploymentRequest(){
     // TODO get all the data from the system model
     // Get the ServiceGroup structure
 
-    appInstance, err  := c.appClient.GetAppInstance(context.Background(),
+    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
     if err != nil {
         log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
@@ -147,7 +154,7 @@ func(c *Manager) ProcessDeploymentRequest(){
         return
     }
 
-    log.Info().Msgf("conductor maximum score for %s from %d potential candidates",
+    log.Info().Msgf("conductor maximum score for %s has score %v from %d potential candidates",
         req.RequestId, scoreResult.Scoring, scoreResult.TotalEvaluated)
 
 
@@ -162,20 +169,44 @@ func(c *Manager) ProcessDeploymentRequest(){
     }
 
     // 4) Create ZT-network with Network manager
-
+    ztNetworkId, err := c.CreateZTNetwork(appInstance.AppInstanceId, req.OrganizationId)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to create zt network before deployment")
+        return
+    }
 
     // 5) deploy fragments
     // Tell deployment managers to execute plans
-    err = c.DeployPlan(plan)
+    err = c.DeployPlan(plan, ztNetworkId)
     if err != nil {
         log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
+        // Run a rollback
+        c.rollback(plan, ztNetworkId)
         return
     }
 }
 
+// Create a new zero tier network and return the corresponding network id.
+// params:
+//  name of the network
+//  organizationId for this network
+// returns:
+//  networkId or error otherwise
+func (c *Manager) CreateZTNetwork(name string, organizationId string) (string, error){
+    log.Debug().Msgf("create zt network with name %s in organization %s",name, organizationId)
+    request := pbNetwork.AddNetworkRequest{ Name: name, OrganizationId: organizationId }
+
+    ztNetworkId, err := c.NetClient.AddNetwork(context.Background(), &request)
+
+    if err != nil {
+        log.Error().Err(err).Msgf("there was a problem when creating network for name: %s with org: %s", name, organizationId)
+        return "", err
+    }
+    return ztNetworkId.NetworkId, err
+}
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
-func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
+func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) error {
     // Start monitoring this fragment
     c.Monitor.AddPlanToMonitor(plan)
 
@@ -196,7 +227,6 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
 
         if err!=nil{
             log.Error().Err(err).Msgf("problem creating connection with %s",dmAddress)
-            // TODO define what to do in this case.
             return err
         }
 
@@ -204,7 +234,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
         request := pbDeploymentManager.DeploymentFragmentRequest{
             RequestId: uuid.New().String(),
             Fragment: fragment.ToGRPC(),
-            ZtNetworkId: "9bee8941b55257cf",
+            ZtNetworkId: ztNetworkId,
             RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE}
         client := pbDeploymentManager.NewDeploymentManagerClient(conn)
         _, err = client.Execute(context.Background(),&request)
@@ -219,6 +249,20 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan) error {
     return nil
 }
 
+// Return the system to the status before instantiating the given deployment plan and zt network id.
+func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
+    // Delete zt network
+    req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: plan.OrganizationId}
+    _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
+    if err != nil {
+        // TODO decide what to do here
+        log.Error().Msgf("impossible to delete zero tier network %s", ztNetworkId)
+        return err
+    }
+    // ... Others ...
+    // TODO decide what to do if any of the steps fail
+    return nil
+}
 
 
 
