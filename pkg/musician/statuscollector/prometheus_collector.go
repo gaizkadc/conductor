@@ -61,7 +61,6 @@ func(c *PrometheusClient) GetMemory() (float64,error) {
         log.Error().Msg("mem query returned more than one entry")
         return -1, errors.New("mem query returned more than one entry")
     }
-
     return float64(vectorValue[0].Value), nil
 }
 

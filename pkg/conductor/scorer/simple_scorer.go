@@ -33,7 +33,7 @@ func NewSimpleScorer() Scorer {
 //   requirements to be fulfilled
 //  return:
 //   candidates score
-func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.ClusterScore, error) {
+func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.ClustersScore, error) {
     if requirements == nil {
         nil_error := errors.New("impossible to score nil requirements")
         log.Error().Err(nil_error)
@@ -42,38 +42,18 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
     scores := s.collectScores(organizationId, requirements)
 
     if scores == nil {
-        no_scores := errors.New("no available scores found")
-        log.Error().Err(no_scores).Msg("simple scorer could not collect any score")
-        return nil, no_scores
-    }
-    // evaluate scores
-
-    // check what can we say with the returned values
-    // Find maxi score
-    max := float32(-1.0)
-    var candidate *pbConductor.ClusterScoreResponse = nil
-    evaluated := 0
-    for _, musicianScore := range scores {
-        if musicianScore.Score > max {
-            candidate = musicianScore
-        }
-        evaluated = evaluated + 1
+        noScores := errors.New("no available scores found")
+        log.Error().Err(noScores).Msg("simple scorer could not collect any score")
+        return nil, noScores
     }
 
-    if candidate == nil {
-        no_candidate := errors.New("no candidate fulfils the requirements")
-        log.Error().Err(no_candidate)
-        return nil, no_candidate
+    clusterScores := entities.NewClustersScore()
+    for _, s := range scores {
+        clusterScores.AddClusterScore(entities.ClusterScore{ClusterId: s.ClusterId, Score: s.Score})
     }
 
-    finalScore := entities.ClusterScore{RequestId: candidate.RequestId,
-                                        ClusterId: candidate.ClusterId,
-                                        TotalEvaluated: evaluated,
-                                        Score: candidate.Score,
-                                        }
-
-    log.Debug().Str("component","conductor").Interface("score",finalScore).Msg("final score found")
-    return &finalScore,nil
+    log.Debug().Str("component","conductor").Interface("score",clusterScores).Msg("final score found")
+    return &clusterScores,nil
 }
 
 // Internal method to query known clusters about requirements scoring.
@@ -92,7 +72,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     // we expect as many scores as musicians we have
     log.Debug().Msgf("we have %d known clusters",len(conductor.ClusterReference))
-    collected_scores := make([]*pbConductor.ClusterScoreResponse,0,len(conductor.ClusterReference))
+    collectedScores := make([]*pbConductor.ClusterScoreResponse,0,len(conductor.ClusterReference))
     found_scores := 0
 
     for clusterId, clusterHost := range conductor.ClusterReference {
@@ -110,7 +90,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
         if res != nil {
             log.Info().Interface("response",res).Msg("musician responded with score")
-            collected_scores = append(collected_scores,res)
+            collectedScores = append(collectedScores,res)
             found_scores = found_scores + 1
         } else {
             log.Warn().Msgf("querying musician %s failed, ignore it",c)
@@ -119,11 +99,11 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     if found_scores==0 {
         log.Debug().Msg("not found scores")
-        collected_scores = nil
+        collectedScores = nil
     }
 
-    log.Debug().Msgf("returned score %v", collected_scores)
-    return collected_scores
+    log.Debug().Msgf("returned score %v", collectedScores)
+    return collectedScores
 }
 
 // Private function to query a target musician about the score of a given set of requirements.
@@ -132,10 +112,10 @@ func (s SimpleScorer) queryMusician(musicianClient pbConductor.MusicianClient, r
     ctx, cancel := context.WithTimeout(context.Background(), time.Second)
     defer cancel()
 
-    req:=pbConductor.ClusterScoreRequest{RequestId: uuid.New().String(),
-        Disk: requirements.Disk,
-        Memory: requirements.Memory,
-        Cpu: requirements.CPU}
+    req:=pbConductor.ClusterScoreRequest{
+        RequestId: uuid.New().String(),
+        Requirements: requirements.ToGRPC(),
+    }
     res, err := musicianClient.Score(ctx,&req)
 
     if err != nil {

@@ -24,11 +24,14 @@ type ConductorConfig struct {
     Port uint32
     // URL where the system model is available
     SystemModelURL string
+    // URL where the networking client is available
+    NetworkingServiceURL string
 }
 
 func (conf * ConductorConfig) Print() {
     log.Info().Uint32("port", conf.Port).Msg("gRPC port")
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
+    log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
 }
 
 
@@ -56,7 +59,9 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
-    //InitPool(config.Musicians, conductor.GetMusicianClients())
+    // Initialize connections pool with networking client
+    cnPool := conductor.GetNetworkingClients()
+    _, err = cnPool.AddConnection(config.NetworkingServiceURL)
 
     q := handler.NewMemoryRequestQueue()
     scr := scorer.NewSimpleScorer()
