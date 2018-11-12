@@ -11,11 +11,14 @@ import (
     "github.com/rs/zerolog/log"
     "context"
     "errors"
+    "fmt"
 )
 
 type Manager struct{
     // Networking manager client
     NetClient pbNetwork.NetworksClient
+    // DNS manager client
+    DNSClient pbNetwork.DNSClient
 }
 
 func NewManager() (*Manager, error){
@@ -26,8 +29,9 @@ func NewManager() (*Manager, error){
         return nil, errors.New("networking client was not started")
     }
     netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
+    dnsClient := pbNetwork.NewDNSClient(netPool.GetConnections()[0])
 
-    return &Manager{netClient}, nil
+    return &Manager{netClient, dnsClient}, nil
 }
 
 func (m *Manager) AuthorizeNetworkMembership(organizationId string, networkId string, memberId string) error {
@@ -36,13 +40,22 @@ func (m *Manager) AuthorizeNetworkMembership(organizationId string, networkId st
         NetworkId: networkId,
         MemberId: memberId,}
     _, err := m.NetClient.AuthorizeMember(context.Background(), &req)
-    if err != nil {
-        log.Error().Err(err).Msgf("AuthorizeNetworkMembership failed for %#v")
-        return err
-    }
-    return nil
+
+    return err
 }
 
-func (m *Manager) RegisterNetworkEntry() error {
-    return nil
+func (m *Manager) RegisterNetworkEntry(organizationId string, networkId string, serviceName string, ip string) error {
+
+    // Create the FQDN for this service
+    fqdn := fmt.Sprintf("%s.%s",serviceName,organizationId)
+
+    req := pbNetwork.AddDNSEntryRequest{
+        NetworkId: networkId,
+        OrganizationId: organizationId,
+        Ip: ip,
+        Fqdn: fqdn,
+    }
+    _, err := m.DNSClient.AddDNSEntry(context.Background(), &req)
+
+    return err
 }
