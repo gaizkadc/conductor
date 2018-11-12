@@ -90,6 +90,14 @@
   version = "v1.1.2"
 
 [[projects]]
+  digest = "1:0cc441f3dfe124dd74f44dd7e466dfc17cc7edff468094fbc3847a96b5ebf6f7"
+  name = "github.com/nalej/derrors"
+  packages = ["."]
+  pruneopts = ""
+  revision = "7a6df7f0bb1c7cddfec82c91119f193f6fcbc9d5"
+  version = "v2.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:379aa47e2a8a62edbbd173f377934a61ffc96e815fba7d74af0d41b7a9e91447"
   name = "github.com/nalej/golang-template"
@@ -157,6 +165,7 @@
   digest = "1:220e1579404d4114ffffa8f7ca924798523acae03326d1544c6cf166d1693bae"
   name = "github.com/nalej/grpc-utils"
   packages = [
+    "pkg/conversions",
     "pkg/test",
     "pkg/tools",
   ]
@@ -393,7 +402,10 @@
   branch = "master"
   digest = "1:849525811c9f6ae1f5bd9b866adb4c9436f4a12d767f48e33bf343596d4aafd7"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
+  packages = [
+    "googleapis/rpc/errdetails",
+    "googleapis/rpc/status",
+  ]
   pruneopts = ""
   revision = "94acd270e44e65579b9ee3cdab25034d33fed608"
 
@@ -465,6 +477,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/google/uuid",
+    "github.com/nalej/derrors",
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-application-go",
     "github.com/nalej/grpc-common-go",
@@ -473,6 +486,7 @@
     "github.com/nalej/grpc-infrastructure-go",
     "github.com/nalej/grpc-network-go",
     "github.com/nalej/grpc-organization-go",
+    "github.com/nalej/grpc-utils/pkg/conversions",
     "github.com/nalej/grpc-utils/pkg/test",
     "github.com/nalej/grpc-utils/pkg/tools",
     "github.com/nalej/service",

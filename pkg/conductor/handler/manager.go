@@ -6,6 +6,7 @@
 package handler
 
 import (
+
     "github.com/rs/zerolog/log"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
@@ -45,7 +46,6 @@ type Manager struct {
     NetClient pbNetwork.NetworksClient
 }
 
-
 func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
     designer plandesigner.PlanDesigner, monitor monitor.Manager) *Manager {
     // initialize clients
@@ -70,18 +70,19 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
 
 // Check iteratively if there is anything to be processed in the queue.
 func (c *Manager) Run() {
-    sleep := time.Tick(time.Millisecond * CheckSleepTime)
-    for{
-        select {
-        case <- sleep:
-            for c.Queue.AvailableRequests() {
-                c.ProcessDeploymentRequest()
-            }
-        }
-    }
+	sleep := time.Tick(time.Millisecond * CheckSleepTime)
+	for {
+		select {
+		case <-sleep:
+			for c.Queue.AvailableRequests() {
+				c.ProcessDeploymentRequest()
+			}
+		}
+	}
 }
 
 // Push a request into the queue.
+
 func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
     log.Debug().Msgf("push request %s", req.RequestId)
     desc, err := c.AppClient.GetAppDescriptor(context.Background(), req.AppId)
