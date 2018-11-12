@@ -17,6 +17,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/monitor"
+    "github.com/nalej/conductor/pkg/conductor/network"
 )
 
 type ConductorConfig struct {
@@ -40,6 +41,8 @@ type ConductorService struct {
     conductor *handler.Manager
     // Conductor monitor
     monitor *monitor.Manager
+    // Conductor network
+    network *network.Manager
     // Server for incoming requests
     server *tools.GenericGRPCServer
     // Connections with musicians
@@ -74,11 +77,19 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
+    // Initialize network
+    network,err := network.NewManager()
+    if network == nil {
+        log.Panic().Msg("impossible to create network service")
+        return nil, err
+    }
+
     c := handler.NewManager(q, scr, reqColl, designer, *monitor)
 
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 monitor: monitor,
+                                network: network,
                                 server: conductorServer,
                                 connections: conductor.GetMusicianClients(),
                                 configuration: config}
@@ -92,12 +103,15 @@ func(c *ConductorService) Run() {
     // register services
     conductorService := handler.NewHandler(c.conductor)
     monitorService := monitor.NewHandler(c.monitor)
+    networkService := network.NewHandler(c.network)
 
     // Server and registry
     // -- conductor service
     pbConductor.RegisterConductorServer(c.server.Server, conductorService)
     // -- monitor service
     pbConductor.RegisterConductorMonitorServer(c.server.Server, monitorService)
+    // -- network service
+    pbConductor.RegisterConductorNetworkServer(c.server.Server, networkService)
 
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)
