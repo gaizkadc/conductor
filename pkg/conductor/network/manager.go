@@ -37,7 +37,6 @@ func (m *Manager) AuthorizeNetworkMembership(organizationId string, networkId st
         MemberId: memberId,}
     _, err := m.NetClient.AuthorizeMember(context.Background(), &req)
     if err != nil {
-        log.Error().Err(err).Msgf("AuthorizeNetworkMembership failed for %#v")
         return err
     }
     return nil
