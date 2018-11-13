@@ -42,6 +42,7 @@ func (m *Manager) AuthorizeNetworkMembership(organizationId string, networkId st
     _, err := m.NetClient.AuthorizeMember(context.Background(), &req)
 
     return err
+
 }
 
 func (m *Manager) RegisterNetworkEntry(organizationId string, networkId string, serviceName string, ip string) error {
