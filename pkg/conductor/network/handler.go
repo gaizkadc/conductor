@@ -39,9 +39,10 @@ func(h *Handler) AuthorizeNetworkMembership(context context.Context, request *pb
 
 // Request the creation of a new network entry
 func (h *Handler) RegisterNetworkEntry(context context.Context, request *pbConductor.RegisterNetworkEntryRequest) (*pbCommon.Success, error) {
-    log.Panic().Msg("not implemented yet")
 
-    err := h.mng.RegisterNetworkEntry()
+    log.Debug().Msgf("%#v", request)
+
+    err := h.mng.RegisterNetworkEntry(request.OrganizationId, request.NetworkId, request.ServiceName, request.ServiceIp)
     if err != nil {
         msg := fmt.Sprintf("error registering network entry request %#v", request)
         log.Error().Err(err).Msgf(msg)

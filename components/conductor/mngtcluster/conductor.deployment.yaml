@@ -26,13 +26,13 @@ spec:
       containers:
       - name: conductor
         image: nalej/conductor:VERSION
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 2000
         args:
           - "run"
           - "--debug"
-          - "--systemmodel=system-model.nalej.svc.cluster.local:8800"
+          - "--system-model=system-model.nalej.svc.cluster.local:8800"
         ports:
         - name: api-port
           containerPort: 5000
