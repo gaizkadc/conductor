@@ -25,11 +25,11 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-conductor-go"
-    version="v0.0.51"
+    version="v0.0.53"
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
-    version="v0.0.16"
+    version="v0.0.20"
 
 [[constraint]]
     name="github.com/nalej/grpc-organization-go"
@@ -37,15 +37,12 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-deployment-manager-go"
-    version="v0.0.24"
+    version="v0.0.26"
 
 [[constraint]]
     name="github.com/nalej/grpc-infrastructure-go"
     version="v0.0.13"
 
- [[constraint]]
-    name="github.com/nalej/grpc-network-go"
-    version="v0.0.11"
 
  [[constraint]]
    name="github.com/onsi/ginkgo"

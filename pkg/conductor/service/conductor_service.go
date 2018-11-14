@@ -17,7 +17,8 @@ import (
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/monitor"
-    "github.com/nalej/conductor/pkg/conductor/network"
+    "net"
+    "fmt"
 )
 
 type ConductorConfig struct {
@@ -41,8 +42,6 @@ type ConductorService struct {
     conductor *handler.Manager
     // Conductor monitor
     monitor *monitor.Manager
-    // Conductor network
-    network *network.Manager
     // Server for incoming requests
     server *tools.GenericGRPCServer
     // Connections with musicians
@@ -77,19 +76,11 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, err
     }
 
-    // Initialize network
-    network,err := network.NewManager()
-    if network == nil {
-        log.Panic().Msg("impossible to create network service")
-        return nil, err
-    }
-
     c := handler.NewManager(q, scr, reqColl, designer, *monitor)
 
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 monitor: monitor,
-                                network: network,
                                 server: conductorServer,
                                 connections: conductor.GetMusicianClients(),
                                 configuration: config}
@@ -100,27 +91,38 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
 
 func(c *ConductorService) Run() {
+
+    lis, err := net.Listen("tcp", fmt.Sprintf(":%d", c.configuration.Port))
+    if err != nil {
+        log.Fatal().Errs("failed to listen: %v", []error{err})
+    }
+
     // register services
     conductorService := handler.NewHandler(c.conductor)
     monitorService := monitor.NewHandler(c.monitor)
-    networkService := network.NewHandler(c.network)
 
     // Server and registry
     // -- conductor service
     pbConductor.RegisterConductorServer(c.server.Server, conductorService)
     // -- monitor service
     pbConductor.RegisterConductorMonitorServer(c.server.Server, monitorService)
-    // -- network service
-    pbConductor.RegisterConductorNetworkServer(c.server.Server, networkService)
+
 
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)
 
+    // Launch the main deployment manager in a separate routine
     go c.conductor.Run()
-    c.server.Run()
+
+    // Run
+    log.Info().Uint32("port", c.configuration.Port).Msg("Launching gRPC server")
+    if err := c.server.Server.Serve(lis); err != nil {
+        log.Fatal().Errs("failed to serve: %v", []error{err})
+    }
 
 }
 
+/*
 // Initialize a connections pool with a set of addresses.
 func InitPool(addresses []string, connections *tools.ConnectionsMap) {
     for _, target := range addresses {
@@ -132,3 +134,4 @@ func InitPool(addresses []string, connections *tools.ConnectionsMap) {
         }
     }
 }
+*/
