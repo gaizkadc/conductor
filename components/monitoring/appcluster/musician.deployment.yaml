@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
       - name: musician
-        image: nalej/conductor:VERSION
-        imagePullPolicy: Never
+        image: nalejregistry.azurecr.io/nalej/conductor:VERSION
+        imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 2000
         args:
@@ -32,3 +32,5 @@ spec:
         ports:
         - name: musician-port
           containerPort: 5100
+      imagePullSecrets:
+      - name: nalej-registry

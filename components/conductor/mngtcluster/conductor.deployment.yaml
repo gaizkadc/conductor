@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: conductor
-        image: nalej/conductor:VERSION
+        image: nalejregistry.azurecr.io/nalej/conductor:VERSION
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 2000
@@ -37,3 +37,5 @@ spec:
         ports:
         - name: api-port
           containerPort: 5000
+      imagePullSecrets:
+      - name: nalej-registry
