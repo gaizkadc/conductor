@@ -10,6 +10,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/internal/entities"
     pbApplication "github.com/nalej/grpc-application-go"
+    pbOrganization "github.com/nalej/grpc-organization-go"
     "github.com/google/uuid"
     "context"
     "github.com/rs/zerolog/log"
@@ -19,13 +20,17 @@ import (
 
 
 type SimplePlanDesigner struct {
+    // Applications client
     appClient pbApplication.ApplicationsClient
+    // Organizations client
+    orgClient pbOrganization.OrganizationsClient
 }
 
 func NewSimplePlanDesigner () PlanDesigner {
     connectionsSM := conductor.GetSystemModelClients()
     appClient := pbApplication.NewApplicationsClient(connectionsSM.GetConnections()[0])
-    return &SimplePlanDesigner{appClient: appClient}
+    orgClient := pbOrganization.NewOrganizationsClient(connectionsSM.GetConnections()[0])
+    return &SimplePlanDesigner{appClient: appClient, orgClient: orgClient}
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
@@ -85,9 +90,19 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
 
     planId := uuid.New().String()
 
+    // get organization name
+    org, err := p.orgClient.GetOrganization(context.Background(),
+        &pbOrganization.OrganizationId{OrganizationId: app.OrganizationId})
+    if err != nil {
+        log.Error().Err(err).Msgf("error when retrieving organization %s",app.OrganizationId)
+        return nil, err
+    }
+
     fragment := entities.DeploymentFragment{
         OrganizationId: app.OrganizationId,
+        OrganizationName: org.Name,
         AppInstanceId: app.AppInstanceId,
+        AppName: app.Name,
         FragmentId: fragmentUUID,
         DeploymentId: planId,
         Stages: stages,
