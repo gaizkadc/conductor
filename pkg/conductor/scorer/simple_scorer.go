@@ -61,7 +61,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     err := conductor.UpdateClusterConnections(organizationId)
     if err != nil {
-        log.Error().Err(err).Msg("problem ")
+        log.Error().Err(err).Msgf("error updating connections for organization %s", organizationId)
         return nil
     }
     if len(conductor.ClusterReference) == 0 {

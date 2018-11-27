@@ -50,5 +50,20 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
 }
 
 func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployRequest) (*pbCommon.Success, error) {
-	panic("undeploy operation is not implemented yet")
+	log.Debug().Interface("undeployRequest", request).Msg("Undeploy")
+	if err := entities.ValidUndeployRequest(request); err != nil {
+		return nil, conversions.ToGRPCError(err)
+	}
+
+	toUndeploy := entities.UndeployRequest{
+		OrganizationId: request.OrganizationId,
+		AppInstanceId: request.AppInstaceId,
+	}
+	err := h.c.Undeploy(&toUndeploy)
+	if err != nil {
+		log.Error().Msgf("Unable to undeploy application %s", request.AppInstaceId)
+		return nil, err
+	}
+	log.Debug().Msgf("Application %s undeployed", request.AppInstaceId)
+	return &pbCommon.Success{}, nil
 }
