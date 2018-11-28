@@ -99,6 +99,13 @@ type DeploymentFragment struct {
 	Stages []DeploymentStage `json:"stages,omitempty"`
 }
 
+type UndeployRequest struct {
+	// OrganizationId this deployment belongs to
+	OrganizationId string `json:"organization_id,omitempty"`
+	// AppInstanceId for the instance of the application to run
+	AppInstanceId string `json:"app_instance_id,omitempty"`
+}
+
 func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 	convertedStages := make([]*pbConductor.DeploymentStage, len(df.Stages))
 	for i, serv := range df.Stages {
@@ -183,6 +190,20 @@ func ValidDeploymentFragmentUpdateRequest(request *pbConductor.DeploymentFragmen
 	}
 	if request.ClusterId == "" {
 		return derrors.NewInvalidArgumentError(emptyClusterID)
+	}
+	return nil
+}
+
+//ValidUndeployRequest validates request data before executing an undeployment
+func ValidUndeployRequest(request *pbConductor.UndeployRequest) derrors.Error {
+	if request == nil {
+		return derrors.NewInvalidArgumentError(invalidRequest)
+	}
+	if request.OrganizationId == "" {
+		return derrors.NewInvalidArgumentError(emptyOrganizationID)
+	}
+	if request.AppInstanceId == "" {
+		return derrors.NewInvalidArgumentError(emptyAppInstanceID)
 	}
 	return nil
 }

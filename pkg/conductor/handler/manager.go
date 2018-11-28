@@ -6,24 +6,23 @@
 package handler
 
 import (
-
-    "github.com/rs/zerolog/log"
-    pbConductor "github.com/nalej/grpc-conductor-go"
+    "context"
+    "errors"
+    "fmt"
+    "github.com/google/uuid"
+    "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/conductor/pkg/conductor"
+    "github.com/nalej/conductor/pkg/conductor/monitor"
+    "github.com/nalej/conductor/pkg/conductor/plandesigner"
+    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/nalej/conductor/pkg/utils"
     pbApplication "github.com/nalej/grpc-application-go"
+    pbConductor "github.com/nalej/grpc-conductor-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     pbNetwork "github.com/nalej/grpc-network-go"
-    "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/rs/zerolog/log"
     "time"
-    "github.com/nalej/conductor/pkg/conductor/plandesigner"
-    "github.com/nalej/conductor/pkg/conductor"
-    "context"
-    "github.com/nalej/conductor/pkg/conductor/requirementscollector"
-    "github.com/nalej/conductor/internal/entities"
-    "github.com/google/uuid"
-    "github.com/nalej/conductor/pkg/conductor/monitor"
-    "fmt"
-    "github.com/nalej/conductor/pkg/utils"
-    "errors"
 )
 
 // Time to wait between checks in the queue in milliseconds.
@@ -250,6 +249,48 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     return nil
 }
 
+// Undeploy
+func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
+    log.Debug().Msgf("Undeploy app instance with id %s",request.AppInstanceId)
+
+    err := conductor.UpdateClusterConnections(request.OrganizationId)
+    if err != nil {
+        log.Error().Err(err).Msgf("error updating connections for organization %s", request.OrganizationId)
+        return err
+    }
+    if len(conductor.ClusterReference) == 0 {
+        log.Error().Msgf("no clusters found for organization %s", request.OrganizationId)
+        return nil
+    }
+
+    log.Debug().Msgf("There are %d known clusters",len(conductor.ClusterReference))
+
+    for clusterId, clusterHost := range conductor.ClusterReference {
+        log.Debug().Msgf("conductor query deployment-manager cluster %s at %s", clusterId, clusterHost)
+
+        dmAddress := fmt.Sprintf("%s:%d",clusterHost,utils.DEPLOYMENT_MANAGER_PORT)
+        conn, err := conductor.GetDMClients().GetConnection(dmAddress)
+        if err != nil {
+            log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
+            return err
+        }
+
+        dmClient := pbDeploymentManager.NewDeploymentManagerClient(conn)
+
+        undeployRequest := pbDeploymentManager.UndeployRequest{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+        }
+        _, err = dmClient.Undeploy(context.Background(), &undeployRequest)
+        if err != nil {
+            log.Error().Msgf("could not undeploy app %s", request.AppInstanceId)
+            return err
+        }
+    }
+
+    return nil
+}
+
 // Return the system to the status before instantiating the given deployment plan and zt network id.
 func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
     // Delete zt network
@@ -257,7 +298,7 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
     _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
     if err != nil {
         // TODO decide what to do here
-        log.Error().Msgf("impossible to delete zero tier network %s", ztNetworkId)
+        log.Error().Msgf("impossible to delete zerotier network %s", ztNetworkId)
         return err
     }
     // ... Others ...

@@ -7,20 +7,19 @@
 package cmd
 
 import (
-    "github.com/spf13/cobra"
-    "github.com/rs/zerolog/log"
     "fmt"
-    pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
-    pbOrganization "github.com/nalej/grpc-organization-go"
+    pbConductor "github.com/nalej/grpc-conductor-go"
     pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
+    pbOrganization "github.com/nalej/grpc-organization-go"
+    "github.com/rs/zerolog/log"
+    "github.com/spf13/cobra"
 
-    "google.golang.org/grpc"
-    "context"
     "bufio"
-    "os"
-    "os/exec"
+    "context"
     "github.com/nalej/conductor/pkg/utils"
+    "google.golang.org/grpc"
+    "os"
 )
 
 
@@ -118,13 +117,24 @@ func RunExample() {
     log.Info().Msg("\nPress any key to delete the generated namespace")
     bufio.NewReader(os.Stdin).ReadBytes('\n')
 
-    targetNamespace := getNamespace(desc.OrganizationId,x.AppInstanceId)
+    //targetNamespace := getNamespace(desc.OrganizationId,x.AppInstanceId)
+    //
+    //output, err := exec.Command("kubectl","delete","namespace",targetNamespace).CombinedOutput()
+    //if err != nil {
+    //    os.Stderr.WriteString(err.Error())
+    //}
+    //fmt.Println(string(output))
 
-    output, err := exec.Command("kubectl","delete","namespace",targetNamespace).CombinedOutput()
-    if err != nil {
-        os.Stderr.WriteString(err.Error())
+    // Namespace deletion with newly implemented Undeploy operation
+    undeployRequest := pbConductor.UndeployRequest{
+        OrganizationId: desc.OrganizationId,
+        AppInstanceId: x.AppInstanceId,
     }
-    fmt.Println(string(output))
+    _, err = conductorClient.Undeploy(context.Background(), &undeployRequest)
+    if err != nil {
+        log.Panic().Err(err).Msg("unable to undeploy demo namespace")
+    }
+    log.Debug().Msgf("app %s successfully undeployed", x.AppInstanceId)
 
 }
 
