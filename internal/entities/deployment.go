@@ -196,7 +196,7 @@ func ValidUndeployRequest(request *pbConductor.UndeployRequest) derrors.Error {
 	if request.OrganizationId == "" {
 		return derrors.NewInvalidArgumentError(emptyOrganizationID)
 	}
-	if request.AppInstaceId == "" {
+	if request.AppInstanceId == "" {
 		return derrors.NewInvalidArgumentError(emptyAppInstanceID)
 	}
 	return nil

@@ -15,7 +15,7 @@
 #
 
 # Name of the target applications to be built
-APPS=conductor monitoring
+APPS=conductor monitoring conductor-cli
 
 # Target directory to store binaries and results
 TARGET=bin

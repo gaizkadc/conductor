@@ -57,13 +57,13 @@ func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployReq
 
 	toUndeploy := entities.UndeployRequest{
 		OrganizationId: request.OrganizationId,
-		AppInstanceId: request.AppInstaceId,
+		AppInstanceId: request.AppInstanceId,
 	}
 	err := h.c.Undeploy(&toUndeploy)
 	if err != nil {
-		log.Error().Msgf("Unable to undeploy application %s", request.AppInstaceId)
+		log.Error().Msgf("Unable to undeploy application %s", request.AppInstanceId)
 		return nil, err
 	}
-	log.Debug().Msgf("Application %s undeployed", request.AppInstaceId)
+	log.Debug().Msgf("Application %s undeployed", request.AppInstanceId)
 	return &pbCommon.Success{}, nil
 }

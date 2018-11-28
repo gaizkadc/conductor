@@ -128,7 +128,7 @@ func RunExample() {
     // Namespace deletion with newly implemented Undeploy operation
     undeployRequest := pbConductor.UndeployRequest{
         OrganizationId: desc.OrganizationId,
-        AppInstaceId: x.AppInstanceId,
+        AppInstanceId: x.AppInstanceId,
     }
     _, err = conductorClient.Undeploy(context.Background(), &undeployRequest)
     if err != nil {
