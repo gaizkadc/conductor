@@ -268,8 +268,8 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     for clusterId, clusterHost := range conductor.ClusterReference {
         log.Debug().Msgf("conductor query deployment-manager cluster %s at %s", clusterId, clusterHost)
 
-
-        conn, err := conductor.GetDMClients().GetConnection(clusterHost)
+        dmAddress := fmt.Sprintf("%s:%d",clusterHost,utils.DEPLOYMENT_MANAGER_PORT)
+        conn, err := conductor.GetDMClients().GetConnection(dmAddress)
         if err != nil {
             log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
             return err
