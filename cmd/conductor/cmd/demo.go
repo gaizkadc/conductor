@@ -103,7 +103,7 @@ func RunExample() {
 
     request := pbConductor.DeploymentRequest{
         RequestId: "req0001",
-        Name: "Conductor demo deployment",
+        Name: "mytest",
         Description: "A Nalej demo deployment",
         AppId: &pbApplication.AppDescriptorId{OrganizationId: desc.OrganizationId, AppDescriptorId: desc.AppDescriptorId},
     }
@@ -241,7 +241,7 @@ func InitializeEntries(orgId string, appClient pbApplication.ApplicationsClient)
     // add a desriptor
     appDescriptor := pbApplication.AddAppDescriptorRequest{
         RequestId: "req001",
-        Name:"app_descriptor_test",
+        Name:"myapp",
         Description: "app_descriptor_test description",
         OrganizationId: orgId,
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},

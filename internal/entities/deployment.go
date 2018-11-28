@@ -83,8 +83,12 @@ type DeploymentPlan struct {
 type DeploymentFragment struct {
 	// OrganizationId this deployment belongs to
 	OrganizationId string `json:"organization_id,omitempty"`
+	// OrganizationName this deployment belongs to
+	OrganizationName string `json:"organization_name,omitempty"`
 	// AppInstanceId for the instance of the application to run
 	AppInstanceId string `json:"app_instance_id,omitempty"`
+	// AppNamed for the instance of the application to run
+	AppName string `json:"app_name,omitempty"`
 	// Identifier for this plan
 	DeploymentId string `json:"deployment_id,omitempty"`
 	// Fragment id
@@ -111,6 +115,8 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 		OrganizationId: df.OrganizationId,
 		FragmentId:     df.FragmentId,
 		AppInstanceId:  df.AppInstanceId,
+		OrganizationName: df.OrganizationName,
+		AppName: 		df.AppName,
 		DeploymentId:   df.DeploymentId,
 		Stages:         convertedStages,
 	}
