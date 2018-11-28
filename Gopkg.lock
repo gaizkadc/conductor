@@ -90,14 +90,6 @@
   version = "v1.1.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:83b733d86b54bcb6d606eeeddf2ce70b756ff56767b15dd8af9a6a4d46e80fd9"
-  name = "github.com/nalej/deployment-manager"
-  packages = ["pkg"]
-  pruneopts = ""
-  revision = "268f383fa24ae715818adfba4f9e1c9a8d57d702"
-
-[[projects]]
   digest = "1:0cc441f3dfe124dd74f44dd7e466dfc17cc7edff468094fbc3847a96b5ebf6f7"
   name = "github.com/nalej/derrors"
   packages = ["."]
@@ -170,7 +162,7 @@
   version = "v0.0.17"
 
 [[projects]]
-  digest = "1:05c1a54c80e2d88b6af8f6e3af68ded6ef7f5aea9a28873fb68edc72ea798581"
+  digest = "1:220e1579404d4114ffffa8f7ca924798523acae03326d1544c6cf166d1693bae"
   name = "github.com/nalej/grpc-utils"
   packages = [
     "pkg/conversions",
@@ -178,8 +170,8 @@
     "pkg/tools",
   ]
   pruneopts = ""
-  revision = "5dd4662c03100806b57763212966a72e0c4b85e5"
-  version = "v1.1.0"
+  revision = "120443cfc0335f46d85293d471189625d8b70483"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -485,7 +477,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/google/uuid",
-    "github.com/nalej/deployment-manager/pkg",
     "github.com/nalej/derrors",
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-application-go",
