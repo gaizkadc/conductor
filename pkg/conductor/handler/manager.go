@@ -43,6 +43,8 @@ type Manager struct {
     AppClient pbApplication.ApplicationsClient
     // Networking manager client
     NetClient pbNetwork.NetworksClient
+    // DNS manager client
+    DNSClient pbNetwork.DNSClient
 }
 
 func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
@@ -63,8 +65,9 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
         return nil
     }
     netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
+    dnsClient := pbNetwork.NewDNSClient(netPool.GetConnections()[0])
     return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, AppClient:appClient,
-    Monitor: monitor, NetClient: netClient}
+    Monitor: monitor, NetClient: netClient, DNSClient: dnsClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -251,9 +254,22 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
-    log.Debug().Msgf("Undeploy app instance with id %s",request.AppInstanceId)
 
-    err := conductor.UpdateClusterConnections(request.OrganizationId)
+    log.Debug().Msgf("remove DNS entries for %s in %s",request.AppInstanceId,request.OrganizationId)
+    deleteReq := pbNetwork.DeleteDNSEntryRequest{
+        OrganizationId: request.OrganizationId,
+        AppInstanceId: request.AppInstanceId,
+    }
+
+    _, err := c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
+    if err != nil {
+        log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
+    }
+
+
+    log.Debug().Msgf("undeploy app instance with id %s",request.AppInstanceId)
+
+    err = conductor.UpdateClusterConnections(request.OrganizationId)
     if err != nil {
         log.Error().Err(err).Msgf("error updating connections for organization %s", request.OrganizationId)
         return err
@@ -299,10 +315,21 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
     if err != nil {
         // TODO decide what to do here
         log.Error().Msgf("impossible to delete zerotier network %s", ztNetworkId)
-        return err
     }
-    // ... Others ...
-    // TODO decide what to do if any of the steps fail
+
+    // Remove associated DNS entries if any
+    log.Debug().Msgf("remove DNS entries for %s in %s",plan.AppInstanceId,plan.OrganizationId)
+    deleteReq := pbNetwork.DeleteDNSEntryRequest{
+        OrganizationId: plan.OrganizationId,
+        AppInstanceId: plan.AppInstanceId,
+    }
+
+    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
+    if err != nil {
+        // TODO decide what to do here
+        log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
+    }
+
     return nil
 }
 

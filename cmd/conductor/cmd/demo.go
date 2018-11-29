@@ -20,6 +20,7 @@ import (
     "github.com/nalej/conductor/pkg/utils"
     "google.golang.org/grpc"
     "os"
+    "github.com/spf13/viper"
 )
 
 
@@ -59,14 +60,25 @@ $$ |  $$ |$$   ____|$$ | $$ | $$ |$$ |  $$ |
 func init() {
     RootCmd.AddCommand(runDemo)
 
+    runDemo.Flags().StringP("demoSystemModelAddress","s",fmt.Sprintf("localhost:%d",utils.SYSTEM_MODEL_PORT),
+        "host:port address for system model")
+
+    viper.BindPFlags(runDemo.Flags())
+
 }
 
 // Entrypoint for a musician service.
 func RunExample() {
+
+    // System model url
+    var systemModel string
+
+    systemModel = viper.GetString("demoSystemModelAddress")
+
     fmt.Println()
     fmt.Println(msg)
 
-    conn2, err := grpc.Dial("localhost:8800", grpc.WithInsecure())
+    conn2, err := grpc.Dial(systemModel, grpc.WithInsecure())
     if err != nil {
         log.Panic().Err(err).Msg("impossible to connect with system model at port 8800")
         return
