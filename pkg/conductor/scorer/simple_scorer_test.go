@@ -141,7 +141,9 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
         var request entities.Requirements
 
         ginkgo.BeforeEach(func(){
-            request = entities.Requirements{CPU:0.5,Memory:100, Disk:100}
+            request = entities.Requirements{[]entities.Requirement{
+                {ServiceId:"serviceid",Replicas:1, CPU:50,Memory:100, Storage:100},
+            }}
 
             // collector 0 says overload
             overloaded_status := entities.Status{CPU: 0.87, Mem: 32000, Disk:100}
@@ -161,7 +163,8 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
                 gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
                 gomega.Expect(response).NotTo(gomega.BeNil())
                 gomega.Expect(response.TotalEvaluated).To(gomega.Equal(1))
-                gomega.Expect(response.Score).To(gomega.Equal(float32(0.6268749833106995)))
+                gomega.Expect(len(response.Scoring)).To(gomega.Equal(1))
+                gomega.Expect(response.Scoring[0].Score).To(gomega.Equal(float32(-48.87312316894531)))
             })
         })
     })
