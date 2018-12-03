@@ -21,6 +21,12 @@ spec:
     spec:
       containers:
       - name: musician
+        env:
+          - name: CLUSTER_ID
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-config
+                key: cluster_id
         image: nalejregistry.azurecr.io/nalej/conductor:VERSION
         imagePullPolicy: IfNotPresent
         securityContext:
