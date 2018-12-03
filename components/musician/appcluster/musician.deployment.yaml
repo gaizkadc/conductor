@@ -33,7 +33,7 @@ spec:
           runAsUser: 2000
         args:
         - "musician"
-        - "--prometheus=prometheus.nalej.svc.cluster.local:9090"
+        - "--prometheus=http://prometheus.nalej.svc.cluster.local:9090"
         #- "--debug"
         ports:
         - name: musician-port
