@@ -3,7 +3,7 @@
 # 
 
 # Name of the target applications to be built
-APPS=conductor conductor-cli monitoring
+APPS=conductor conductor-cli monitoring musician
 
 # Target directory to store binaries and results
 TARGET=bin
