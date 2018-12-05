@@ -19,6 +19,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "net"
     "fmt"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 type ConductorConfig struct {
@@ -28,12 +29,15 @@ type ConductorConfig struct {
     SystemModelURL string
     // URL where the networking client is available
     NetworkingServiceURL string
+    // AppClusterAPI port
+    AppClusterApiPort uint32
 }
 
 func (conf * ConductorConfig) Print() {
     log.Info().Uint32("port", conf.Port).Msg("gRPC port")
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
+    log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
 }
 
 
@@ -52,6 +56,10 @@ type ConductorService struct {
 
 
 func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
+
+    // TODO review this global set
+    // set global port
+    utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
     // Initialize connections pool with system model
     smPool := conductor.GetSystemModelClients()
