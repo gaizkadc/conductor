@@ -8,6 +8,7 @@ package scorer
 
 import (
     pbConductor "github.com/nalej/grpc-conductor-go"
+    pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     "github.com/nalej/conductor/internal/entities"
     "context"
     "github.com/rs/zerolog/log"
@@ -84,7 +85,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
             log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
         }
 
-        c := pbConductor.NewMusicianClient(conn)
+        c := pbAppClusterApi.NewMusicianClient(conn)
 
         res := s.queryMusician(c,requirements)
 
@@ -107,7 +108,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 }
 
 // Private function to query a target musician about the score of a given set of requirements.
-func (s SimpleScorer) queryMusician(musicianClient pbConductor.MusicianClient, requirements *entities.Requirements) *pbConductor.ClusterScoreResponse{
+func (s SimpleScorer) queryMusician(musicianClient pbAppClusterApi.MusicianClient, requirements *entities.Requirements) *pbConductor.ClusterScoreResponse{
 
     ctx, cancel := context.WithTimeout(context.Background(), time.Second)
     defer cancel()

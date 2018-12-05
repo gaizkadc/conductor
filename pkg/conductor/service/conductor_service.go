@@ -19,6 +19,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "net"
     "fmt"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 type ConductorConfig struct {
@@ -55,6 +56,10 @@ type ConductorService struct {
 
 
 func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
+
+    // TODO review this global set
+    // set global port
+    utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
     // Initialize connections pool with system model
     smPool := conductor.GetSystemModelClients()

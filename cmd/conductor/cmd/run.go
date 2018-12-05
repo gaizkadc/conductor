@@ -60,7 +60,6 @@ func RunConductor() {
     log.Info().Msg("launching conductor...")
 
 
-
     config := service.ConductorConfig{
         Port: port,
         SystemModelURL: systemModel,
@@ -68,6 +67,7 @@ func RunConductor() {
         AppClusterApiPort: appClusterApiPort,
     }
     config.Print()
+
     conductorService, err := service.NewConductorService(&config)
     if err != nil {
         log.Fatal().AnErr("err", err).Msg("impossible to initialize conductor service")
