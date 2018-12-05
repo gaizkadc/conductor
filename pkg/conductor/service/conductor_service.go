@@ -28,12 +28,15 @@ type ConductorConfig struct {
     SystemModelURL string
     // URL where the networking client is available
     NetworkingServiceURL string
+    // AppClusterAPI port
+    AppClusterApiPort uint32
 }
 
 func (conf * ConductorConfig) Print() {
     log.Info().Uint32("port", conf.Port).Msg("gRPC port")
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
+    log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
 }
 
 

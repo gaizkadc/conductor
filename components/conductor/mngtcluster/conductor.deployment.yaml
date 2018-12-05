@@ -34,6 +34,7 @@ spec:
           - "--debug"
           - "--systemModelAddress=system-model.nalej:8800"
           - "--networkManagerAddress=network-manager.nalej:8000"
+          # - "--appClusterPort=31969"
         ports:
         - name: api-port
           containerPort: 5000

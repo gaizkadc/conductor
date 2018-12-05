@@ -79,7 +79,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
         log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
 
-        conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.MUSICIAN_PORT))
+        conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT))
         if err != nil {
             log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
         }

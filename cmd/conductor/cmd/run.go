@@ -36,6 +36,7 @@ func init() {
         "host:port address for system model")
     runCmd.Flags().StringP("networkManagerAddress", "n", fmt.Sprintf("localhost:%d", utils.NETWORKING_SERVICE_PORT),
         "host:port address for networking manager")
+    runCmd.Flags().Uint32P("appClusterPort","p",utils.APP_CLUSTER_API_PORT, "port where the application cluster api is listening")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -48,18 +49,23 @@ func RunConductor() {
     var systemModel string
     // Networking service url
     var networkingService string
+    // AppClusterAPI port
+    var appClusterApiPort uint32
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
     networkingService = viper.GetString("networkManagerAddress")
+    appClusterApiPort = uint32(viper.GetInt32("appClusterPort"))
 
     log.Info().Msg("launching conductor...")
+
 
 
     config := service.ConductorConfig{
         Port: port,
         SystemModelURL: systemModel,
         NetworkingServiceURL: networkingService,
+        AppClusterApiPort: appClusterApiPort,
     }
     config.Print()
     conductorService, err := service.NewConductorService(&config)
