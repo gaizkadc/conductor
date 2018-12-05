@@ -25,7 +25,7 @@ type SimpleScorer struct {
 }
 
 func NewSimpleScorer() Scorer {
-    return SimpleScorer{musicians: conductor.GetMusicianClients()}
+    return SimpleScorer{musicians: conductor.GetClusterClients()}
 }
 
 // For a existing set of deployment requirements score potential candidates.

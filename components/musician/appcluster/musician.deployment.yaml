@@ -22,15 +22,19 @@ spec:
       containers:
       - name: musician
         image: nalejregistry.azurecr.io/nalej/conductor:VERSION
+        env:
+          - name: CLUSTER_ID
+            value: "clusterid"
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 2000
         args:
         - "musician"
-        - "--prometheus=prometheus.nalej.svc.cluster.local:9090"
+        - "--prometheus=http://prometheus.nalej.svc.cluster.local:9090"
         #- "--debug"
         ports:
         - name: musician-port
           containerPort: 5100
+
       imagePullSecrets:
       - name: nalej-registry
