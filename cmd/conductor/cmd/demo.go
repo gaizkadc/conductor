@@ -21,6 +21,7 @@ import (
     "google.golang.org/grpc"
     "os"
     "github.com/spf13/viper"
+    "strings"
 )
 
 
@@ -62,6 +63,11 @@ func init() {
 
     runDemo.Flags().StringP("demoSystemModelAddress","s",fmt.Sprintf("localhost:%d",utils.SYSTEM_MODEL_PORT),
         "host:port address for system model")
+    // There is a bug in viper that doesn't allow to correctly process string slices
+    // https://github.com/spf13/viper/issues/380
+    // get an string and split it
+    runDemo.Flags().StringP("addresses","a","192.168.99.100",
+        "list of cluster ips separated by commas eg.: 192.168.99.100,192.168.99.101")
 
     viper.BindPFlags(runDemo.Flags())
 
@@ -71,9 +77,9 @@ func init() {
 func RunExample() {
 
     // System model url
-    var systemModel string
-
-    systemModel = viper.GetString("demoSystemModelAddress")
+    systemModel := viper.GetString("demoSystemModelAddress")
+    // initial address
+    clusterAddress := viper.GetString("addresses")
 
     fmt.Println()
     fmt.Println(msg)
@@ -88,7 +94,7 @@ func RunExample() {
     organizationClient := pbOrganization.NewOrganizationsClient(conn2)
     clusterClient := pbInfrastructure.NewClustersClient(conn2)
 
-    orgId, orgErr := InitializeInfrastructure(organizationClient, clusterClient)
+    orgId, orgErr := InitializeInfrastructure(organizationClient, clusterClient, strings.Split(clusterAddress,","))
     if orgErr != nil {
         return
     }
@@ -151,7 +157,7 @@ func RunExample() {
 }
 
 func InitializeInfrastructure(orgClient pbOrganization.OrganizationsClient,
-    clustersClient pbInfrastructure.ClustersClient) (string,error) {
+    clustersClient pbInfrastructure.ClustersClient, addresses []string) (string,error) {
     // add an organization
     orgRequest := pbOrganization.AddOrganizationRequest{Name: "org001"}
     orgResp, err := orgClient.AddOrganization(context.Background(),&orgRequest)
@@ -160,24 +166,27 @@ func InitializeInfrastructure(orgClient pbOrganization.OrganizationsClient,
         return "",err
     }
 
-    // add a cluster
-    clusterReq := pbInfrastructure.AddClusterRequest{
-        Name: "cluster001",
-        OrganizationId: orgResp.OrganizationId,
-        Labels: map[string]string{"clusterlabel":"clustervalue"},
-        Description: "This is a simple testing value",
-        RequestId: "req001",
-        Hostname: "localhost",
-    }
-    addedCluster, err := clustersClient.AddCluster(context.Background(), &clusterReq)
+    log.Info().Msgf("requested to generate %d clusters", len(addresses))
+    for _, addr := range addresses{
+        log.Info().Msgf("create cluster %s",addr)
+        // add a cluster
+        clusterReq := pbInfrastructure.AddClusterRequest{
+            Name: "cluster001",
+            OrganizationId: orgResp.OrganizationId,
+            Labels: map[string]string{"clusterlabel":"clustervalue"},
+            Description: "This is a simple testing value",
+            RequestId: "req001",
+            Hostname: addr,
+        }
+        addedCluster, err := clustersClient.AddCluster(context.Background(), &clusterReq)
 
-    if err != nil {
-        log.Panic().Err(err).Msg("impossible to add cluster")
-        return "",err
-    }
+        if err != nil {
+            log.Panic().Err(err).Msg("impossible to add cluster")
+            return "",err
+        }
 
-    log.Info().Msgf("set export %s=%s",utils.MUSICIAN_CLUSTER_ID, addedCluster.ClusterId)
-    os.Setenv(utils.MUSICIAN_CLUSTER_ID,addedCluster.ClusterId)
+        log.Info().Msgf("set export %s=%s",utils.MUSICIAN_CLUSTER_ID, addedCluster.ClusterId)
+    }
 
     return orgResp.OrganizationId, nil
 }

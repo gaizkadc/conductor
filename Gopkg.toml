@@ -40,6 +40,10 @@
     version="v0.0.30"
 
 [[constraint]]
+    name="github.com/nalej/grpc-app-cluster-api-go"
+    version="v0.0.1"
+
+[[constraint]]
     name="github.com/nalej/grpc-infrastructure-go"
     version="v0.0.13"
 

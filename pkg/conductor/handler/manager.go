@@ -17,6 +17,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/utils"
+    pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
@@ -218,36 +219,40 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 
         targetHostname, found := conductor.ClusterReference[fragment.ClusterId]
         if !found {
-            msg := fmt.Sprintf("unknown target address for cluster with id %s",fragment.ClusterId)
+            msg := fmt.Sprintf("unknown target address for cluster with id %s", fragment.ClusterId)
             err := errors.New(msg)
             log.Error().Msgf(msg)
             return err
         }
 
-        dmAddress := fmt.Sprintf("%s:%d",targetHostname,utils.DEPLOYMENT_MANAGER_PORT)
+        clusterAddress := fmt.Sprintf("%s:%d", targetHostname, utils.APP_CLUSTER_API_PORT)
 
-        conn,err := conductor.GetDMClients().GetConnection(dmAddress)
+        conn, err := conductor.GetClusterClients().GetConnection(clusterAddress)
 
-        if err!=nil{
-            log.Error().Err(err).Msgf("problem creating connection with %s",dmAddress)
+        if err != nil {
+            log.Error().Err(err).Msgf("problem creating connection with %s", clusterAddress)
             return err
         }
 
         // build a request
         request := pbDeploymentManager.DeploymentFragmentRequest{
-            RequestId: uuid.New().String(),
-            Fragment: fragment.ToGRPC(),
-            ZtNetworkId: ztNetworkId,
-            RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE}
-        client := pbDeploymentManager.NewDeploymentManagerClient(conn)
-        _, err = client.Execute(context.Background(),&request)
+            RequestId:      uuid.New().String(),
+            Fragment:       fragment.ToGRPC(),
+            ZtNetworkId:    ztNetworkId,
+            RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE,
+        }
 
-        if err!=nil {
+        client := pbAppClusterApi.NewDeploymentManagerClient(conn)
+        _, err = client.Execute(context.Background(), &request)
+
+        if err != nil {
             // TODO define how to proceed in case of error
             log.Error().Err(err).Msgf("problem deploying fragment %s", fragment.DeploymentId)
             return err
         }
     }
+
+
 
     return nil
 }
@@ -284,8 +289,8 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     for clusterId, clusterHost := range conductor.ClusterReference {
         log.Debug().Msgf("conductor query deployment-manager cluster %s at %s", clusterId, clusterHost)
 
-        dmAddress := fmt.Sprintf("%s:%d",clusterHost,utils.DEPLOYMENT_MANAGER_PORT)
-        conn, err := conductor.GetDMClients().GetConnection(dmAddress)
+        clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
+        conn, err := conductor.GetClusterClients().GetConnection(clusterAddress)
         if err != nil {
             log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
             return err

@@ -82,7 +82,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     instance := ConductorService{conductor: c,
                                 monitor: monitor,
                                 server: conductorServer,
-                                connections: conductor.GetMusicianClients(),
+                                connections: conductor.GetClusterClients(),
                                 configuration: config}
 
     return &instance, nil

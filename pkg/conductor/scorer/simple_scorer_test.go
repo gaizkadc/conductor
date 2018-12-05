@@ -122,7 +122,7 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
         pbConductor.RegisterMusicianServer(servers[0].Server, musicianHandler.NewHandler(managers[0]))
         //pbConductor.RegisterMusicianServer(servers[1].Server, musicianHandler.NewHandler(managers[1]))
 
-        clients = conductor.GetMusicianClients()
+        clients = conductor.GetClusterClients()
 
         // courtesy sleep to ensure all the grpc servers are up.
         time.Sleep(time.Second*2)

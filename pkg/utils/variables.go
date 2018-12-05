@@ -17,6 +17,8 @@ const (
     CONDUCTOR_PORT=5000
     // Standard system model port
     SYSTEM_MODEL_PORT=8800
+    // App cluster api port
+    APP_CLUSTER_API_PORT=8281
     // Relevant ports for the system
     MUSICIAN_PORT = 5100
     // Standard deployment manager port

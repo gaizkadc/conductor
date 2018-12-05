@@ -1,9 +1,10 @@
 #
 #  Copyright 2018 Nalej
-# 
+#
 
 # Name of the target applications to be built
-APPS=conductor conductor-cli monitoring musician
+APPS=conductor conductor-cli musician monitoring
+
 
 # Target directory to store binaries and results
 TARGET=bin

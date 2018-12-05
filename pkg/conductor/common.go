@@ -24,12 +24,9 @@ import (
 )
 
 var (
-    // Singleton instance of connections with musician clients
-    MusicianClients *tools.ConnectionsMap
-    onceMusicians   sync.Once
-    // Singleton instance of connections with deployment managers
-    DMClients *tools.ConnectionsMap
-    onceDM sync.Once
+    // Singleton instance of connections with cluster clients clients
+    ClusterClients *tools.ConnectionsMap
+    onceClusters   sync.Once
     // Singleton instance of connections with the system model
     SMClients *tools.ConnectionsMap
     onceSM sync.Once
@@ -43,31 +40,22 @@ var (
 func GetSystemModelClients() *tools.ConnectionsMap {
     onceSM.Do(func(){
         // reuse the conductor factory
-        SMClients = tools.NewConnectionsMap(conductorClientFactory)
+        SMClients = tools.NewConnectionsMap(systemModelClientFactory)
     })
     return SMClients
 }
 
 
-func GetMusicianClients() *tools.ConnectionsMap {
-    onceMusicians.Do(func(){
-        MusicianClients = tools.NewConnectionsMap(conductorClientFactory)
+func GetClusterClients() *tools.ConnectionsMap {
+    onceClusters.Do(func(){
+        ClusterClients = tools.NewConnectionsMap(clusterClientFactory)
         if ClusterReference == nil {
             ClusterReference = make(map[string]string, 0)
         }
     })
-    return MusicianClients
+    return ClusterClients
 }
 
-func GetDMClients() *tools.ConnectionsMap {
-    onceDM.Do(func() {
-        DMClients = tools.NewConnectionsMap(dmClientFactory)
-        if ClusterReference == nil {
-            ClusterReference = make(map[string]string, 0)
-        }
-    })
-    return DMClients
-}
 
 func GetNetworkingClients() *tools.ConnectionsMap {
     onceNC.Do(func() {
@@ -94,17 +82,27 @@ func basicClientFactory(address string) (*grpc.ClientConn, error) {
     return conn, err
 }
 
-// Factory in charge of generating new connections for Conductor->Musician communication.
+// Factory in charge of generating new connections for Conductor->system model.
 //  params:
 //   address the communication has to be done with
 //  return:
 //   client and error if any
-func conductorClientFactory(address string) (*grpc.ClientConn, error) {
+func systemModelClientFactory(address string) (*grpc.ClientConn, error) {
     return basicClientFactory(address)
 }
 
 
-// Factory in charge of generating new connections for Conductor->Musician communication.
+// Factory in charge of generating new connections for Conductor->cluster communication.
+//  params:
+//   address the communication has to be done with
+//  return:
+//   client and error if any
+func clusterClientFactory(address string) (*grpc.ClientConn, error) {
+    return basicClientFactory(address)
+}
+
+
+// Factory in charge of generating new connections for Conductor->Networkcommunication.
 //  params:
 //   address the communication has to be done with
 //  return:
@@ -114,14 +112,6 @@ func networkingClientFactory(address string) (*grpc.ClientConn, error) {
 }
 
 
-// Factory in charge of generating new connections for Conductor->DM communication.
-//  params:
-//   address the communication has to be done with
-//  return:
-//   client and error if any
-func dmClientFactory(address string) (*grpc.ClientConn, error) {
-    return basicClientFactory(address)
-}
 
 // This is a common sharing function to check the system model and update the available clusters.
 // Additionally, the function updates the available connections for musicians and deployment managers.
@@ -152,13 +142,12 @@ func UpdateClusterConnections(organizationId string) error{
     }
 
     toReturn := make([]string,0)
-    musicians := GetMusicianClients()
-    dms := GetDMClients()
+    clusters := GetClusterClients()
+
     for _, cluster := range clusterList.Clusters {
         log.Debug().Msgf("add connection to cluster with id %s and hostname %s",cluster.ClusterId, cluster.Hostname)
         ClusterReference[cluster.ClusterId] = cluster.Hostname
-        musicians.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.MUSICIAN_PORT))
-        dms.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.DEPLOYMENT_MANAGER_PORT))
+        clusters.AddConnection(fmt.Sprintf("%s:%d",cluster.Hostname,utils.APP_CLUSTER_API_PORT))
         toReturn = append(toReturn, cluster.Hostname)
     }
     return nil
