@@ -8,7 +8,7 @@ metadata:
     component: musician
 spec:
   selector:
-    app: samurai
+    cluster: application
     component: musician
   type: ClusterIP
   ports:
