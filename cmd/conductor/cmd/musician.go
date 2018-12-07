@@ -53,13 +53,19 @@ func RunMusician() {
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
 
-
     log.Info().Msg("launching musician...")
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
     go collector.Run()
 
     scorer := scorer.NewSimpleScorer(collector)
-    musicianService,err := service.NewMusicianService(port, &collector, &scorer)
+
+    conf := &service.MusicianConfig{
+        Port: port,
+        Scorer: &scorer,
+        Collector: &collector,
+    }
+
+    musicianService, err := service.NewMusicianService(conf)
 
     if err!=nil{
         log.Fatal().AnErr("error",err).Msg("impossible to start service")
