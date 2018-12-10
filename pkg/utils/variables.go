@@ -24,10 +24,10 @@ var CONDUCTOR_PORT uint32 = 5000
 // Standard system model port
 var SYSTEM_MODEL_PORT uint32 = 8800
 // App cluster api port
-var APP_CLUSTER_API_PORT uint32 =8281
+var APP_CLUSTER_API_PORT uint32 =443
 // Relevant ports for the system
 var MUSICIAN_PORT uint32 = 5100
 // Standard deployment manager port
-var DEPLOYMENT_MANAGER_PORT uint32 = 5200
+var DEPLOYMENT_MANAGER_PORT uint32 = 443
 // Networking service port
 var NETWORKING_SERVICE_PORT uint32 = 8000

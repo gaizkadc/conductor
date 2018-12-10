@@ -9,7 +9,6 @@ import (
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
     "github.com/nalej/conductor/pkg/utils"
-    "github.com/nalej/conductor/pkg/conductor"
     "google.golang.org/grpc"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
@@ -22,10 +21,13 @@ var _ = ginkgo.Describe("Check plan designer", func(){
 
     var isReady bool
 
+    // Connections helper
+    var connHelper *utils.ConnectionsHelper
+
     var localPlanDesigner PlanDesigner
 
     // System model address
-    var systemModelAdd string
+    var systemModelHost string
     // Connection with system model
     var connSM *grpc.ClientConn
     // Applications client
@@ -38,8 +40,8 @@ var _ = ginkgo.Describe("Check plan designer", func(){
         isReady = false
 
         if utils.RunIntegrationTests() {
-            systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
-            if systemModelAdd != "" {
+            systemModelHost = os.Getenv(utils.IT_SYSTEM_MODEL)
+            if systemModelHost != "" {
                 isReady = true
             }
         }
@@ -48,10 +50,12 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             return
         }
 
+        connHelper = utils.NewConnectionsHelper(false, "", true)
+
         // connect with external system model using the pool
-        pool := conductor.GetSystemModelClients()
+        pool := connHelper.GetSystemModelClients()
         var err error
-        connSM, err = pool.AddConnection(systemModelAdd)
+        connSM, err = pool.AddConnection(systemModelHost, int(utils.SYSTEM_MODEL_PORT))
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
         // clients
@@ -66,7 +70,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
                 ginkgo.Skip("run integration test not configured")
             }
             appInstance := CreateApp1(orgClient, appClient)
-            localPlanDesigner = NewSimplePlanDesigner()
+            localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -90,7 +94,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
                 ginkgo.Skip("run integration test not configured")
             }
             appInstance := CreateApp2(orgClient, appClient)
-            localPlanDesigner = NewSimplePlanDesigner()
+            localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -115,7 +119,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
                 ginkgo.Skip("run integration test not configured")
             }
             appInstance := CreateApp3(orgClient, appClient)
-            localPlanDesigner = NewSimplePlanDesigner()
+            localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
             plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())

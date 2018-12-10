@@ -11,7 +11,6 @@ import (
     "fmt"
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/entities"
-    "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
@@ -30,6 +29,8 @@ import (
 const CheckSleepTime = 2000
 
 type Manager struct {
+    // Connections helper
+    ConnHelper *utils.ConnectionsHelper
     // ScorerMethod
     ScorerMethod scorer.Scorer
     // Requirements collector
@@ -48,10 +49,10 @@ type Manager struct {
     DNSClient pbNetwork.DNSClient
 }
 
-func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementscollector.RequirementsCollector,
-    designer plandesigner.PlanDesigner, monitor monitor.Manager) *Manager {
+func NewManager(connHelper *utils.ConnectionsHelper, queue RequestsQueue, scorer scorer.Scorer,
+    reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner, monitor monitor.Manager) *Manager {
     // initialize clients
-    pool := conductor.GetSystemModelClients()
+    pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
         log.Panic().Msg("system model clients were not started")
         return nil
@@ -60,15 +61,15 @@ func NewManager(queue RequestsQueue, scorer scorer.Scorer, reqColl requirementsc
     // Create associated clients
     appClient := pbApplication.NewApplicationsClient(conn)
     // Network client
-    netPool := conductor.GetNetworkingClients()
+    netPool := connHelper.GetNetworkingClients()
     if netPool != nil && len(netPool.GetConnections())==0{
         log.Panic().Msg("networking client was not started")
         return nil
     }
     netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
     dnsClient := pbNetwork.NewDNSClient(netPool.GetConnections()[0])
-    return &Manager{Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl, Designer: designer, AppClient:appClient,
-    Monitor: monitor, NetClient: netClient, DNSClient: dnsClient}
+    return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
+        Designer: designer, AppClient:appClient, Monitor: monitor, NetClient: netClient, DNSClient: dnsClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -217,7 +218,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
 
-        targetHostname, found := conductor.ClusterReference[fragment.ClusterId]
+        targetHostname, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
         if !found {
             msg := fmt.Sprintf("unknown target address for cluster with id %s", fragment.ClusterId)
             err := errors.New(msg)
@@ -227,7 +228,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 
         clusterAddress := fmt.Sprintf("%s:%d", targetHostname, utils.APP_CLUSTER_API_PORT)
 
-        conn, err := conductor.GetClusterClients().GetConnection(clusterAddress)
+        conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
 
         if err != nil {
             log.Error().Err(err).Msgf("problem creating connection with %s", clusterAddress)
@@ -274,23 +275,23 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     log.Debug().Msgf("undeploy app instance with id %s",request.AppInstanceId)
 
-    err = conductor.UpdateClusterConnections(request.OrganizationId)
+    err = c.ConnHelper.UpdateClusterConnections(request.OrganizationId)
     if err != nil {
         log.Error().Err(err).Msgf("error updating connections for organization %s", request.OrganizationId)
         return err
     }
-    if len(conductor.ClusterReference) == 0 {
+    if len(c.ConnHelper.ClusterReference) == 0 {
         log.Error().Msgf("no clusters found for organization %s", request.OrganizationId)
         return nil
     }
 
-    log.Debug().Msgf("There are %d known clusters",len(conductor.ClusterReference))
+    log.Debug().Msgf("There are %d known clusters",len(c.ConnHelper.ClusterReference))
 
-    for clusterId, clusterHost := range conductor.ClusterReference {
+    for clusterId, clusterHost := range c.ConnHelper.ClusterReference {
         log.Debug().Msgf("conductor query deployment-manager cluster %s at %s", clusterId, clusterHost)
 
         clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
-        conn, err := conductor.GetClusterClients().GetConnection(clusterAddress)
+        conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
         if err != nil {
             log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
             return err

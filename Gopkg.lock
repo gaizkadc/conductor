@@ -170,7 +170,7 @@
   version = "v0.0.21"
 
 [[projects]]
-  digest = "1:220e1579404d4114ffffa8f7ca924798523acae03326d1544c6cf166d1693bae"
+  digest = "1:5edfb9835193a7419f3b82d746644453c9cfa0a31534922bbabc1e65d393a259"
   name = "github.com/nalej/grpc-utils"
   packages = [
     "pkg/conversions",
@@ -178,8 +178,8 @@
     "pkg/tools",
   ]
   pruneopts = ""
-  revision = "120443cfc0335f46d85293d471189625d8b70483"
-  version = "v1.2.0"
+  revision = "fff7657002d0a5995a046522eace2bcb03830457"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -516,6 +516,7 @@
     "github.com/spf13/viper",
     "github.com/yourbasic/graph",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/credentials",
     "google.golang.org/grpc/reflection",
     "google.golang.org/grpc/test/bufconn",
   ]

@@ -15,19 +15,20 @@ import (
     pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
-    "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/internal/entities"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    "fmt"
     "os"
     "time"
     "github.com/nalej/conductor/pkg/utils"
     "context"
+    "fmt"
 )
 
 
 var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func() {
     var isReady bool
+    // Connections helper
+    var connHelper *utils.ConnectionsHelper
     // grpc servers
     var servers []*tools.GenericGRPCServer
     // scorer
@@ -39,7 +40,7 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
     // Musician clients
     var clients *tools.ConnectionsMap
     // System model address
-    var smAddress string
+    var smHostname string
     // organization
     organizationName := "testOrganization"
     var organizationId string
@@ -47,11 +48,11 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
 
 
     ginkgo.BeforeSuite(func(){
-        // Check this are integration tests
+        // Check these are integration tests
         isReady = false
         if utils.RunIntegrationTests() {
-            smAddress = os.Getenv(utils.IT_SYSTEM_MODEL)
-            if smAddress != "" {
+            smHostname = os.Getenv(utils.IT_SYSTEM_MODEL)
+            if smHostname != "" {
                 isReady=true
             }
         }
@@ -60,12 +61,15 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
             return
         }
 
+        connHelper = utils.NewConnectionsHelper(false, "", true)
+
+        smAddress := fmt.Sprintf("%s:%d", utils.IT_SYSTEM_MODEL, utils.SYSTEM_MODEL_PORT)
 
         // initialize a system model
-        sm := conductor.GetSystemModelClients()
-        sm.AddConnection(smAddress)
+        sm := connHelper.GetSystemModelClients()
+        sm.AddConnection(smHostname, int(utils.SYSTEM_MODEL_PORT))
 
-        pool := conductor.GetSystemModelClients()
+        pool := connHelper.GetSystemModelClients()
         conn,err := pool.GetConnection(smAddress)
         gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
@@ -94,9 +98,12 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
 
 
     ginkgo.BeforeEach(func() {
+        if !isReady {
+            ginkgo.Skip("run integration test not configured")
+        }
 
         // instantiate musicianHandler server
-        scorerMethod = NewSimpleScorer()
+        scorerMethod = NewSimpleScorer(connHelper)
         // instantiate collectors
         collectors = make([]statuscollector.StatusCollector,2)
         collectors[0] = statuscollector.NewFakeCollector()
@@ -122,16 +129,19 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
         pbConductor.RegisterMusicianServer(servers[0].Server, musicianHandler.NewHandler(managers[0]))
         //pbConductor.RegisterMusicianServer(servers[1].Server, musicianHandler.NewHandler(managers[1]))
 
-        clients = conductor.GetClusterClients()
+        clients = connHelper.GetClusterClients()
 
         // courtesy sleep to ensure all the grpc servers are up.
         time.Sleep(time.Second*2)
-        clients.AddConnection(fmt.Sprintf("localhost:%d",servers[0].Port))
+        clients.AddConnection("localhost",int(servers[0].Port))
         //clients.AddConnection(fmt.Sprintf("localhost:%d",servers[1].Port))
 
     })
 
     ginkgo.AfterEach(func(){
+        if !isReady {
+            ginkgo.Skip("run integration test not configured")
+        }
         for _,s := range servers {
             s.Server.Stop()
         }
@@ -141,6 +151,12 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
         var request entities.Requirements
 
         ginkgo.BeforeEach(func(){
+
+
+            if !isReady {
+                ginkgo.Skip("run integration test not configured")
+            }
+
             request = entities.Requirements{[]entities.Requirement{
                 {ServiceId:"serviceid",Replicas:1, CPU:50,Memory:100, Storage:100},
             }}

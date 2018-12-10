@@ -11,28 +11,29 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     "github.com/rs/zerolog/log"
-    "github.com/nalej/conductor/pkg/conductor"
     "errors"
     "fmt"
     "github.com/nalej/conductor/internal/entities"
     "context"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 type Manager struct {
     pendingPlans *PendingPlans
+    ConnHelper *utils.ConnectionsHelper
     AppClient pbApplication.ApplicationsClient
 }
 
-func NewManager() *Manager {
+func NewManager(connHelper *utils.ConnectionsHelper) *Manager {
     // initialize clients
-    pool := conductor.GetSystemModelClients()
+    pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
         log.Panic().Msg("system model clients were not started")
         return nil
     }
     conn := pool.GetConnections()[0]
     appClient := pbApplication.NewApplicationsClient(conn)
-    return &Manager{AppClient: appClient,pendingPlans: NewPendingPlans()}
+    return &Manager{ConnHelper: connHelper, AppClient: appClient,pendingPlans: NewPendingPlans()}
 }
 
 // Add a plan to be monitored.
