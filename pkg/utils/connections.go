@@ -10,20 +10,20 @@ package utils
 // When running tests, this pool uses listening buffers.
 
 import (
-    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
-    pbOrganization  "github.com/nalej/grpc-organization-go"
-    "github.com/nalej/grpc-utils/pkg/tools"
-    "google.golang.org/grpc"
-    "github.com/rs/zerolog/log"
-    "sync"
     "context"
-    "fmt"
-    "errors"
-    "crypto/x509"
     "crypto/tls"
+    "crypto/x509"
+    "errors"
+    "fmt"
     "github.com/nalej/derrors"
-    "io/ioutil"
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
+    pbOrganization "github.com/nalej/grpc-organization-go"
+    "github.com/nalej/grpc-utils/pkg/tools"
+    "github.com/rs/zerolog/log"
+    "google.golang.org/grpc"
     "google.golang.org/grpc/credentials"
+    "io/ioutil"
+    "sync"
 )
 
 type ConnectionsHelper struct {
@@ -175,6 +175,7 @@ func systemModelClientFactory(hostname string, port int, params...interface{}) (
 //  return:
 //   client and error if any
 func clusterClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
+    log.Debug().Str("hostname", hostname).Int("port", port).Int("len", len(params)).Interface("params", params).Msg("calling cluster client factory")
     if len(params) != 3 {
         log.Fatal().Interface("params",params).Msg("cluster client factory called with not enough parameters")
     }
@@ -230,10 +231,18 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
     clusters := h.GetClusterClients()
 
     for _, cluster := range clusterList.Clusters {
-        log.Debug().Msgf("add connection to cluster with id %s and hostname %s",cluster.ClusterId, cluster.Hostname)
-        h.ClusterReference[cluster.ClusterId] = cluster.Hostname
-        clusters.AddConnection(cluster.Hostname,int(APP_CLUSTER_API_PORT), h.useTLS, h.caCertPath, h.skipCAValidation)
-        toReturn = append(toReturn, cluster.Hostname)
+        if cluster.Status == pbInfrastructure.InfraStatus_RUNNING {
+            log.Debug().Msgf("add connection to cluster with id %s and hostname %s",cluster.ClusterId, cluster.Hostname)
+            h.ClusterReference[cluster.ClusterId] = cluster.Hostname
+            targetPort := int(APP_CLUSTER_API_PORT)
+            params := make([]interface{}, 0)
+            params = append(params, h.useTLS)
+            params = append(params, h.caCertPath)
+            params = append(params, h.skipCAValidation)
+            //clusters.AddConnection(cluster.Hostname, targetPort, h.useTLS, h.caCertPath, h.skipCAValidation)
+            clusters.AddConnection(cluster.Hostname, targetPort, params ... )
+            toReturn = append(toReturn, cluster.Hostname)
+        }
     }
     return nil
 }

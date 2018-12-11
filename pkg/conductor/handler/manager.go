@@ -261,7 +261,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
-    log.Debug().Msgf("remove DNS entries for %s in %s",request.AppInstanceId,request.OrganizationId)
+    log.Debug().Str("app_instance_id", request.AppInstanceId).Str("organization_id", request.OrganizationId).Msg("remove DNS entries")
     deleteReq := pbNetwork.DeleteDNSEntryRequest{
         OrganizationId: request.OrganizationId,
         AppInstanceId: request.AppInstanceId,
@@ -273,7 +273,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     }
 
 
-    log.Debug().Msgf("undeploy app instance with id %s",request.AppInstanceId)
+    log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("undeploy app instance with id")
 
     err = c.ConnHelper.UpdateClusterConnections(request.OrganizationId)
     if err != nil {
@@ -285,10 +285,10 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         return nil
     }
 
-    log.Debug().Msgf("There are %d known clusters",len(c.ConnHelper.ClusterReference))
+    log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
 
     for clusterId, clusterHost := range c.ConnHelper.ClusterReference {
-        log.Debug().Msgf("conductor query deployment-manager cluster %s at %s", clusterId, clusterHost)
+        log.Debug().Str("clusterId", clusterId).Str("clusterHost", clusterHost).Msg("conductor query deployment-manager cluster")
 
         clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
@@ -297,7 +297,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
             return err
         }
 
-        dmClient := pbDeploymentManager.NewDeploymentManagerClient(conn)
+        dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
 
         undeployRequest := pbDeploymentManager.UndeployRequest{
             OrganizationId: request.OrganizationId,
@@ -305,7 +305,19 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         }
         _, err = dmClient.Undeploy(context.Background(), &undeployRequest)
         if err != nil {
-            log.Error().Msgf("could not undeploy app %s", request.AppInstanceId)
+            log.Error().Str("app_instance_id", request.AppInstanceId).Msg("could not undeploy app")
+            return err
+        }
+
+        smConn := c.ConnHelper.SMClients.GetConnections()[0]
+        client := pbApplication.NewApplicationsClient(smConn)
+        instID := &pbApplication.AppInstanceId{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+        }
+        _, err = client.RemoveAppInstance(context.Background(), instID)
+        if err != nil{
+            log.Error().Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
             return err
         }
     }
