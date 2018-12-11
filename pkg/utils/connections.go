@@ -96,6 +96,7 @@ func(h *ConnectionsHelper) GetNetworkingClients() *tools.ConnectionsMap {
 //   grpc connection and error if any
 func basicClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
     address := fmt.Sprintf("%s:%d",hostname,port)
+    log.Debug().Str("address", address).Msg("basicClientFactory being created")
     conn, err := grpc.Dial(address, grpc.WithInsecure())
     if err != nil {
         log.Fatal().Msgf("Failed to start gRPC connection: %v", err)
@@ -133,7 +134,7 @@ func secureClientFactory(hostname string, port int, useTLS bool, caCertPath stri
     }
 
     targetAddress := fmt.Sprintf("%s:%d", hostname, port)
-    log.Debug().Str("address", targetAddress).Msg("creating connection")
+    log.Debug().Str("address", targetAddress).Bool("useTLS", useTLS).Str("caCertPath", caCertPath).Bool("skipCAValidation", skipCAValidation).Msg("creating secure connection")
 
     if skipCAValidation {
         tlsConfig.InsecureSkipVerify = true
