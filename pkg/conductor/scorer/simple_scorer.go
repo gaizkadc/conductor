@@ -14,7 +14,6 @@ import (
     "github.com/rs/zerolog/log"
     "time"
     "github.com/nalej/grpc-utils/pkg/tools"
-    "github.com/nalej/conductor/pkg/conductor"
     "errors"
     "github.com/google/uuid"
     "github.com/nalej/conductor/pkg/utils"
@@ -22,11 +21,12 @@ import (
 )
 
 type SimpleScorer struct {
+    connHelper *utils.ConnectionsHelper
     musicians *tools.ConnectionsMap
 }
 
-func NewSimpleScorer() Scorer {
-    return SimpleScorer{musicians: conductor.GetClusterClients()}
+func NewSimpleScorer(connHelper *utils.ConnectionsHelper) Scorer {
+    return SimpleScorer{musicians: connHelper.GetClusterClients(), connHelper: connHelper}
 }
 
 // For a existing set of deployment requirements score potential candidates.
@@ -60,23 +60,23 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
 // Internal method to query known clusters about requirements scoring.
 func (s SimpleScorer) collectScores(organizationId string, requirements *entities.Requirements)[]*pbConductor.ClusterScoreResponse{
 
-    err := conductor.UpdateClusterConnections(organizationId)
+    err := s.connHelper.UpdateClusterConnections(organizationId)
     if err != nil {
         log.Error().Err(err).Msgf("error updating connections for organization %s", organizationId)
         return nil
     }
-    if len(conductor.ClusterReference) == 0 {
+    if len(s.connHelper.ClusterReference) == 0 {
         log.Error().Msgf("no clusters found for organization %s", organizationId)
         return nil
     }
 
 
     // we expect as many scores as musicians we have
-    log.Debug().Msgf("we have %d known clusters",len(conductor.ClusterReference))
-    collectedScores := make([]*pbConductor.ClusterScoreResponse,0,len(conductor.ClusterReference))
+    log.Debug().Msgf("we have %d known clusters",len(s.connHelper.ClusterReference))
+    collectedScores := make([]*pbConductor.ClusterScoreResponse,0,len(s.connHelper.ClusterReference))
     found_scores := 0
 
-    for clusterId, clusterHost := range conductor.ClusterReference {
+    for clusterId, clusterHost := range s.connHelper.ClusterReference {
 
         log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
 

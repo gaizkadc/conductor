@@ -13,13 +13,13 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
-    "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "net"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
+    "strconv"
 )
 
 type ConductorConfig struct {
@@ -31,6 +31,12 @@ type ConductorConfig struct {
     NetworkingServiceURL string
     // AppClusterAPI port
     AppClusterApiPort uint32
+    // UseTLSForClusterAPI defines if TLS should be used to connect to the cluster API.
+    UseTLSForClusterAPI bool
+    // Path for the certificate of the CA
+    CACertPath string
+    // Skip CA validation
+    SkipCAValidation bool
 }
 
 func (conf * ConductorConfig) Print() {
@@ -38,6 +44,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
+    log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connecto the the Application Cluster API")
 }
 
 
@@ -61,41 +68,68 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     // set global port
     utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
+    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipCAValidation)
+
     // Initialize connections pool with system model
-    smPool := conductor.GetSystemModelClients()
-    _, err := smPool.AddConnection(config.SystemModelURL)
+    smPool := connectionsHelper.GetSystemModelClients()
+    host, port, err := net.SplitHostPort(config.SystemModelURL)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the system model url")
+    }
+
+    p, err := strconv.Atoi(port)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the system model port")
+    }
+
+    _, err = smPool.AddConnection(host, p)
     if err != nil {
         log.Error().Err(err).Msg("error creating connection with system model")
         return nil, err
     }
 
     // Initialize connections pool with networking client
-    cnPool := conductor.GetNetworkingClients()
-    _, err = cnPool.AddConnection(config.NetworkingServiceURL)
+    cnPool := connectionsHelper.GetNetworkingClients()
+
+    netHost, netPort, err := net.SplitHostPort(config.NetworkingServiceURL)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the system model url")
+    }
+
+    netp, err := strconv.Atoi(netPort)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the system model port")
+    }
+
+    _, err = cnPool.AddConnection(netHost, netp)
+    if err != nil {
+        log.Error().Err(err).Msg("error creating connection with system model")
+        return nil, err
+    }
+
 
     q := handler.NewMemoryRequestQueue()
-    scr := scorer.NewSimpleScorer()
+    scr := scorer.NewSimpleScorer(connectionsHelper)
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
-    designer := plandesigner.NewSimplePlanDesigner()
-    monitor := monitor.NewManager()
+    designer := plandesigner.NewSimplePlanDesigner(connectionsHelper)
+    monitor := monitor.NewManager(connectionsHelper)
 
     if monitor == nil {
         log.Panic().Msg("impossible to create monitor service")
         return nil, err
     }
 
-    c := handler.NewManager(q, scr, reqColl, designer, *monitor)
+    c := handler.NewManager(connectionsHelper,q, scr, reqColl, designer, *monitor)
 
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: c,
                                 monitor: monitor,
                                 server: conductorServer,
-                                connections: conductor.GetClusterClients(),
+                                connections: connectionsHelper.GetClusterClients(),
                                 configuration: config}
 
     return &instance, nil
 }
-
 
 
 func(c *ConductorService) Run() {

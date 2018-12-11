@@ -22,7 +22,6 @@ import (
     "github.com/nalej/conductor/pkg/conductor/monitor"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
-    "github.com/nalej/conductor/pkg/conductor"
     "os"
 )
 
@@ -100,8 +99,10 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
 var _ = ginkgo.Describe("Deployment server API", func() {
     var isReady bool
+    // Connections helper
+    var connHelper *utils.ConnectionsHelper
     // System model address
-    var systemModelAdd string
+    var systemModelHostname string
     // grpc server
     var server *grpc.Server
     // conductor object
@@ -126,8 +127,8 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         isReady = false
 
         if utils.RunIntegrationTests() {
-            systemModelAdd = os.Getenv(utils.IT_SYSTEM_MODEL)
-            if systemModelAdd != "" {
+            systemModelHostname = os.Getenv(utils.IT_SYSTEM_MODEL)
+            if systemModelHostname != "" {
                 isReady = true
             }
         }
@@ -136,21 +137,22 @@ var _ = ginkgo.Describe("Deployment server API", func() {
             return
         }
 
+        connHelper = utils.NewConnectionsHelper(false, "", true)
 
 
         // connect with external system model using the pool
-        pool := conductor.GetSystemModelClients()
+        pool := connHelper.GetSystemModelClients()
         var err error
-        connSM, err = pool.AddConnection(systemModelAdd)
+        connSM, err = pool.AddConnection(systemModelHostname, int(utils.SYSTEM_MODEL_PORT))
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
         listener = test.GetDefaultListener()
         server = grpc.NewServer()
-        scorerMethod := scorer.NewSimpleScorer()
-        designer := plandesigner.NewSimplePlanDesigner()
+        scorerMethod := scorer.NewSimpleScorer(connHelper)
+        designer := plandesigner.NewSimplePlanDesigner(connHelper)
         reqcoll := requirementscollector.NewSimpleRequirementsCollector()
         q = NewMemoryRequestQueue()
-        monitor := monitor.NewManager()
+        monitor := monitor.NewManager(connHelper)
 
         conn, err := test.GetConn(*listener)
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -161,7 +163,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
 
-        cond = NewManager(q, scorerMethod, reqcoll, designer, *monitor)
+        cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer, *monitor)
         test.LaunchServer(server,listener)
 
         // Register the service.

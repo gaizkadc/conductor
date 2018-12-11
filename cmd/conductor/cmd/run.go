@@ -37,6 +37,9 @@ func init() {
     runCmd.Flags().StringP("networkManagerAddress", "n", fmt.Sprintf("localhost:%d", utils.NETWORKING_SERVICE_PORT),
         "host:port address for networking manager")
     runCmd.Flags().Uint32P("appClusterPort","p",utils.APP_CLUSTER_API_PORT, "port where the application cluster api is listening")
+    runCmd.Flags().Bool("useTLS", true, "Use TLS to connect to the application cluster API")
+    runCmd.Flags().String("caCertPath", "", "Part for the CA certificate")
+    runCmd.Flags().Bool("skipCAValidation", true, "Skip CA authentication validation")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -51,11 +54,21 @@ func RunConductor() {
     var networkingService string
     // AppClusterAPI port
     var appClusterApiPort uint32
+    // useTLS boolean
+    var useTLS bool
+    // CA cert path
+    var caCertPath string
+    // Skip CA validation
+    var skipCAValidation bool
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
     networkingService = viper.GetString("networkManagerAddress")
     appClusterApiPort = uint32(viper.GetInt32("appClusterPort"))
+    useTLS = viper.GetBool("useTLS")
+    caCertPath = viper.GetString("caCertPath")
+    skipCAValidation = viper.GetBool("skipCAValidation")
+
 
     log.Info().Msg("launching conductor...")
 
@@ -65,6 +78,9 @@ func RunConductor() {
         SystemModelURL: systemModel,
         NetworkingServiceURL: networkingService,
         AppClusterApiPort: appClusterApiPort,
+        UseTLSForClusterAPI: useTLS,
+        CACertPath: caCertPath,
+        SkipCAValidation: skipCAValidation,
     }
     config.Print()
 

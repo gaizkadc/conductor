@@ -26,7 +26,7 @@ spec:
       containers:
       - name: conductor
         image: nalejregistry.azurecr.io/nalej/conductor:VERSION
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           runAsUser: 2000
         args:
@@ -34,7 +34,7 @@ spec:
           - "--debug"
           - "--systemModelAddress=system-model.nalej:8800"
           - "--networkManagerAddress=network-manager.nalej:8000"
-          # - "--appClusterPort=31969"
+          #- "--appClusterPort=443"
         ports:
         - name: api-port
           containerPort: 5000

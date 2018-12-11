@@ -7,7 +7,6 @@
 package plandesigner
 
 import (
-    "github.com/nalej/conductor/pkg/conductor"
     "github.com/nalej/conductor/internal/entities"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
@@ -16,6 +15,7 @@ import (
     "github.com/rs/zerolog/log"
     "fmt"
     "errors"
+    "github.com/nalej/conductor/pkg/utils"
 )
 
 
@@ -24,13 +24,15 @@ type SimplePlanDesigner struct {
     appClient pbApplication.ApplicationsClient
     // Organizations client
     orgClient pbOrganization.OrganizationsClient
+    // Connections helper
+    connHelper *utils.ConnectionsHelper
 }
 
-func NewSimplePlanDesigner () PlanDesigner {
-    connectionsSM := conductor.GetSystemModelClients()
+func NewSimplePlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesigner {
+    connectionsSM := connHelper.GetSystemModelClients()
     appClient := pbApplication.NewApplicationsClient(connectionsSM.GetConnections()[0])
     orgClient := pbOrganization.NewOrganizationsClient(connectionsSM.GetConnections()[0])
-    return &SimplePlanDesigner{appClient: appClient, orgClient: orgClient}
+    return &SimplePlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper}
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
