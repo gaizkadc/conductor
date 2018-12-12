@@ -232,8 +232,8 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
 
     for _, cluster := range clusterList.Clusters {
         if cluster.Status == pbInfrastructure.InfraStatus_RUNNING {
-            log.Debug().Msgf("add connection to cluster with id %s and hostname %s",cluster.ClusterId, cluster.Hostname)
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
+            log.Debug().Str("clusterId", cluster.ClusterId).Str("hostname", cluster.Hostname).Str("targetHostname", targetHostname).Msg("add connection to cluster")
             h.ClusterReference[cluster.ClusterId] = targetHostname
             targetPort := int(APP_CLUSTER_API_PORT)
             params := make([]interface{}, 0)
@@ -242,7 +242,7 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
             params = append(params, h.skipCAValidation)
             //clusters.AddConnection(cluster.Hostname, targetPort, h.useTLS, h.caCertPath, h.skipCAValidation)
             clusters.AddConnection(targetHostname, targetPort, params ... )
-            toReturn = append(toReturn, cluster.Hostname)
+            toReturn = append(toReturn, targetHostname)
         }
     }
     return nil
