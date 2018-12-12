@@ -7,18 +7,20 @@
 package scorer
 
 import (
-    pbConductor "github.com/nalej/grpc-conductor-go"
-    pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
-    "github.com/nalej/conductor/internal/entities"
     "context"
+    "errors"
+    "fmt"
+    "github.com/google/uuid"
+    "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/conductor/pkg/utils"
+    pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
+    pbConductor "github.com/nalej/grpc-conductor-go"
+    "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/rs/zerolog/log"
     "time"
-    "github.com/nalej/grpc-utils/pkg/tools"
-    "errors"
-    "github.com/google/uuid"
-    "github.com/nalej/conductor/pkg/utils"
-    "fmt"
 )
+
+const MusicianQueryTimeout = time.Second * 15
 
 type SimpleScorer struct {
     connHelper *utils.ConnectionsHelper
@@ -110,7 +112,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 // Private function to query a target musician about the score of a given set of requirements.
 func (s SimpleScorer) queryMusician(musicianClient pbAppClusterApi.MusicianClient, requirements *entities.Requirements) *pbConductor.ClusterScoreResponse{
 
-    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), MusicianQueryTimeout)
     defer cancel()
 
     req:=pbConductor.ClusterScoreRequest{

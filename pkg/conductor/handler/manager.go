@@ -227,7 +227,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         }
 
         clusterAddress := fmt.Sprintf("%s:%d", targetHostname, utils.APP_CLUSTER_API_PORT)
-
+        log.Debug().Str("clusterAddress", clusterAddress).Msg("Deploying plan")
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
 
         if err != nil {
