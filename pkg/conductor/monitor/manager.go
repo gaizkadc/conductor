@@ -58,7 +58,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
     // If no more fragments are pending... we stop monitoring the deployment plan
     if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
-        log.Info().Msgf("deployment plan %s was done", request.DeploymentId)
+        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment plan was done")
         // time to delete this plan
         m.pendingPlans.RemovePendingPlan(request.DeploymentId)
         // update the application status in the system model
@@ -67,7 +67,13 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
-        m.AppClient.UpdateAppStatus(context.Background(), &req)
+        log.Info().Str("instanceId", request.AppInstanceId).Msg("set instance to running")
+        _, err := m.AppClient.UpdateAppStatus(context.Background(), &req)
+        if err != nil {
+            log.Error().Err(err).Interface("request", req).Msg("impossible to update app status")
+            return err
+        }
+
     }
 
 
@@ -85,7 +91,7 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         }
         _, err := m.AppClient.UpdateServiceStatus(context.Background(), &updateService)
         if err != nil {
-            log.Error().Err(err).Msgf("impossible to update service status [%v]", updateService)
+            log.Error().Err(err).Interface("request", updateService).Msg("impossible to update service status")
             return err
         }
     }

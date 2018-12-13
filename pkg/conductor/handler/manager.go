@@ -244,16 +244,17 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         }
 
         client := pbAppClusterApi.NewDeploymentManagerClient(conn)
-        _, err = client.Execute(context.Background(), &request)
+        response, err := client.Execute(context.Background(), &request)
+
+        log.Debug().Interface("desploymentFragmentResponse", response).Interface("deploymentFragmentError",err).
+            Msg("finished fragment deployment")
 
         if err != nil {
             // TODO define how to proceed in case of error
-            log.Error().Err(err).Msgf("problem deploying fragment %s", fragment.DeploymentId)
+            log.Error().Err(err).Str("deploymentId",fragment.DeploymentId).Msg("problem deploying fragment")
             return err
         }
     }
-
-
 
     return nil
 }
@@ -269,7 +270,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     _, err := c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
     if err != nil {
-        log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
+        log.Error().Err(err).Str("appInstanceId",deleteReq.AppInstanceId).Msg("error removing dns entries for appInstance")
     }
 
 
@@ -277,7 +278,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     err = c.ConnHelper.UpdateClusterConnections(request.OrganizationId)
     if err != nil {
-        log.Error().Err(err).Msgf("error updating connections for organization %s", request.OrganizationId)
+        log.Error().Err(err).String("organizationID",request.OrganizationId).Msg("error updating connections for organization")
         return err
     }
     if len(c.ConnHelper.ClusterReference) == 0 {
@@ -293,7 +294,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
         if err != nil {
-            log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
+            log.Error().Err(err).String("clusterHost", clusterHost).Msg("impossible to get connection for the host")
             return err
         }
 
@@ -317,7 +318,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         }
         _, err = client.RemoveAppInstance(context.Background(), instID)
         if err != nil{
-            log.Error().Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
+            log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
             return err
         }
     }
