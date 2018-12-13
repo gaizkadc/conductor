@@ -88,6 +88,8 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
             ServiceId: update.ServiceInstanceId,
             AppInstanceId: update.ApplicationInstanceId,
             Status: update.Status,
+            DeployedOnClusterId: request.ClusterId,
+            Endpoints: update.Endpoints,
         }
         _, err := m.AppClient.UpdateServiceStatus(context.Background(), &updateService)
         if err != nil {
