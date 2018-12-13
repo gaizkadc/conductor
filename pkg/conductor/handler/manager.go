@@ -278,7 +278,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     err = c.ConnHelper.UpdateClusterConnections(request.OrganizationId)
     if err != nil {
-        log.Error().Err(err).String("organizationID",request.OrganizationId).Msg("error updating connections for organization")
+        log.Error().Err(err).Str("organizationID",request.OrganizationId).Msg("error updating connections for organization")
         return err
     }
     if len(c.ConnHelper.ClusterReference) == 0 {
@@ -294,7 +294,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
         if err != nil {
-            log.Error().Err(err).String("clusterHost", clusterHost).Msg("impossible to get connection for the host")
+            log.Error().Err(err).Str("clusterHost", clusterHost).Msg("impossible to get connection for the host")
             return err
         }
 
