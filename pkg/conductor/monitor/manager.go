@@ -42,7 +42,7 @@ func (m *Manager) AddPlanToMonitor(plan *entities.DeploymentPlan) {
 }
 
 func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpdateRequest) error {
-    //log.Debug().Msgf("monitor received fragment update %v", request)
+    log.Debug().Interface("request", request).Msg("monitor received fragment update status")
 
     // Check if we are monitoring the fragment
     found := m.pendingPlans.MonitoredFragment(request.FragmentId)
@@ -81,7 +81,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 }
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
-    //log.Debug().Msgf("monitor received update service status %v", request)
+    log.Debug().Interface("request", request).Msg("monitor received deployment service update")
         for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,

@@ -26,7 +26,11 @@ import (
 )
 
 // Time to wait between checks in the queue in milliseconds.
-const CheckSleepTime = 2000
+const (
+    CheckSleepTime = 2000
+    // Timeout in seconds for queries to the application clusters.
+    ConductorAppTimeout = 600
+)
 
 type Manager struct {
     // Connections helper
@@ -244,7 +248,12 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         }
 
         client := pbAppClusterApi.NewDeploymentManagerClient(conn)
-        response, err := client.Execute(context.Background(), &request)
+
+        ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
+        defer cancel()
+        //response, err := client.Execute(context.Background(), &request)
+        response, err := client.Execute(ctx, &request)
+
 
         log.Debug().Interface("desploymentFragmentResponse", response).Interface("deploymentFragmentError",err).
             Msg("finished fragment deployment")
@@ -304,7 +313,10 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
             OrganizationId: request.OrganizationId,
             AppInstanceId: request.AppInstanceId,
         }
-        _, err = dmClient.Undeploy(context.Background(), &undeployRequest)
+        ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
+        defer cancel()
+        _, err = dmClient.Undeploy(ctx, &undeployRequest)
+
         if err != nil {
             log.Error().Str("app_instance_id", request.AppInstanceId).Msg("could not undeploy app")
             return err
