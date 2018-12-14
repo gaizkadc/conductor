@@ -20,7 +20,7 @@ import (
     "time"
 )
 
-const MusicianQueryTimeout = time.Second * 15
+const MusicianQueryTimeout = time.Minute
 
 type SimpleScorer struct {
     connHelper *utils.ConnectionsHelper
