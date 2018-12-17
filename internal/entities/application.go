@@ -181,6 +181,7 @@ type ImageCredentials struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	Email    string `json:"email,omitempty"`
+	DockerRepository     string   `json:"docker_repository,omitempty"`
 }
 
 func NewImageCredentialsFromGRPC(credentials * grpc_application_go.ImageCredentials) *ImageCredentials {
@@ -191,6 +192,7 @@ func NewImageCredentialsFromGRPC(credentials * grpc_application_go.ImageCredenti
 		Username: credentials.Username,
 		Password: credentials.Password,
 		Email:    credentials.Email,
+		DockerRepository: credentials.DockerRepository,
 	}
 }
 
@@ -202,6 +204,7 @@ func (ic *ImageCredentials) ToGRPC() *grpc_application_go.ImageCredentials {
 		Username: ic.Username,
 		Password: ic.Password,
 		Email:    ic.Email,
+		DockerRepository: ic.DockerRepository,
 	}
 }
 
