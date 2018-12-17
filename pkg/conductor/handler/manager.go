@@ -364,6 +364,21 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
         log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
     }
 
+    // Update instance value to ERROR
+    log.Debug().Str("instanceId", plan.AppInstanceId).Msg("set instance to error")
+    smConn := c.ConnHelper.SMClients.GetConnections()[0]
+    client := pbApplication.NewApplicationsClient(smConn)
+    updateRequest := pbApplication.UpdateAppStatusRequest{
+        AppInstanceId: plan.AppInstanceId,
+        OrganizationId: plan.OrganizationId,
+        Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
+    }
+    _, err = client.UpdateAppStatus(context.Background(), &updateRequest)
+    if err != nil {
+        log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
+        return err
+    }
+
     return nil
 }
 
