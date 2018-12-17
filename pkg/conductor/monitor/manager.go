@@ -57,7 +57,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
-        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment plan failed")
+        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
         // time to delete this plan
         m.pendingPlans.RemovePendingPlan(request.DeploymentId)
         // update the application status in the system model
@@ -72,6 +72,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             log.Error().Err(err).Interface("request", req).Msg("impossible to update app status")
             return err
         }
+        return nil
     }
 
     // If no more fragments are pending... we stop monitoring the deployment plan
