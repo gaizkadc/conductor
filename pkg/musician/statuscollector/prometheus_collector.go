@@ -21,9 +21,9 @@ import (
 
 const (
     // describe the set of queries we use for Prometheus to collecto monitor stats
-    PROM_MEM_QUERY="avg_over_time(node_memory_MemFree[5m])"
-    PROM_CPU_QUERY="node_load5"
-    PROM_DISK_QUERY="node_filesystem_free{mountpoint=\"/\"}"
+    PROM_MEM_QUERY="avg(avg_over_time(node_memory_MemFree[5m]))"
+    PROM_CPU_QUERY="avg(node_load5)"
+    PROM_DISK_QUERY="avg(node_filesystem_free{mountpoint=\"/\"})"
 )
 
 // Simple client to query Prometheus HTTP API.
