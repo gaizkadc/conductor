@@ -323,17 +323,18 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
             return err
         }
 
-        smConn := c.ConnHelper.SMClients.GetConnections()[0]
-        client := pbApplication.NewApplicationsClient(smConn)
-        instID := &pbApplication.AppInstanceId{
-            OrganizationId: request.OrganizationId,
-            AppInstanceId: request.AppInstanceId,
-        }
-        _, err = client.RemoveAppInstance(context.Background(), instID)
-        if err != nil{
-            log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
-            return err
-        }
+    }
+
+    smConn := c.ConnHelper.SMClients.GetConnections()[0]
+    client := pbApplication.NewApplicationsClient(smConn)
+    instID := &pbApplication.AppInstanceId{
+        OrganizationId: request.OrganizationId,
+        AppInstanceId: request.AppInstanceId,
+    }
+    _, err = client.RemoveAppInstance(context.Background(), instID)
+    if err != nil{
+        log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
+        return err
     }
 
     return nil
