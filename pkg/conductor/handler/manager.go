@@ -16,6 +16,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/utils"
+    "github.com/nalej/derrors"
     pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     pbApplication "github.com/nalej/grpc-application-go"
     pbConductor "github.com/nalej/grpc-conductor-go"
@@ -340,6 +341,8 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
 // Return the system to the status before instantiating the given deployment plan and zt network id.
 func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
+    st := derrors.NewInternalError("rollback invoked")
+    log.Error().Str("trace", st.DebugReport()).Str("instanceId", plan.AppInstanceId).Msg("rollback has been called")
     // Delete zt network
     req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: plan.OrganizationId}
     _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
