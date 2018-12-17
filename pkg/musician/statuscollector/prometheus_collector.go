@@ -59,6 +59,7 @@ func(c *PrometheusClient) GetMemory() (float64,error) {
     vectorValue = (*value).(model.Vector)
     if vectorValue.Len() > 1 {
         log.Error().Msg("mem query returned more than one entry")
+        log.Error().Interface("vectorValue", vectorValue).Msg("data returned")
         return -1, errors.New("mem query returned more than one entry")
     }
     return float64(vectorValue[0].Value), nil
@@ -77,8 +78,9 @@ func(c *PrometheusClient) GetCPU() (float64, error) {
     var vectorValue model.Vector
     vectorValue = (*value).(model.Vector)
     if vectorValue.Len() > 1 {
-        log.Error().Msg("mem query returned more than one entry")
-        return -1, errors.New("mem query returned more than one entry")
+        log.Error().Msg("cpu query returned more than one entry")
+        log.Error().Interface("vectorValue", vectorValue).Msg("data returned")
+        return -1, errors.New("cpu query returned more than one entry")
     }
 
     return float64(vectorValue[0].Value), nil
@@ -97,8 +99,9 @@ func(c *PrometheusClient) GetDisk() (float64, error) {
     var vectorValue model.Vector
     vectorValue = (*value).(model.Vector)
     if vectorValue.Len() > 1 {
-        log.Error().Msg("mem query returned more than one entry")
-        return -1, errors.New("mem query returned more than one entry")
+        log.Error().Msg("disk query returned more than one entry")
+        log.Error().Interface("vectorValue", vectorValue).Msg("data returned")
+        return -1, errors.New("disk query returned more than one entry")
     }
 
     return float64(vectorValue[0].Value), nil

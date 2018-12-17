@@ -42,7 +42,7 @@ func (m *Manager) AddPlanToMonitor(plan *entities.DeploymentPlan) {
 }
 
 func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpdateRequest) error {
-    log.Debug().Interface("request", request).Msg("monitor received fragment update status")
+    log.Debug().Interface("request", request).Str("status", request.Status.String()).Msg("monitor received fragment update status")
 
     // Check if we are monitoring the fragment
     found := m.pendingPlans.MonitoredFragment(request.FragmentId)
@@ -92,9 +92,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             log.Error().Err(err).Interface("request", req).Msg("impossible to update app status")
             return err
         }
-
     }
-
+    log.Debug().Interface("request", request).Msg("finished processing update fragment")
 
     return nil
 }
