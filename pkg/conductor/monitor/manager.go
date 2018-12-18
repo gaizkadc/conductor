@@ -51,9 +51,23 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         return err
     }
 
+
+    var newStatus *pbApplication.UpdateAppStatusRequest
+    newStatus = nil
+
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
         log.Info().Str("fragmentId", request.FragmentId).Msgf("deployment fragment was done")
         m.pendingPlans.RemoveFragment(request.FragmentId)
+    }
+
+    if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DEPLOYING {
+        log.Info().Str("fragmentId", request.FragmentId).Msgf("deployment fragment is being deployed")
+        newStatus = &pbApplication.UpdateAppStatusRequest{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+            Status: pbApplication.ApplicationStatus_DEPLOYING,
+        }
+
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
@@ -61,19 +75,13 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         // time to delete this plan
         m.pendingPlans.RemovePendingPlan(request.DeploymentId)
         // update the application status in the system model
-        req := pbApplication.UpdateAppStatusRequest{
+        newStatus = &pbApplication.UpdateAppStatusRequest{
             OrganizationId: request.OrganizationId,
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_ERROR,
         }
-        log.Info().Str("instanceId", request.AppInstanceId).Msg("set instance to error")
-        _, err := m.AppClient.UpdateAppStatus(context.Background(), &req)
-        if err != nil {
-            log.Error().Err(err).Interface("request", req).Msg("impossible to update app status")
-            return err
-        }
-        return nil
     }
+
 
     // If no more fragments are pending... we stop monitoring the deployment plan
     if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
@@ -81,18 +89,22 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         // time to delete this plan
         m.pendingPlans.RemovePendingPlan(request.DeploymentId)
         // update the application status in the system model
-        req := pbApplication.UpdateAppStatusRequest{
+        newStatus = &pbApplication.UpdateAppStatusRequest{
             OrganizationId: request.OrganizationId,
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
-        log.Info().Str("instanceId", request.AppInstanceId).Msg("set instance to running")
-        _, err := m.AppClient.UpdateAppStatus(context.Background(), &req)
+    }
+
+    if newStatus != nil {
+        _, err := m.AppClient.UpdateAppStatus(context.Background(), newStatus)
         if err != nil {
-            log.Error().Err(err).Interface("request", req).Msg("impossible to update app status")
+            log.Error().Err(err).Interface("request", newStatus).Msg("impossible to update app status")
             return err
         }
+        log.Info().Str("instanceId", request.AppInstanceId).Str("status", newStatus.Status.String()).Msg("set instance to new status")
     }
+
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
 
     return nil
