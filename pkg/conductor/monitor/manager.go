@@ -55,6 +55,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     var newStatus *pbApplication.UpdateAppStatusRequest
     newStatus = nil
 
+    failedDeployment := false
+
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
         log.Info().Str("fragmentId", request.FragmentId).Msgf("deployment fragment was done")
         m.pendingPlans.RemoveFragment(request.FragmentId)
@@ -80,11 +82,12 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_ERROR,
         }
+        failedDeployment = true
     }
 
 
     // If no more fragments are pending... we stop monitoring the deployment plan
-    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
+    if !failedDeployment && !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment plan was done")
         // time to delete this plan
         m.pendingPlans.RemovePendingPlan(request.DeploymentId)
