@@ -298,8 +298,30 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
 
-    for clusterId, clusterHost := range c.ConnHelper.ClusterReference {
+
+    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: request.OrganizationId, AppInstanceId: request.AppInstanceId})
+    if err != nil {
+        log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
+        return err
+    }
+
+    clusterIds := make(map[string]bool, 0)
+    for _, svc := range appInstance.Services {
+        clusterIds[svc.DeployedOnClusterId]=true
+    }
+
+
+    for clusterId := range clusterIds{
+
+        clusterHost, found := c.ConnHelper.ClusterReference[clusterId]
+        if !found {
+            log.Error().Str("clusterId",clusterId).Str("clusterHost",clusterHost).Msg("unknown clusterHost for the clusterId")
+            return errors.New(fmt.Sprintf("unknown host for cluster id %s", clusterId))
+        }
+
         log.Debug().Str("clusterId", clusterId).Str("clusterHost", clusterHost).Msg("conductor query deployment-manager cluster")
+
 
         clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
@@ -315,14 +337,13 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
             AppInstanceId: request.AppInstanceId,
         }
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
-        defer cancel()
         _, err = dmClient.Undeploy(ctx, &undeployRequest)
 
         if err != nil {
             log.Error().Str("app_instance_id", request.AppInstanceId).Msg("could not undeploy app")
             return err
         }
-
+        cancel()
     }
 
     smConn := c.ConnHelper.SMClients.GetConnections()[0]
