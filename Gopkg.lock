@@ -266,11 +266,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4c3c11c0cd3bb16e36fd94ed778a3136972459baa5e248989cbf8ed3e6b5a55e"
+  digest = "1:43465e4460e21f6462de4dbfdd864a2a48b743b25175d436932fb3e09765c937"
   name = "github.com/prometheus/common"
   packages = ["model"]
   pruneopts = ""
-  revision = "67670fe90761d7ff18ec1d640135e53b9198328f"
+  revision = "2998b132700a7d019ff618c06a234b47c1f3f681"
 
 [[projects]]
   digest = "1:d518eb4bfb76545977b0be8549606e6de5c56f8887b84cc24d12f5ec1c587e3a"
@@ -346,7 +346,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3b4532388bb9dfcc98530527160974cf5ec03120002887777516a98092725ba0"
+  digest = "1:0df6e40d0c0aa3e454e8bca7b087fbe7de5eb4d21e20f7d58ffa84fe3d5d0cf9"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -361,15 +361,15 @@
     "trace",
   ]
   pruneopts = ""
-  revision = "e147a9138326bc0e9d4e179541ffd8af41cff8a9"
+  revision = "1e06a53dbb7e2ed46e91183f219db23c6943c532"
 
 [[projects]]
   branch = "master"
-  digest = "1:fb9c60108aa8a0c8571f568c05fe8f3be347cf30b6b05d86beda7d7223ff88c8"
+  digest = "1:30d295ca4b98f09df913be86c1ac48d1d321eb2a84543206a87704e5d25db19b"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "074acd46bca67915925527c07849494d115e7c43"
+  revision = "7fbe1cd0fcc20051e1fcb87fbabec4a1bacaaeba"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
@@ -408,14 +408,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:751e44ba7dc0a99833eab38b6dde7bc984b0f9a46e45fc61b4121a6c8189ea4e"
+  digest = "1:6792e93c29e856eb62dea636866fc49778c386c83492b914a0df6761ce5da093"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/rpc/errdetails",
     "googleapis/rpc/status",
   ]
   pruneopts = ""
-  revision = "5a97ab628bfb2f65f6befec18f4bc7bc7f382b77"
+  revision = "ae2f86662275e140f395167f1dab7081a5bd5fa8"
 
 [[projects]]
   digest = "1:d141efe4aaad714e3059c340901aab3147b6253e58c85dafbcca3dd8b0e88ad6"

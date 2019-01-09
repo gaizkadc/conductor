@@ -84,7 +84,13 @@ func (c *Manager) Run() {
 		select {
 		case <-sleep:
 			for c.Queue.AvailableRequests() {
-				c.ProcessDeploymentRequest()
+                log.Info().Int("queued requests", c.Queue.Len()).Msg("there are pending deployment requests")
+			    next := c.Queue.NextRequest()
+				err := c.ProcessDeploymentRequest(next)
+				if err != nil {
+				    log.Error().Err(err).Str("requestId", next.RequestId).Msg("enqueue again after errors")
+				    c.Queue.PushRequest(next)
+                }
 			}
 		}
 	}
@@ -132,11 +138,11 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
     return &toEnqueue, nil
 }
 
-func(c *Manager) ProcessDeploymentRequest(){
-    req := c.Queue.NextRequest()
+func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derrors.Error{
     if req == nil {
-        log.Error().Msg("the queue was unexpectedly empty")
-        return
+        err := derrors.NewFailedPreconditionError("the queue was unexpectedly empty")
+        log.Error().Err(err)
+        return err
     }
 
     // TODO get all the data from the system model
@@ -145,23 +151,26 @@ func(c *Manager) ProcessDeploymentRequest(){
     appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
     if err != nil {
-        log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
-        return
+        err := derrors.NewGenericError("impossible to obtain application descriptor")
+        log.Error().Err(err).Str("appDescriptorId",appInstance.AppDescriptorId)
+        return err
     }
 
     // 1) collect requirements for the application descriptor
     foundRequirements, err := c.ReqCollector.FindRequirements(appInstance)
     if err != nil {
-        log.Error().Err(err).Msgf("impossible to find requirements for application %s", appInstance.AppDescriptorId)
-        return
+        err := derrors.NewGenericError("impossible to find requirements for application")
+        log.Error().Err(err).Str("appDescriptorId",appInstance.AppDescriptorId)
+        return err
     }
 
     // 2) score requirements
     scoreResult, err := c.ScorerMethod.ScoreRequirements (req.OrganizationId,foundRequirements)
 
     if err != nil {
-        log.Error().Err(err).Msgf("error scoring request %s", req.RequestId)
-        return
+        err := derrors.NewGenericError("error scoring request")
+        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        return err
     }
 
     log.Info().Msgf("conductor maximum score for %s has score %v from %d potential candidates",
@@ -174,26 +183,30 @@ func(c *Manager) ProcessDeploymentRequest(){
     plan, err := c.Designer.DesignPlan(appInstance, scoreResult)
 
     if err != nil{
-        log.Error().Err(err).Msgf("error designing plan for request %s",req.RequestId)
-        return
+        err := derrors.NewGenericError("error designing plan for request")
+        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        return err
     }
 
     // 4) Create ZT-network with Network manager
-    ztNetworkId, err := c.CreateZTNetwork(appInstance.AppInstanceId, req.OrganizationId)
-    if err != nil {
-        log.Error().Err(err).Msg("impossible to create zt network before deployment")
-        return
+    ztNetworkId, zt_err := c.CreateZTNetwork(appInstance.AppInstanceId, req.OrganizationId)
+    if zt_err != nil {
+        err := derrors.NewGenericError("impossible to create zt network before deployment", zt_err)
+        log.Error().Err(zt_err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        return err
     }
 
     // 5) deploy fragments
     // Tell deployment managers to execute plans
-    err = c.DeployPlan(plan, ztNetworkId)
-    if err != nil {
-        log.Error().Err(err).Msgf("error deploying plan request %s", req.RequestId)
+    err_deploy := c.DeployPlan(plan, ztNetworkId)
+    if err_deploy != nil {
+        err := derrors.NewGenericError("error deploying plan request", err_deploy)
+        log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
         // Run a rollback
         c.rollback(plan, ztNetworkId)
-        return
+        return err
     }
+    return nil
 }
 
 // Create a new zero tier network and return the corresponding network id.
