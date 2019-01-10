@@ -31,6 +31,10 @@ const (
     CheckSleepTime = 2000
     // Timeout in seconds for queries to the application clusters.
     ConductorAppTimeout = 600
+    // Maximum number of retries per request
+    ConductorMaxDeploymentRetries = 3
+    // Time to wait between retries in seconds
+    ConductorSleepBetweenRetries = 25
 )
 
 type Manager struct {
@@ -83,21 +87,50 @@ func (c *Manager) Run() {
 	for {
 		select {
 		case <-sleep:
-			for c.Queue.AvailableRequests() {
+		    // TODO revisit this solution because it could lead to intensive active queue checking
+		    for c.Queue.AvailableRequests() {
                 log.Info().Int("queued requests", c.Queue.Len()).Msg("there are pending deployment requests")
 			    next := c.Queue.NextRequest()
-				err := c.ProcessDeploymentRequest(next)
-				if err != nil {
-				    log.Error().Err(err).Str("requestId", next.RequestId).Msg("enqueue again after errors")
-				    c.Queue.PushRequest(next)
+                readyToProcess := true
+			    // Check if there was any error with this deployment
+			    if next.NumRetries > 0 {
+			        // this app had a retry, check if enough time passed since the last check
+			        elapsedTime := time.Now().Unix()-next.TimeRetry.Unix()
+			        if elapsedTime < ConductorSleepBetweenRetries {
+			            log.Info().Str("requestId", next.RequestId).Msg("not enough time elapsed before retry")
+			            readyToProcess = false
+                    }
+                }
+
+                if readyToProcess {
+                    c.processQueuedRequest(next)
+                } else {
+                    // Queue it for later
+                    c.Queue.PushRequest(next)
                 }
 			}
 		}
 	}
 }
 
-// Push a request into the queue.
+// Process a queued deployment request.
+func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
+    err := c.ProcessDeploymentRequest(req)
+    if err != nil {
+        // Update this deployment request
+        req.NumRetries = req.NumRetries + 1
+        if req.NumRetries >= ConductorMaxDeploymentRetries {
+            log.Error().Str("requestId", req.RequestId).Msg("exceeded number of retries")
+        } else {
+            log.Error().Err(err).Str("requestId", req.RequestId).Msg("enqueue again after errors")
+            currentTime := time.Now()
+            req.TimeRetry = &currentTime
+            c.Queue.PushRequest(req)
+        }
+    }
+}
 
+// Push a request into the queue.
 func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
     log.Debug().Msgf("push request %s", req.RequestId)
     desc, err := c.AppClient.GetAppDescriptor(context.Background(), req.AppId)
@@ -124,6 +157,8 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         InstanceId:     instance.AppInstanceId,
         OrganizationId: req.AppId.OrganizationId,
         ApplicationId:  req.AppId.AppDescriptorId,
+        NumRetries:     0,
+        TimeRetry:      nil,
     }
     err = c.Queue.PushRequest(&toEnqueue)
     if err != nil {
@@ -265,7 +300,6 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
         defer cancel()
-        //response, err := client.Execute(context.Background(), &request)
         response, err := client.Execute(ctx, &request)
 
 

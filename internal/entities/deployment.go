@@ -8,6 +8,7 @@ import (
 	"github.com/nalej/derrors"
 	pbApplication "github.com/nalej/grpc-application-go"
 	pbConductor "github.com/nalej/grpc-conductor-go"
+	"time"
 )
 
 // Representation of the score for a potential deployment candidate.
@@ -42,6 +43,8 @@ type DeploymentRequest struct {
 	OrganizationId string
 	ApplicationId  string
 	InstanceId     string
+	NumRetries     int32
+	TimeRetry      *time.Time
 }
 
 // Fragment deployment status definition
