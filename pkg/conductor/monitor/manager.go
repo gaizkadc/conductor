@@ -51,7 +51,6 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         return err
     }
 
-
     var newStatus *pbApplication.UpdateAppStatusRequest
     newStatus = nil
 
@@ -84,7 +83,6 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         }
         failedDeployment = true
     }
-
 
     // If no more fragments are pending... we stop monitoring the deployment plan
     if !failedDeployment && !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
