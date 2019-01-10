@@ -56,6 +56,8 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     }
     // TODO this current version is limited to deployments contained into a single cluster
 
+
+
     fragmentUUID := uuid.New().String()
     index := make(map[string]entities.Service,0)
 
@@ -100,6 +102,9 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         return nil, err
     }
 
+    // Build nalej variables
+    nalejVariables := GetDeploymentNalejVariables(org.Name, app.AppInstanceId, toDeploy)
+
     fragment := entities.DeploymentFragment{
         OrganizationId: app.OrganizationId,
         OrganizationName: org.Name,
@@ -109,7 +114,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         DeploymentId: planId,
         Stages: stages,
         ClusterId: targetCluster,
-
+        NalejVariables: nalejVariables,
     }
 
     // Aggregate to a new plan

@@ -98,6 +98,8 @@ type DeploymentFragment struct {
 	FragmentId string `json:"fragment_id,omitempty"`
 	// Cluster id
 	ClusterId string `json:"cluster_id,omitempty"`
+	// Nalej variables
+	NalejVariables map[string]string `json:"nalej_variables,omitempty"`
 	// Deployment stages belonging to this fragment
 	Stages []DeploymentStage `json:"stages,omitempty"`
 }
@@ -121,6 +123,7 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 		OrganizationName: df.OrganizationName,
 		AppName: 		df.AppName,
 		DeploymentId:   df.DeploymentId,
+		NalejVariables: df.NalejVariables,
 		Stages:         convertedStages,
 	}
 	return &result
