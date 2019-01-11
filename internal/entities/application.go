@@ -438,6 +438,9 @@ type Service struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// DeployAfter contains the list of services that must be running before launching a service.
 	DeployAfter []string `json:"deploy_after,omitempty"`
+	// RunArguments containts a list of arguments
+	RunArguments [] string `json:"run_arguments" omitempty"`
+
 }
 
 
@@ -471,6 +474,7 @@ func (s *Service) ToGRPC() *grpc_application_go.Service {
 		Configs:              configs,
 		Labels:               s.Labels,
 		DeployAfter:          s.DeployAfter,
+		RunArguments:         s.RunArguments,
 	}
 }
 
@@ -509,6 +513,7 @@ func NewServiceFromGRPC(appDescriptorID string, service *grpc_application_go.Ser
 		Configs:              configs,
 		Labels:               service.Labels,
 		DeployAfter:          service.DeployAfter,
+		RunArguments:         service.RunArguments,
 	}
 }
 
@@ -532,6 +537,7 @@ func (s * Service) ToServiceInstance(appInstanceID string) * ServiceInstance {
 		Labels:               s.Labels,
 		DeployAfter:          s.DeployAfter,
 		Status:               ServiceWaiting,
+
 	}
 }
 
@@ -597,6 +603,8 @@ type ServiceInstance struct {
 	DeployAfter []string `json:"deploy_after,omitempty"`
 	// Status of the deployed service
 	Status ServiceStatus `json:"status,omitempty"`
+	// RunArguments containts a list of arguments
+	RunArguments [] string `json:"run_arguments" omitempty"`
 
 }
 
@@ -633,7 +641,7 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 		Labels:               si.Labels,
 		DeployAfter:          si.DeployAfter,
 		Status:               serviceStatus,
-
+		RunArguments:         si.RunArguments,
 	}
 
 }
