@@ -355,7 +355,9 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
     clusterIds := make(map[string]bool, 0)
     for _, svc := range appInstance.Services {
-        clusterIds[svc.DeployedOnClusterId]=true
+        if svc.DeployedOnClusterId != "" {
+            clusterIds[svc.DeployedOnClusterId] = true
+        }
     }
 
 
