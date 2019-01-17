@@ -33,7 +33,7 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
     var servers []*tools.GenericGRPCServer
     // scorer
     var scorerMethod Scorer
-    // Musician handler
+    // Musician baton
     var managers []*musicianHandler.Manager
     // Fake status collectors
     var collectors []statuscollector.StatusCollector

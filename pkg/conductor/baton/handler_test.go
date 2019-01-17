@@ -4,7 +4,7 @@
  */
 
 
-package handler
+package baton
 
 import (
     "github.com/nalej/conductor/pkg/utils"

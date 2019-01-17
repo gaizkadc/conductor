@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2019 Nalej Group - All Rights Reserved
  *
  */
 
-package handler
+package structures
 
 import (
     "github.com/phf/go-queue/queue"
@@ -32,7 +32,7 @@ type RequestsQueue interface {
     // Clear the queue
     Clear()
 
-    // Queue length
+    // queue length
     Len() int
 }
 

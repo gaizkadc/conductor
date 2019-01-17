@@ -3,7 +3,7 @@
  *
  */
 
-package handler
+package baton
 
 import (
     "context"
@@ -11,7 +11,7 @@ import (
     "fmt"
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/entities"
-    "github.com/nalej/conductor/pkg/conductor/monitor"
+    "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
@@ -46,10 +46,10 @@ type Manager struct {
     ReqCollector requirementscollector.RequirementsCollector
     // Plan designer
     Designer plandesigner.PlanDesigner
-    // Queue for incoming requests
-    Queue RequestsQueue
-    // Monitoring service
-    Monitor monitor.Manager
+    // queue for incoming requests
+    Queue structures.RequestsQueue
+    // Pending plans
+    PendingPlans *structures.PendingPlans
     // Application client
     AppClient pbApplication.ApplicationsClient
     // Networking manager client
@@ -58,8 +58,9 @@ type Manager struct {
     DNSClient pbNetwork.DNSClient
 }
 
-func NewManager(connHelper *utils.ConnectionsHelper, queue RequestsQueue, scorer scorer.Scorer,
-    reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner, monitor monitor.Manager) *Manager {
+func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
+    reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner,
+    pendingPlans *structures.PendingPlans) *Manager {
     // initialize clients
     pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
@@ -78,7 +79,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue RequestsQueue, scorer
     netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
     dnsClient := pbNetwork.NewDNSClient(netPool.GetConnections()[0])
     return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
-        Designer: designer, AppClient:appClient, Monitor: monitor, NetClient: netClient, DNSClient: dnsClient}
+        Designer: designer, AppClient:appClient, PendingPlans: pendingPlans, NetClient: netClient, DNSClient: dnsClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -87,7 +88,7 @@ func (c *Manager) Run() {
 	for {
 		select {
 		case <-sleep:
-		    // TODO revisit this solution because it could lead to intensive active queue checking
+		    //TODO revisit this solution because it could lead to intensive active queue checking
 		    for c.Queue.AvailableRequests() {
                 log.Info().Int("queued requests", c.Queue.Len()).Msg("there are pending deployment requests")
 			    next := c.Queue.NextRequest()
@@ -105,7 +106,7 @@ func (c *Manager) Run() {
                 if readyToProcess {
                     c.processQueuedRequest(next)
                 } else {
-                    // Queue it for later
+                    // queue it for later
                     c.Queue.PushRequest(next)
                 }
 			}
@@ -215,7 +216,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     // 3) design plan
     // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(appInstance, scoreResult)
+    plan, err := c.Designer.DesignPlan(appInstance, scoreResult, req)
 
     if err != nil{
         err := derrors.NewGenericError("error designing plan for request")
@@ -265,8 +266,8 @@ func (c *Manager) CreateZTNetwork(name string, organizationId string) (string, e
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
 func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) error {
-    // Start monitoring this fragment
-    c.Monitor.AddPlanToMonitor(plan)
+    // Add this plan to the list of pending entries
+    c.PendingPlans.AddPendingPlan(plan)
 
     for fragmentIndex, fragment := range plan.Fragments {
         log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
