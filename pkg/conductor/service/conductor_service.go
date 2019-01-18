@@ -127,19 +127,21 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         return nil, errors.New("impossible to create baton service")
     }
 
+    monitorMgr := monitor.NewManager(connectionsHelper,q,pendingPlans, batonMgr)
+    if monitorMgr == nil {
+        log.Panic().Msg("impossible to create monitorMgr service")
+        return nil, err
+    }
+
 
     conductorServer := tools.NewGenericGRPCServer(config.Port)
     instance := ConductorService{conductor: batonMgr,
+                                monitor: monitorMgr,
                                 server: conductorServer,
                                 connections: connectionsHelper.GetClusterClients(),
                                 configuration: config}
 
-    monitor := monitor.NewManager(connectionsHelper,q,pendingPlans, batonMgr)
 
-    if monitor == nil {
-        log.Panic().Msg("impossible to create monitor service")
-        return nil, err
-    }
 
     return &instance, nil
 }

@@ -89,6 +89,7 @@ func (c *Manager) Run() {
 		select {
 		case <-sleep:
 		    //TODO revisit this solution because it could lead to intensive active queue checking
+		    forNextIteration := make([]*entities.DeploymentRequest,0)
 		    for c.Queue.AvailableRequests() {
                 log.Info().Int("queued requests", c.Queue.Len()).Msg("there are pending deployment requests")
 			    next := c.Queue.NextRequest()
@@ -98,7 +99,7 @@ func (c *Manager) Run() {
 			        // this app had a retry, check if enough time passed since the last check
 			        elapsedTime := time.Now().Unix()-next.TimeRetry.Unix()
 			        if elapsedTime < ConductorSleepBetweenRetries {
-			            log.Info().Str("requestId", next.RequestId).Msg("not enough time elapsed before retry")
+			            log.Debug().Str("requestId", next.RequestId).Msg("not enough time elapsed before retry")
 			            readyToProcess = false
                     }
                 }
@@ -107,9 +108,16 @@ func (c *Manager) Run() {
                     c.processQueuedRequest(next)
                 } else {
                     // queue it for later
-                    c.Queue.PushRequest(next)
+                    forNextIteration = append(forNextIteration, next)
                 }
 			}
+		    // Add again to the queue the non-processed entries
+		    if len(forNextIteration) > 0 {
+                log.Info().Int("pending",len(forNextIteration)).Msg("some deployments where excluded in this round")
+            }
+		    for _, toAdd := range forNextIteration {
+		        c.Queue.PushRequest(toAdd)
+            }
 		}
 	}
 }
