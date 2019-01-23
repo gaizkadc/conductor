@@ -8,7 +8,9 @@ package requirementscollector
 
 import (
     "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/derrors"
     pbApplication "github.com/nalej/grpc-application-go"
+
 )
 
 type SimpleRequirementsCollector struct {}
@@ -19,6 +21,11 @@ func NewSimpleRequirementsCollector() RequirementsCollector {
 
 
 func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplication.AppInstance) (*entities.Requirements, error) {
+    // Check if there are any services to be deployed
+    if len(appInstance.Services) == 0 {
+        return nil, derrors.NewFailedPreconditionError("no services specified for the application")
+    }
+
     // TODO check non-sense requirements
     foundRequirements := entities.NewRequirements()
     for _, serv := range appInstance.Services {

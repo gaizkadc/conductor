@@ -312,7 +312,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         response, err := client.Execute(ctx, &request)
 
 
-        log.Debug().Interface("desploymentFragmentResponse", response).Interface("deploymentFragmentError",err).
+        log.Debug().Interface("deploymentFragmentResponse", response).Interface("deploymentFragmentError",err).
             Msg("finished fragment deployment")
 
         if err != nil {
@@ -339,6 +339,9 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         log.Error().Err(err).Str("appInstanceId",deleteReq.AppInstanceId).Msg("error removing dns entries for appInstance")
     }
 
+    // Remove any pending plan
+    // --->
+
 
     log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("undeploy app instance with id")
 
@@ -358,7 +361,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: request.OrganizationId, AppInstanceId: request.AppInstanceId})
     if err != nil {
-        log.Error().Err(err).Msgf("impossible to obtain application descriptor %s", appInstance.AppDescriptorId)
+        log.Error().Err(err).Str("appInstanceID",request.AppInstanceId).Msgf("impossible to obtain application descriptor")
         return err
     }
 

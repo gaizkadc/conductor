@@ -16,18 +16,28 @@ type PendingPlans struct {
     // plan_id -> deployment plan
     Pending map[string]*entities.DeploymentPlan
     // fragment_id -> deployment_plan_id. Index just to improve searching.
-    PendingFragment map[string]string
+    PendingFragments map[string]*PendingFragment
     // service_id -> fragment_id
     PendingService map[string] string
+    // Instance_id -> plan_id
+    Apps map[string]string
     // mutex
     mu sync.Mutex
 }
 
+type PendingFragment struct {
+    // Deployment this fragment belongs to
+    DeploymentPlanID string
+    // True if this fragment is pending
+    IsPending bool
+}
+
 func NewPendingPlans () *PendingPlans {
     return &PendingPlans{
-        PendingService:  make(map[string]string,0),
-        PendingFragment: make(map[string]string,0),
-        Pending:         make(map[string]*entities.DeploymentPlan),
+        PendingService:   make(map[string]string,0),
+        PendingFragments: make(map[string]*PendingFragment,0),
+        Pending:          make(map[string]*entities.DeploymentPlan),
+        Apps:             make(map[string]string,0),
     }
 }
 
@@ -38,10 +48,11 @@ func (p *PendingPlans) AddPendingPlan(plan *entities.DeploymentPlan) {
     defer p.mu.Unlock()
     p.Pending[plan.DeploymentId] = plan
     for _, frag := range plan.Fragments {
-        p.PendingFragment[frag.FragmentId] = plan.DeploymentId
+        p.PendingFragments[frag.FragmentId] = &PendingFragment{plan.DeploymentId, true}
         for _, stage := range frag.Stages {
             for _, serv := range stage.Services {
                 p.PendingService[serv.ServiceId] = frag.FragmentId
+                p.Apps[plan.AppInstanceId] = plan.DeploymentId
             }
         }
     }
@@ -62,10 +73,12 @@ func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
             }
         }
         // remove fragments
-        delete(p.PendingFragment, f.FragmentId)
+        delete(p.PendingFragments, f.FragmentId)
     }
     // delete the plan
     delete(p.Pending, deploymentId)
+    // delete the app
+    delete(p.Apps, deploymentId)
     p.printStatus()
 }
 
@@ -73,9 +86,13 @@ func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
 func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     p.mu.Lock()
     defer p.mu.Unlock()
-    plan := p.Pending[deploymentId]
+    plan, found := p.Pending[deploymentId]
+    if !found {
+
+        return false
+    }
     for _, fragment := range plan.Fragments {
-        _, isPendingFragment := p.PendingFragment[fragment.FragmentId]
+        _, isPendingFragment := p.PendingFragments[fragment.FragmentId]
         if isPendingFragment {
             // we found a Pending fragment
             return true
@@ -90,8 +107,8 @@ func (p *PendingPlans) RemoveFragment(fragmentId string){
     p.mu.Lock()
     p.mu.Unlock()
     // get services Id by checking the corresponding plan
-    planId,_ := p.PendingFragment[fragmentId]
-    plan,_ := p.Pending[planId]
+    pendingPlan,_ := p.PendingFragments[fragmentId]
+    plan,_ := p.Pending[pendingPlan.DeploymentPlanID]
     for _, currentFragment := range plan.Fragments {
         if currentFragment.FragmentId == fragmentId {
             for _, stage := range currentFragment.Stages {
@@ -104,18 +121,18 @@ func (p *PendingPlans) RemoveFragment(fragmentId string){
         }
     }
     // delete the fragment
-    delete(p.PendingFragment,fragmentId)
+    delete(p.PendingFragments,fragmentId)
     p.printStatus()
 }
 
 func (p *PendingPlans) MonitoredFragment(fragmentID string) bool {
     p.mu.Lock()
     defer p.mu.Unlock()
-    _, exists := p.PendingFragment[fragmentID]
+    _, exists := p.PendingFragments[fragmentID]
     return exists
 }
 
 func (p *PendingPlans) printStatus() {
     log.Info().Msgf("%d Pending plans, %d Pending fragments, %d Pending services",
-        len(p.Pending), len(p.PendingFragment), len(p.PendingService))
+        len(p.Pending), len(p.PendingFragments), len(p.PendingService))
 }
