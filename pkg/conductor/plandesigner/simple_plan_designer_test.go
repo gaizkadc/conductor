@@ -72,7 +72,17 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             appInstance := CreateApp1(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
-            plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
+
+            req := entities.DeploymentRequest{
+                InstanceId:appInstance.AppInstanceId,
+                OrganizationId: appInstance.OrganizationId,
+                NumRetries:0,
+                TimeRetry: nil,
+                RequestId: "1",
+                ApplicationId: appInstance.AppDescriptorId,
+            }
+
+            plan,err := localPlanDesigner.DesignPlan(appInstance, &score, &req)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment
             gomega.Expect(len(plan.Fragments)).To(gomega.Equal(1))
@@ -96,7 +106,17 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             appInstance := CreateApp2(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
-            plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
+
+            req := entities.DeploymentRequest{
+                InstanceId:appInstance.AppInstanceId,
+                OrganizationId: appInstance.OrganizationId,
+                NumRetries:0,
+                TimeRetry: nil,
+                RequestId: "1",
+                ApplicationId: appInstance.AppDescriptorId,
+            }
+
+            plan,err := localPlanDesigner.DesignPlan(appInstance, &score, &req)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment
             gomega.Expect(len(plan.Fragments)).To(gomega.Equal(1))
@@ -121,7 +141,15 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             appInstance := CreateApp3(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
             score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
-            plan,err := localPlanDesigner.DesignPlan(appInstance, &score)
+            req := entities.DeploymentRequest{
+                InstanceId:appInstance.AppInstanceId,
+                OrganizationId: appInstance.OrganizationId,
+                NumRetries:0,
+                TimeRetry: nil,
+                RequestId: "1",
+                ApplicationId: appInstance.AppDescriptorId,
+            }
+            plan,err := localPlanDesigner.DesignPlan(appInstance, &score,&req)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
             // only one fragment
             gomega.Expect(len(plan.Fragments)).To(gomega.Equal(1))

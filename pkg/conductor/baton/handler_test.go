@@ -7,6 +7,7 @@
 package baton
 
 import (
+    "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/utils"
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
@@ -19,7 +20,6 @@ import (
     "github.com/nalej/grpc-utils/pkg/test"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
-    "github.com/nalej/conductor/pkg/conductor/monitor"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
 
     "os"
@@ -110,7 +110,9 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     // grpc test listener
     var listener *bufconn.Listener
     // queue
-    var q RequestsQueue
+    var q structures.RequestsQueue
+    // pending plans controller
+    var plans *structures.PendingPlans
     // Connection with system model
     var connSM *grpc.ClientConn
     // Applications client
@@ -151,8 +153,9 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         scorerMethod := scorer.NewSimpleScorer(connHelper)
         designer := plandesigner.NewSimplePlanDesigner(connHelper)
         reqcoll := requirementscollector.NewSimpleRequirementsCollector()
-        q = NewMemoryRequestQueue()
-        monitor := monitor.NewManager(connHelper)
+        q = structures.NewMemoryRequestQueue()
+        plans = structures.NewPendingPlans()
+
 
         conn, err := test.GetConn(*listener)
         gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -163,7 +166,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
 
-        cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer, *monitor)
+        cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer,plans)
         test.LaunchServer(server,listener)
 
         // Register the service.
