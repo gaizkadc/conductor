@@ -3,7 +3,7 @@
  *
  */
 
-// The handler monitor collects information from deployment fragments and updates the status of services.
+// The baton monitor collects information from deployment fragments and updates the status of services.
 
 package monitor
 

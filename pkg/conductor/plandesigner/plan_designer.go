@@ -21,10 +21,11 @@ type PlanDesigner interface {
     //   app application instance
     //   services group of services to deploy
     //   score obtained by musicians
+    //   request deployment request for this plan
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app *pbApplication.AppInstance,
-        score *entities.ClustersScore) (*entities.DeploymentPlan, error)
+        score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error)
 }
 
 const (

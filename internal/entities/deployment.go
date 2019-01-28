@@ -79,6 +79,8 @@ type DeploymentPlan struct {
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// Fragments this plan is made of
 	Fragments []DeploymentFragment `json:"fragments,omitempty"`
+	// Associated deployment request
+	DeploymentRequest *DeploymentRequest `json:"deployment_request,omitempty"`
 }
 
 // Data structure representing the components of a plan that will be

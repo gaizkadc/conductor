@@ -7,7 +7,9 @@
 package service
 
 import (
-    "github.com/nalej/conductor/pkg/conductor/handler"
+    "errors"
+    "github.com/nalej/conductor/internal/structures"
+    "github.com/nalej/conductor/pkg/conductor/baton"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
@@ -50,7 +52,7 @@ func (conf * ConductorConfig) Print() {
 
 type ConductorService struct {
     // Conductor manager
-    conductor *handler.Manager
+    conductor *baton.Manager
     // Conductor monitor
     monitor *monitor.Manager
     // Server for incoming requests
@@ -108,25 +110,38 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     }
 
 
-    q := handler.NewMemoryRequestQueue()
+    log.Info().Msg("instantiate local queue in memory...")
+    q := structures.NewMemoryRequestQueue()
+    log.Info().Msg("done")
+    log.Info().Msg("instantiate local pending plans structure...")
+    pendingPlans := structures.NewPendingPlans()
+    log.Info().Msg("done")
     scr := scorer.NewSimpleScorer(connectionsHelper)
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
     designer := plandesigner.NewSimplePlanDesigner(connectionsHelper)
-    monitor := monitor.NewManager(connectionsHelper)
 
-    if monitor == nil {
-        log.Panic().Msg("impossible to create monitor service")
+
+    batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans)
+    if batonMgr == nil {
+        log.Panic().Msg("impossible to create baton service")
+        return nil, errors.New("impossible to create baton service")
+    }
+
+    monitorMgr := monitor.NewManager(connectionsHelper,q,pendingPlans, batonMgr)
+    if monitorMgr == nil {
+        log.Panic().Msg("impossible to create monitorMgr service")
         return nil, err
     }
 
-    c := handler.NewManager(connectionsHelper,q, scr, reqColl, designer, *monitor)
 
     conductorServer := tools.NewGenericGRPCServer(config.Port)
-    instance := ConductorService{conductor: c,
-                                monitor: monitor,
+    instance := ConductorService{conductor: batonMgr,
+                                monitor: monitorMgr,
                                 server: conductorServer,
                                 connections: connectionsHelper.GetClusterClients(),
                                 configuration: config}
+
+
 
     return &instance, nil
 }
@@ -140,7 +155,7 @@ func(c *ConductorService) Run() {
     }
 
     // register services
-    conductorService := handler.NewHandler(c.conductor)
+    conductorService := baton.NewHandler(c.conductor)
     monitorService := monitor.NewHandler(c.monitor)
 
     // Server and registry
@@ -163,17 +178,3 @@ func(c *ConductorService) Run() {
     }
 
 }
-
-/*
-// Initialize a connections pool with a set of addresses.
-func InitPool(addresses []string, connections *tools.ConnectionsMap) {
-    for _, target := range addresses {
-        _,err := connections.AddConnection(target)
-        if err != nil {
-            log.Error().Err(err)
-        } else {
-            log.Info().Str("address",target).Msg("correctly added to the connections pool")
-        }
-    }
-}
-*/

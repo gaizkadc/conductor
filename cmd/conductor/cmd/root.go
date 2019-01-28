@@ -41,7 +41,6 @@ func Execute() {
 
 // SetupLogging sets the debugLevel level and console logging if required.
 func SetupLogging() {
-    zerolog.TimeFieldFormat = ""
     zerolog.SetGlobalLevel(zerolog.InfoLevel)
     if debugLevel {
         zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -84,7 +83,6 @@ func initConfig() {
 
 func init() {
     SetupLogging()
-    zerolog.TimeFieldFormat = ""
     cobra.OnInitialize(initConfig)
     // initialization file
     RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file path")

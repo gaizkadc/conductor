@@ -5,7 +5,7 @@
 
 // Service in charge of processing deployment gRPC requests.
 
-package handler
+package baton
 
 import (
 	"context"

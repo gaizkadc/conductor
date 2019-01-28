@@ -36,7 +36,7 @@ func NewSimplePlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesigner {
 }
 
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
-    score *entities.ClustersScore) (*entities.DeploymentPlan, error) {
+    score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
 
     // Check scores are available and the application fits
     targetCluster := p.findTargetCluster(score)
@@ -123,6 +123,7 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         DeploymentId: planId,
         OrganizationId: app.OrganizationId,
         Fragments: []entities.DeploymentFragment{fragment},
+        DeploymentRequest: request,
     }
 
     return &newPlan, nil
