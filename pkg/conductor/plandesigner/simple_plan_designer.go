@@ -19,6 +19,11 @@ import (
 )
 
 
+
+/**
+ The simple plan designer allocates any Nalej application into a single cluster. For every service with the multicluster
+ replica flag set on, we force the service to be included into the corresponding fragment.
+ */
 type SimplePlanDesigner struct {
     // Applications client
     appClient pbApplication.ApplicationsClient
@@ -47,7 +52,6 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     }
 
     // Build deployment stages for the application
-
     toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
         &pbApplication.AppDescriptorId{OrganizationId: app.OrganizationId, AppDescriptorId: app.AppDescriptorId})
     if err!=nil{
@@ -55,8 +59,6 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         return nil, err
     }
     // TODO this current version is limited to deployments contained into a single cluster
-
-
 
     fragmentUUID := uuid.New().String()
     index := make(map[string]entities.Service,0)

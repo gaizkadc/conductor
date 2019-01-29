@@ -212,6 +212,7 @@ type DeploySpecs struct {
 	Cpu      int64 `json:"cpu,omitempty"`
 	Memory   int64 `json:"memory,omitempty"`
 	Replicas int32 `json:"replicas,omitempty"`
+	MultiClusterReplicaSet bool `json:"multi_cluster_replica_set,omitempty"`
 }
 
 func NewDeploySpecsFromGRPC(specs * grpc_application_go.DeploySpecs) * DeploySpecs {
@@ -222,6 +223,7 @@ func NewDeploySpecsFromGRPC(specs * grpc_application_go.DeploySpecs) * DeploySpe
 		Cpu:      specs.Cpu,
 		Memory:   specs.Memory,
 		Replicas: specs.Replicas,
+		MultiClusterReplicaSet: specs.MultiClusterReplicaSet,
 	}
 }
 
@@ -230,6 +232,7 @@ func (ds *DeploySpecs) ToGRPC() *grpc_application_go.DeploySpecs {
 		Cpu:      ds.Cpu,
 		Memory:   ds.Memory,
 		Replicas: ds.Replicas,
+		MultiClusterReplicaSet: ds.MultiClusterReplicaSet,
 	}
 }
 
