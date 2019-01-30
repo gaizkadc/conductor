@@ -68,6 +68,11 @@ func (dg *DependencyGraph) NumDependencies() int {
 //  array of services per group. E.g.: [[service2,service3], [service0], [service1]]
 func (dg *DependencyGraph) GetDependencyOrderByGroups() ([][]string, error) {
 
+    // If there is only one node, simply return it
+    if dg.NumServices() == 1 {
+        return [][]string{[]string{dg.graph2id[0]}}, nil
+    }
+
 
     // This must be an acyclic graph
     isAcyclic := graph.Acyclic(dg.graph)

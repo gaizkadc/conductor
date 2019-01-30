@@ -113,7 +113,7 @@ func (c *Manager) Run() {
 			}
 		    // Add again to the queue the non-processed entries
 		    if len(forNextIteration) > 0 {
-                log.Info().Int("pending",len(forNextIteration)).Msg("some deployments where excluded in this round")
+                log.Info().Int("pending",len(forNextIteration)).Msg("some deployments were excluded in this round")
             }
 		    for _, toAdd := range forNextIteration {
 		        c.Queue.PushRequest(toAdd)
@@ -278,7 +278,9 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     c.PendingPlans.AddPendingPlan(plan)
 
     for fragmentIndex, fragment := range plan.Fragments {
-        log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
+        log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
+        log.Info().Str("deploymentId",fragment.DeploymentId).
+            Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
 
         targetHostname, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
         if !found {

@@ -69,25 +69,6 @@ score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.D
     planFragments := make([]entities.DeploymentFragment,0)
 
 
-    // Create a list of services to be replicated across clusters
-    replicatedServices,index := p.getReplicatedServices(toDeploy)
-    log.Info().Str("appInstanceId", app.AppInstanceId).Int("numReplicatedServices",len(replicatedServices)).
-        Msg("we have found a set of services to be replicated across clusters")
-
-    // Replicated services will be deployed in the same batch, compute dependencies
-    dependencyGraphReplicated := NewDependencyGraph(replicatedServices)
-
-    // Build one fragment per cluster
-    for _, scoring := range score.Scoring {
-        targetCluster := scoring.ClusterId
-        fragment, err :=p.buildFragment(replicatedServices,index,dependencyGraphReplicated,app,org,
-            targetCluster, nalejVariables,planId)
-        if err!=nil{
-            return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
-        }
-        planFragments = append(planFragments,*fragment)
-    }
-
     // Create a deployment fragment with all the services
     allServices, allIndex := p.getServicesFromDescriptor(toDeploy)
     dependencyGraph := NewDependencyGraph(allServices)
@@ -107,6 +88,30 @@ score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.D
         return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
     }
     planFragments = append(planFragments, *completeFragment)
+
+    // Create a list of services to be replicated across clusters
+    replicatedServices,index := p.getReplicatedServices(toDeploy)
+    log.Info().Str("appInstanceId", app.AppInstanceId).Int("numReplicatedServices",len(replicatedServices)).
+        Msg("number of services to be replicated across clusters")
+
+    if len(replicatedServices) > 0 {
+        // Replicated services will be deployed in the same batch, compute dependencies
+        dependencyGraphReplicated := NewDependencyGraph(replicatedServices)
+
+        // Build one fragment per cluster
+        for _, scoring := range score.Scoring {
+            replicaCluster := scoring.ClusterId
+            // only replicate if this is not the cluster with all the services
+            if replicaCluster != targetCluster {
+                fragment, err :=p.buildFragment(replicatedServices,index,dependencyGraphReplicated,app,org,
+                    replicaCluster, nalejVariables,planId)
+                if err!=nil{
+                    return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
+                }
+                planFragments = append(planFragments,*fragment)
+            }
+        }
+    }
 
 
     // Now that we have all the fragments, build the deployment plan
@@ -146,7 +151,12 @@ func (p *SimpleReplicaPlanDesigner) buildFragment(
     for stageNumber, servicesPerStage := range groups {
         inThisStage := make([]entities.Service, len(servicesPerStage))
         for i, serviceId := range servicesPerStage {
-            inThisStage[i] = index[serviceId]
+            theService := index[serviceId]
+            if theService.Specs.MultiClusterReplicaSet{
+                // Replicas have a forced single replica
+                theService.Specs.Replicas = 1
+            }
+            inThisStage[i] = theService
         }
 
         stages[stageNumber] = entities.DeploymentStage{
