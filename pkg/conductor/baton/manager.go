@@ -200,6 +200,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         return err
     }
 
+
     // 1) collect requirements for the application descriptor
     foundRequirements, err := c.ReqCollector.FindRequirements(appInstance)
     if err != nil {

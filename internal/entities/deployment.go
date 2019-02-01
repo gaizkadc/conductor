@@ -47,7 +47,7 @@ type DeploymentRequest struct {
 	TimeRetry      *time.Time
 }
 
-// Fragment deployment status definition
+// Fragment deployment Status definition
 
 type DeploymentFragmentStatus int
 
