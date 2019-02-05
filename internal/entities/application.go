@@ -51,6 +51,8 @@ var CollocationPolicyFromGRPC = map[grpc_application_go.CollocationPolicy]Colloc
 }
 
 
+// InstanceMetadata----------
+
 
 // Instance metadata
 // This is a common metadata entity that collects information for a deployed instance. This instance can be a
@@ -100,7 +102,9 @@ func (im *InstanceMetadata) ToGRPC() *grpc_application_go.InstanceMetadata {
 	}
 }
 
-// Instance type
+// ----------
+
+// InstanceType----------
 
 type InstanceType int32
 
@@ -121,8 +125,8 @@ var InstanceTypeFromGRPC = map[grpc_application_go.InstanceType]InstanceType {
 	grpc_application_go.InstanceType_SERVICE_GROUP_INSTANCE: ServiceGroupInstanceType,
 }
 
-// Security Rule
 
+// SecurityRule----------
 
 type SecurityRule struct {
 	// OrganizationId with the organization identifier.
@@ -133,12 +137,16 @@ type SecurityRule struct {
 	RuleId string `json:"rule_id,omitempty"`
 	// Name of the security rule.
 	Name string `json:"name,omitempty"`
-	// SourceServiceId defining the service onto which the security rule is defined.
-	SourceServiceId string `json:"source_service_id,omitempty"`
-	// SourcePort defining the port that is affected by the current rule.
-	SourcePort int32 `json:"source_port,omitempty"`
+	// TargetServiceGroupName defining the name of the target group
+	TargetServiceGroupName string `json:"target_service_group_name,omitempty"`
+	// TargetServiceName defining the name of the target service
+	TargetServiceName string `json:"target_service_name,omitempty"`
+	// TargetPort defining the port that is affected by the current rule.
+	TargetPort int32 `json:"source_port,omitempty"`
 	// Access level to that port defining who can access the port.
 	Access PortAccess `json:"access,omitempty"`
+	// Name of the authenticated group name
+	AuthServiceGroupName string `json:"auth_service_group_name,omitempty"`
 	// AuthServices defining a list of services that can access the port.
 	AuthServices []string `json:"auth_services,omitempty"`
 	// DeviceGroups defining a list of device groups that can access the port.
@@ -152,13 +160,18 @@ func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
 		AppDescriptorId: sr.AppDescriptorId,
 		RuleId:          sr.RuleId,
 		Name:            sr.Name,
-		SourceServiceId: sr.SourceServiceId, SourcePort: sr.SourcePort,
+		AuthServiceGroupName: sr.AuthServiceGroupName,
+		TargetPort:      sr.TargetPort,
+		TargetServiceGroupName: sr.TargetServiceGroupName,
+		TargetServiceName: sr.TargetServiceName
 		Access:       access,
 		AuthServices: sr.AuthServices,
 		DeviceGroups: sr.DeviceGroups,
 	}
 }
+// ----------
 
+// Service Group ----------
 
 type ServiceGroup struct {
 	// OrganizationId with the organization identifier.
@@ -169,28 +182,37 @@ type ServiceGroup struct {
 	ServiceGroupId string `json:"service_group_id,omitempty"`
 	// Name of the service group.
 	Name string `json:"name,omitempty"`
-	// Description of the service group.
-	Description string `json:"description,omitempty"`
 	// Services defining a list of service identifiers that belong to the group.
-	Services []string `json:"services,omitempty"`
+	Services []Service `json:"services,omitempty"`
 	// Policy indicating the deployment collocation policy.
 	Policy CollocationPolicy `json:"policy,omitempty"`
+	// Particular deployment specs for this service
+	Specs ServiceGroupDeploymentSpecs `json:"specs,omitempty"`
+	// Labels defined by the user
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 
 func (sg *ServiceGroup) ToGRPC() *grpc_application_go.ServiceGroup {
 	policy, _ := CollocationPolicyToGRPC[sg.Policy]
+	servs := make([]*grpc_application_go.Service, len(sg.Services))
+	for i, s := range(sg.Services) {
+		servs[i] = s.ToGRPC()
+	}
+
 	return &grpc_application_go.ServiceGroup{
 		OrganizationId:  sg.OrganizationId,
 		AppDescriptorId: sg.AppDescriptorId,
 		ServiceGroupId:  sg.ServiceGroupId,
 		Name:            sg.Name,
-		Description:     sg.Description,
-		Services:        sg.Services,
+		Services:        servs,
 		Policy:          policy,
+		Labels:			 sg.Labels,
+		Specs:           sg.Specs.ToGRPC(),
 	}
 }
 
+// ----------
 
 // Service Group instance ----------
 
@@ -207,8 +229,6 @@ type ServiceGroupInstance struct {
 	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
 	// Name of the service group.
 	Name string `json:"name,omitempty"`
-	// Description of the service group.
-	Description string `json:"description,omitempty"`
 	// ServicesInstances defining a list of service identifiers that belong to the group.
 	ServiceInstances []ServiceInstance `json:"service_instances,omitempty"`
 	// Policy indicating the deployment collocation policy.
@@ -219,6 +239,8 @@ type ServiceGroupInstance struct {
 	Metadata InstanceMetadata `json:"metadata,omitempty"`
 	// Service group deployment specs
 	Specs ServiceGroupDeploymentSpecs `json:"specs,omitempty"`
+	// Labels defined by the user
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 
@@ -236,18 +258,18 @@ func (sgi *ServiceGroupInstance) ToGRPC() *grpc_application_go.ServiceGroupInsta
 		ServiceGroupId:       sgi.ServiceGroupId,
 		ServiceGroupInstanceId: sgi.ServiceGroupInstanceId,
 		Name:                 sgi.Name,
-		Description:          sgi.Description,
 		ServiceInstances:     instances,
 		Policy:               policy,
 		Status:               ServiceStatusToGRPC[sgi.Status],
 		Metadata:             sgi.Metadata.ToGRPC(),
 		Specs:                sgi.Specs.ToGRPC(),
+		Labels:               sgi.Labels,
 	}
 }
 
 // ----------
 
-// ------
+// ServiceGroupDeploymentSpecs----------
 
 type ServiceGroupDeploymentSpecs struct {
 	NumReplicas int32 `json:"num_replicas,omitempty"`
@@ -511,12 +533,12 @@ type Service struct {
 	OrganizationId string `json:"organization_id,omitempty"`
 	// AppDescriptorId with the application descriptor identifier.
 	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
-	// ServiceId with the service identifier.
+	// ServiceGroupId with the service identifier.
+	ServiceGroupId string `json:"service_id,omitempty"`
+	// GroupServiceId with the service identifier.
 	ServiceId string `json:"service_id,omitempty"`
 	// Name of the service.
 	Name string `json:"name,omitempty"`
-	// Description of the service.
-	Description string `json:"description,omitempty"`
 	// ServiceType represents the underlying technology of the service to be launched.
 	Type ServiceType `json:"type,omitempty"`
 	// Image contains the URL/name of the image to be executed.
@@ -600,9 +622,9 @@ func NewServiceFromGRPC(appDescriptorID string, service *grpc_application_go.Ser
 	return &Service{
 		OrganizationId:       service.OrganizationId,
 		AppDescriptorId:      appDescriptorID,
+ 		ServiceGroupId:       service.ServiceGroupId,
 		ServiceId:            service.ServiceId,
 		Name:                 service.Name,
-		Description:          service.Description,
 		Type:                 serviceType,
 		Image:                service.Image,
 		Credentials:          NewImageCredentialsFromGRPC(service.Credentials),
@@ -625,7 +647,6 @@ func (s * Service) ToServiceInstance(appInstanceID string) * ServiceInstance {
 		AppInstanceId:        appInstanceID,
 		ServiceId:            s.ServiceId,
 		Name:                 s.Name,
-		Description:          s.Description,
 		Type:                 s.Type,
 		Image:                s.Image,
 		Credentials:          s.Credentials,
@@ -676,7 +697,7 @@ type ServiceInstance struct {
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// ServiceInstanceId with the service instance identifier.
 	ServiceInstanceId string `json:"service_instance_id,omitempty"`
-	// ServiceId with the service identifier.
+	// GroupServiceId with the service identifier.
 	ServiceId string `json:"service_id,omitempty"`
 	// ServiceGroupInstanceId with the service group identifier.
 	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
@@ -768,8 +789,6 @@ type AppDescriptor struct {
 	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
 	// Name of the application.
 	Name string `json:"name,omitempty"`
-	// Description of the application.
-	Description string `json:"description,omitempty"`
 	// ConfigurationOptions defines a key-value map of configuration options.
 	ConfigurationOptions map[string]string `json:"configuration_options,omitempty"`
 	// EnvironmentVariables defines a key-value map of environment variables and values that will be passed to all
@@ -781,23 +800,20 @@ type AppDescriptor struct {
 	Rules []SecurityRule `json:"rules,omitempty"`
 	// Groups with the Service collocation strategies.
 	Groups []ServiceGroup `json:"groups,omitempty"`
-	// Services of the application.
-	Services []Service `json:"services,omitempty"`
 }
 
-func NewAppDescriptor(organizationID string, appDescriptorID string, name string, description string,
+func NewAppDescriptor(organizationID string, appDescriptorID string, name string,
 	configOptions map[string]string, envVars map[string]string,
-	labels map[string]string,
-	rules []SecurityRule, groups []ServiceGroup, services []Service) *AppDescriptor {
+	labels map[string]string, rules []SecurityRule, groups []ServiceGroup) *AppDescriptor {
 	return &AppDescriptor{
-		organizationID, appDescriptorID,
-		name, description,
-		configOptions,
-		envVars,
-		labels,
-		rules,
-		groups,
-		services,
+		OrganizationId: organizationID,
+		AppDescriptorId: appDescriptorID,
+		Name: name,
+		ConfigurationOptions: configOptions,
+		EnvironmentVariables: envVars,
+		Labels: labels,
+		Rules: rules,
+		Groups: groups,
 	}
 }
 
@@ -811,22 +827,16 @@ func (d *AppDescriptor) ToGRPC() *grpc_application_go.AppDescriptor {
 	for _, g := range d.Groups {
 		groups = append(groups, g.ToGRPC())
 	}
-	services := make([]*grpc_application_go.Service, 0)
-	for _, s := range d.Services {
-		services = append(services, s.ToGRPC())
-	}
 
 	return &grpc_application_go.AppDescriptor{
 		OrganizationId:       d.OrganizationId,
 		AppDescriptorId:      d.AppDescriptorId,
 		Name:                 d.Name,
-		Description:          d.Description,
 		ConfigurationOptions: d.ConfigurationOptions,
 		EnvironmentVariables: d.EnvironmentVariables,
 		Labels:               d.Labels,
 		Rules:                rules,
 		Groups:               groups,
-		Services:             services,
 	}
 }
 
@@ -878,8 +888,6 @@ type AppInstance struct {
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// Name of the application.
 	Name string `json:"name,omitempty"`
-	// Description of the application.
-	Description string `json:"description,omitempty"`
 	// ConfigurationOptions defines a key-value map of configuration options.
 	ConfigurationOptions map[string]string `json:"configuration_options,omitempty"`
 	// EnvironmentVariables defines a key-value map of environment variables and values that will be passed to all
@@ -920,7 +928,6 @@ func (i *AppInstance) ToGRPC() *grpc_application_go.AppInstance {
 		AppDescriptorId:      i.AppDescriptorId,
 		AppInstanceId:        i.AppInstanceId,
 		Name:                 i.Name,
-		Description:          i.Description,
 		ConfigurationOptions: i.ConfigurationOptions,
 		EnvironmentVariables: i.EnvironmentVariables,
 		Labels:               i.Labels,

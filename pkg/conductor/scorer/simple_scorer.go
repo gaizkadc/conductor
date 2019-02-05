@@ -36,7 +36,7 @@ func NewSimpleScorer(connHelper *utils.ConnectionsHelper) Scorer {
 //   requirements to be fulfilled
 //  return:
 //   candidates score
-func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.ClustersScore, error) {
+func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.DeploymentScore, error) {
     if requirements == nil {
         nil_error := errors.New("impossible to score nil requirements")
         log.Error().Err(nil_error)
@@ -51,11 +51,17 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
     }
 
     clusterScores := entities.NewClustersScore()
+
     for _, s := range scores {
-        clusterScores.AddClusterScore(entities.ClusterScore{ClusterId: s.ClusterId, Score: s.Score})
+        // Create a set of scores for different combinations of service groups
+        collectedScores := entities.NewClusterDeploymentScore(s.ClusterId)
+        for _, x := range s.Score {
+            collectedScores.AddScore(x.GroupServiceInstances,x.Score)
+        }
+        clusterScores.AddClusterScore(*collectedScores)
     }
 
-    log.Debug().Str("component","conductor").Interface("score",clusterScores).Msg("final score found")
+    log.Debug().Str("component","conductor").Interface("score",clusterScores).Msg("final found scores")
     return &clusterScores,nil
 }
 

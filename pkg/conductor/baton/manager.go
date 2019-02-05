@@ -219,7 +219,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     }
 
     log.Info().Msgf("conductor maximum score for %s has score %v from %d potential candidates",
-        req.RequestId, scoreResult.Scoring, scoreResult.TotalEvaluated)
+        req.RequestId, scoreResult.DeploymentsScore, scoreResult.NumEvaluatedClusters)
 
 
     // 3) design plan

@@ -158,7 +158,7 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
             }
 
             request = entities.Requirements{[]entities.Requirement{
-                {ServiceId:"serviceid",Replicas:1, CPU:50,Memory:100, Storage:100},
+                {GroupServiceId: "serviceid",Replicas:1, CPU:50,Memory:100, Storage:100},
             }}
 
             // collector 0 says overload
@@ -178,9 +178,9 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
                 response, err := scorerMethod.ScoreRequirements(organizationId,&request)
                 gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
                 gomega.Expect(response).NotTo(gomega.BeNil())
-                gomega.Expect(response.TotalEvaluated).To(gomega.Equal(1))
-                gomega.Expect(len(response.Scoring)).To(gomega.Equal(1))
-                gomega.Expect(response.Scoring[0].Score).To(gomega.Equal(float32(-48.87312316894531)))
+                gomega.Expect(response.NumEvaluatedClusters).To(gomega.Equal(1))
+                gomega.Expect(len(response.DeploymentsScore)).To(gomega.Equal(1))
+                gomega.Expect(response.DeploymentsScore[0].Score).To(gomega.Equal(float32(-48.87312316894531)))
             })
         })
     })
