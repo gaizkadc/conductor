@@ -163,7 +163,7 @@ func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
 		AuthServiceGroupName: sr.AuthServiceGroupName,
 		TargetPort:      sr.TargetPort,
 		TargetServiceGroupName: sr.TargetServiceGroupName,
-		TargetServiceName: sr.TargetServiceName
+		TargetServiceName: sr.TargetServiceName,
 		Access:       access,
 		AuthServices: sr.AuthServices,
 		DeviceGroups: sr.DeviceGroups,
@@ -585,7 +585,7 @@ func (s *Service) ToGRPC() *grpc_application_go.Service {
 		AppDescriptorId:      s.AppDescriptorId,
 		ServiceId:            s.ServiceId,
 		Name:                 s.Name,
-		Description:          s.Description,
+		ServiceGroupId:       s.ServiceGroupId,
 		Type:                 serviceType,
 		Image:                s.Image,
 		Credentials:          s.Credentials.ToGRPC(),
@@ -688,6 +688,8 @@ var ServiceStatusFromGRPC = map[grpc_application_go.ServiceStatus]ServiceStatus{
 	grpc_application_go.ServiceStatus_SERVICE_ERROR : ServiceError,
 }
 
+// ServiceInstance----------
+
 type ServiceInstance struct {
 	// OrganizationId with the organization identifier.
 	OrganizationId string `json:"organization_id,omitempty"`
@@ -729,7 +731,7 @@ type ServiceInstance struct {
 	// Status of the deployed service
 	Status ServiceStatus `json:"tatus,omitempty"`
 	// Endpoints exposed to the users by the service.
-	Endpoints []string `json:"endpoints,omitempty"`
+	Endpoints []EndpointInstance `json:"endpoints,omitempty"`
 	// DeployedOnClusterId specifies which is the cluster where the service is running.
 	DeployedOnClusterID string `json:"deployed_on_cluster_id,omitempty"`
 	// RunArguments containts a list of arguments
@@ -754,13 +756,16 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 	for _, c := range si.Configs {
 		configs = append(configs, c.ToGRPC())
 	}
+	endpoints := make([]*grpc_application_go.EndpointInstance,0)
+	for _, e := range si.Endpoints {
+		endpoints = append(endpoints, e.ToGRPC())
+	}
 	return &grpc_application_go.ServiceInstance{
 		OrganizationId:       si.OrganizationId,
 		AppDescriptorId:      si.AppDescriptorId,
 		AppInstanceId:        si.AppInstanceId,
 		ServiceId:           si.ServiceId,
 		Name:                 si.Name,
-		Description:          si.Description,
 		Type:                 serviceType,
 		Image:                si.Image,
 		Credentials:          si.Credentials.ToGRPC(),
@@ -775,12 +780,35 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 		RunArguments:         si.RunArguments,
 		ServiceGroupInstanceId: si.ServiceGroupInstanceId,
 		Info:                 si.Info,
-		Endpoints:            si.Endpoints,
+		Endpoints:            endpoints,
 		ServiceInstanceId:    si.ServiceInstanceId,
 		DeployedOnClusterId: si.DeployedOnClusterID,
 	}
 
 }
+
+// EndpointInstance----------
+
+type EndpointInstance struct {
+	// EndpointInstanceId
+	EnpointInstanceId string `json:"endpoint_instance_id,omitempty"`
+	// EndpointType
+	EndpointType EndpointType `json:"endpoint_type,omitempty"`
+	// FQDN
+	FQDN string `json:"fqdn,omitempty"`
+}
+
+func(e *EndpointInstance) ToGRPC() * grpc_application_go.EndpointInstance {
+	return &grpc_application_go.EndpointInstance{
+		Type: EndpointTypeToGRPC[e.EndpointType],
+		EndpointInstanceId: e.EnpointInstanceId,
+		Fqdn: e.FQDN,
+	}
+}
+
+// ----------
+
+// ----------
 
 type AppDescriptor struct {
 	// OrganizationId with the organization identifier.
@@ -879,6 +907,8 @@ var AppStatusFromGRPC = map[grpc_application_go.ApplicationStatus]ApplicationSta
 	grpc_application_go.ApplicationStatus_ERROR:Error,
 }
 
+// AppInstance----------
+
 type AppInstance struct {
 	// OrganizationId with the organization identifier.
 	OrganizationId string `json:"organization_id,omitempty"`
@@ -937,3 +967,5 @@ func (i *AppInstance) ToGRPC() *grpc_application_go.AppInstance {
 		Metadata:             metadatas,
 	}
 }
+
+// ----------
