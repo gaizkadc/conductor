@@ -45,8 +45,8 @@ type ClusterDeploymentScore struct {
 	Scores map[string]float32 `json: "scores,omitempty"`
 }
 
-func NewClusterDeploymentScore(clusterId string) *ClusterDeploymentScore {
-	return &ClusterDeploymentScore{
+func NewClusterDeploymentScore(clusterId string) ClusterDeploymentScore {
+	return ClusterDeploymentScore{
 		ClusterId: clusterId,
 		Scores: make(map[string]float32,0),
 	}

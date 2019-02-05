@@ -41,11 +41,11 @@ func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesi
 
 
 
-func(p *SimpleReplicaPlanDesigner) DesignPlan(app *pbApplication.AppInstance,
+func(p *SimpleReplicaPlanDesigner) DesignPlan(app *entities.AppInstance,
 score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
 
     // Build deployment stages for the application
-    toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
+    retrievedDesc,err :=p.appClient.GetAppDescriptor(context.Background(),
         &pbApplication.AppDescriptorId{OrganizationId: app.OrganizationId, AppDescriptorId: app.AppDescriptorId})
     if err!=nil{
         theErr := derrors.NewGenericError("error recovering application instance", err)
@@ -62,6 +62,9 @@ score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities
         return nil, theErr
     }
 
+    // Get a local representation of the object
+    toDeploy := entities.NewAppDescriptorFromGRPC(retrievedDesc)
+
     // Build nalej variables
     nalejVariables := GetDeploymentNalejVariables(org.Name, app.AppInstanceId, toDeploy)
 
@@ -70,15 +73,20 @@ score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities
     planFragments := make([]entities.DeploymentFragment,0)
 
     // There must be one fragment per service group
+    // Each service group with a set of stages following the stages defined in the DeploymentPlan
+    // Store the group name and the corresponding deployment order.
+    log.Debug().Str("appDescriptor",toDeploy.AppDescriptorId).Msg("analyze group internal dependencies")
+    groupsOrder := make(map[string][][]string)
     for _, g := range toDeploy.Groups {
-        log.Debug().Str("serviceGroupId",g.ServiceGroupId).Msg("compute dependency graph for service group")
-        dependencyGraph := NewDependencyGraph()
+        log.Debug().Str("appDescriptor",toDeploy.AppDescriptorId).Str("serviceGroupId",g.ServiceGroupId).
+            Msg("compute dependency graph for service group")
+        dependencyGraph := NewDependencyGraph(g.Services)
+        order, err := dependencyGraph.GetDependencyOrderByGroups()
+        if err != nil {
+            return nil, err
+        }
+        groupsOrder[g.Name] = order
     }
-
-
-    // Create a deployment fragment with all the services
-    allServices, allIndex := p.getServicesFromDescriptor(toDeploy)
-
 
     // Check scores are available and the application fits
     targetCluster := p.findTargetCluster(toDeploy.Groups,score)
@@ -88,6 +96,8 @@ score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities
         log.Error().Err(err).Msg(msg)
         return nil, err
     }
+
+
     // Create a fragment with all the services
     completeFragment, err := p.buildFragment(allServices, allIndex, dependencyGraph,
         app, org, targetCluster, nalejVariables, planId)
@@ -97,7 +107,7 @@ score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities
     planFragments = append(planFragments, *completeFragment)
 
     // Create a list of services to be replicated across clusters
-    replicatedServices,index := p.getReplicatedServices(toDeploy)
+    replicatedServices,index := p.getReplicatedServices(retrievedDesc)
     log.Info().Str("appInstanceId", app.AppInstanceId).Int("numReplicatedServices",len(replicatedServices)).
         Msg("number of services to be replicated across clusters")
 
@@ -238,7 +248,7 @@ func(p *SimpleReplicaPlanDesigner) getServicesFromServiceGroup(serviceGroupId st
 
 // This local function finds the cluster with the largest score for all the service groups.
 // TODO review this method to go for a more generic approach using the deployment score matrix
-func (p *SimpleReplicaPlanDesigner) findTargetCluster(serviceGroups []*pbApplication.ServiceGroup,
+func (p *SimpleReplicaPlanDesigner) findTargetCluster(serviceGroups []entities.ServiceGroup,
     scores *entities.DeploymentScore) string {
 
     serviceGroupIds := make([]string,len(serviceGroups))

@@ -169,6 +169,24 @@ func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
 		DeviceGroups: sr.DeviceGroups,
 	}
 }
+
+func NewSecurityRuleFromGRPC (s *grpc_application_go.SecurityRule) SecurityRule {
+	return SecurityRule{
+		OrganizationId: s.OrganizationId,
+		AppDescriptorId: s.AppDescriptorId,
+		RuleId: s.RuleId,
+		Name: s.Name,
+		TargetServiceGroupName: s.TargetServiceGroupName,
+		TargetServiceName: s.TargetServiceName,
+		TargetPort: s.TargetPort,
+		Access: PortAccessFromGRPC[s.Access],
+		AuthServiceGroupName: s.AuthServiceGroupName,
+		AuthServices: s.AuthServices,
+		DeviceGroups: s.DeviceGroups,
+	}
+}
+
+
 // ----------
 
 // Service Group ----------
@@ -209,6 +227,23 @@ func (sg *ServiceGroup) ToGRPC() *grpc_application_go.ServiceGroup {
 		Policy:          policy,
 		Labels:			 sg.Labels,
 		Specs:           sg.Specs.ToGRPC(),
+	}
+}
+
+func NewServiceGroupFromGRPC(g *grpc_application_go.ServiceGroup) ServiceGroup {
+	servs := make([]Service, 0)
+	for _, s := range g.Services {
+		servs = append(servs, *NewServiceFromGRPC(g.AppDescriptorId, s))
+	}
+	return ServiceGroup{
+		OrganizationId: g.OrganizationId,
+		AppDescriptorId: g.AppDescriptorId,
+		ServiceGroupId: g.ServiceGroupId,
+		Name: g.Name,
+		Labels: g.Labels,
+		Policy: CollocationPolicyFromGRPC[g.Policy],
+		Specs:  NewServiceGroupDeploymentSpecsFromGRPC(g.Specs),
+		Services: servs,
 	}
 }
 
@@ -280,6 +315,13 @@ func(sgds *ServiceGroupDeploymentSpecs) ToGRPC() *grpc_application_go.ServiceGro
 	return &grpc_application_go.ServiceGroupDeploymentSpecs{
 		NumReplicas: sgds.NumReplicas,
 		MultiClusterReplica: sgds.MultiClusterReplica,
+	}
+}
+
+func NewServiceGroupDeploymentSpecsFromGRPC(s *grpc_application_go.ServiceGroupDeploymentSpecs) ServiceGroupDeploymentSpecs {
+	return ServiceGroupDeploymentSpecs{
+		NumReplicas: s.NumReplicas,
+		MultiClusterReplica: s.MultiClusterReplica,
 	}
 }
 
@@ -865,6 +907,27 @@ func (d *AppDescriptor) ToGRPC() *grpc_application_go.AppDescriptor {
 		Labels:               d.Labels,
 		Rules:                rules,
 		Groups:               groups,
+	}
+}
+
+func NewAppDescriptorFromGRPC(app *grpc_application_go.AppDescriptor) AppDescriptor {
+	groups := make([]ServiceGroup,0)
+	for _, g := range app.Groups {
+		groups = append(groups, NewServiceGroupFromGRPC(g))
+	}
+	rules := make([]SecurityRule,0)
+	for _, r := range app.Rules {
+		rules = append(rules, NewSecurityRuleFromGRPC(r))
+	}
+	return AppDescriptor{
+		OrganizationId: app.OrganizationId,
+		AppDescriptorId: app.AppDescriptorId,
+		Labels: app.Labels,
+		EnvironmentVariables: app.EnvironmentVariables,
+		ConfigurationOptions: app.ConfigurationOptions,
+		Name: app.Name,
+		Groups: groups,
+		Rules: rules,
 	}
 }
 
