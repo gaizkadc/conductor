@@ -58,7 +58,7 @@ func (s SimpleScorer) ScoreRequirements (organizationId string, requirements *en
         for _, x := range s.Score {
             collectedScores.AddScore(x.GroupServiceInstances,x.Score)
         }
-        clusterScores.AddClusterScore(*collectedScores)
+        clusterScores.AddClusterScore(collectedScores)
     }
 
     log.Debug().Str("component","conductor").Interface("score",clusterScores).Msg("final found scores")

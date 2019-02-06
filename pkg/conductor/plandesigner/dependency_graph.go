@@ -15,10 +15,10 @@ import (
 type DependencyGraph struct {
     // The internal graph object
     graph *graph.Mutable
-    // A id2graph map to translate between services id and vertex ids
+    // A id2graph map to translate between services name and vertex ids
     id2graph map[string]int
-    // Array where the i-th node id corresponds to the i-th service id in the array
-    graph2id []string
+    // Array where the i-th node id corresponds to the i-th service  in the array
+    graph2id []entities.Service
 
 }
 
@@ -28,19 +28,19 @@ func NewDependencyGraph(services []entities.Service) *DependencyGraph {
     // Create the graph, one vertex per service
     // use the indexes in the array as ids in the graph
     g := graph.New(len(services))
-    // Build a map to translate serviceid->array position
+    // Build a map to translate serviceName->array position
     reference := make(map[string]int,0)
-    // Build the array to translate nodeid -> serviceid
-    greference := make([]string, len(services))
+    // Build the array to translate nodeid -> serviceName
+    greference := make([]entities.Service, len(services))
     for i, serv := range services {
-        reference[serv.ServiceId] = i
-        greference[i] = serv.ServiceId
+        reference[serv.Name] = i
+        greference[i] = serv
     }
     for _, serv := range services {
         if serv.DeployAfter != nil && len(serv.DeployAfter) >0 {
-            sourceVertex := reference[serv.ServiceId]
-            for _, afterId := range serv.DeployAfter {
-                targetVertex := reference[afterId]
+            sourceVertex := reference[serv.Name]
+            for _, afterName := range serv.DeployAfter {
+                targetVertex := reference[afterName]
                 //g.Add(sourceVertex, targetVertex)
                 // create graph in temporal order
                 g.Add(targetVertex, sourceVertex)
@@ -66,11 +66,11 @@ func (dg *DependencyGraph) NumDependencies() int {
 // executed in parallel in at the same time when the previous stage finishes.
 // return:
 //  array of services per group. E.g.: [[service2,service3], [service0], [service1]]
-func (dg *DependencyGraph) GetDependencyOrderByGroups() ([][]string, error) {
+func (dg *DependencyGraph) GetDependencyOrderByGroups() ([][]entities.Service, error) {
 
     // If there is only one node, simply return it
     if dg.NumServices() == 1 {
-        return [][]string{[]string{dg.graph2id[0]}}, nil
+        return [][]entities.Service{dg.graph2id},nil
     }
 
 
@@ -114,12 +114,12 @@ func (dg *DependencyGraph) GetDependencyOrderByGroups() ([][]string, error) {
 
     //log.Debug().Msgf("list of groups %v",groups)
 
-    toReturn := make([][]string,maxGroupId+1)
+    toReturn := make([][]entities.Service,maxGroupId+1)
     // fill the list of groups
     for index, group := range groups {
         // log.Debug().Msgf("node %d goes to group %d", index, group)
         if toReturn[group] == nil {
-            toReturn[group] = make([]string,0)
+            toReturn[group] = make([]entities.Service,0)
         }
         toReturn[group] = append(toReturn[group],dg.graph2id[index])
     }

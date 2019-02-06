@@ -102,6 +102,26 @@ func (im *InstanceMetadata) ToGRPC() *grpc_application_go.InstanceMetadata {
 	}
 }
 
+func NewInstanceMetadataFromGRPC( ins *grpc_application_go.InstanceMetadata) InstanceMetadata {
+	status := make(map[string]ServiceStatus,0)
+	for k, v := range ins.Status{
+		status[k] = ServiceStatusFromGRPC[v]
+	}
+	return InstanceMetadata{
+		AppDescriptorId: ins.AppDescriptorId,
+		AppInstanceId: ins.AppInstanceId,
+		OrganizationId: ins.OrganizationId,
+		Info: ins.Info,
+		UnavailableReplicas: ins.UnavailableReplicas,
+		AvailableReplicas: ins.AvailableReplicas,
+		DesiredReplicas: ins.DesiredReplicas,
+		Status: status,
+		InstanceType: InstanceTypeFromGRPC[ins.Type],
+		InstancesId: ins.InstancesId,
+		MonitoredInstanceId: ins.MonitoredInstanceId,
+	}
+}
+
 // ----------
 
 // InstanceType----------
@@ -299,6 +319,27 @@ func (sgi *ServiceGroupInstance) ToGRPC() *grpc_application_go.ServiceGroupInsta
 		Metadata:             sgi.Metadata.ToGRPC(),
 		Specs:                sgi.Specs.ToGRPC(),
 		Labels:               sgi.Labels,
+	}
+}
+
+func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInstance) ServiceGroupInstance {
+	serviceInstances := make([]ServiceInstance,0)
+	for _, serv := range group.ServiceInstances {
+		serviceInstances = append(serviceInstances, NewServiceInstanceFromGRPC(serv))
+	}
+	return ServiceGroupInstance{
+		Name: group.Name,
+		Status: ServiceStatusFromGRPC[group.Status],
+		OrganizationId: group.OrganizationId,
+		Labels: group.Labels,
+		AppInstanceId: group.AppInstanceId,
+		AppDescriptorId: group.AppDescriptorId,
+		Specs: NewServiceGroupDeploymentSpecsFromGRPC(group.Specs),
+		ServiceGroupInstanceId: group.ServiceGroupInstanceId,
+		ServiceGroupId: group.ServiceGroupId,
+		Policy: CollocationPolicyFromGRPC[group.Policy],
+		ServiceInstances: serviceInstances,
+		Metadata: NewInstanceMetadataFromGRPC(group.Metadata),
 	}
 }
 
@@ -539,6 +580,8 @@ type ConfigFile struct {
 	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
 	// ConfigFileId with the config file identifier.
 	ConfigFileId string `json:"config_file_id,omitempty"`
+	// Name for the config file
+	Name string `json:"name,omitempty"`
 	// Content of the configuration file.
 	Content []byte `json:"content,omitempty"`
 	// MountPath of the configuration file in the service instance.
@@ -554,6 +597,7 @@ func NewConfigFileFromGRPC(appDescriptorID string, config * grpc_application_go.
 		OrganizationId:  config.OrganizationId,
 		AppDescriptorId: appDescriptorID,
 		ConfigFileId:    config.ConfigFileId,
+		Name:            config.Name,
 		Content:         config.Content,
 		MountPath:       config.MountPath,
 	}
@@ -829,6 +873,24 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 
 }
 
+func NewServiceInstanceFromGRPC(ins *grpc_application_go.ServiceInstance) ServiceInstance {
+	return ServiceInstance{
+		Status: ServiceStatusFromGRPC[ins.Status],
+		Type: ServiceTypeFromGRPC[ins.Type],
+		Info: ins.Info,
+		OrganizationId: ins.OrganizationId,
+		AppInstanceId: ins.AppInstanceId,
+		AppDescriptorId: ins.AppDescriptorId,
+		ServiceGroupInstanceId: ins.ServiceGroupInstanceId,
+		Labels: ins.Labels,
+		Name: ins.Name,
+		Specs: NewDeploySpecsFromGRPC(ins.Specs),
+		EnvironmentVariables: ins.EnvironmentVariables,
+		ServiceInstanceId: ins.ServiceInstanceId,
+
+	}
+}
+
 // EndpointInstance----------
 
 type EndpointInstance struct {
@@ -1028,6 +1090,35 @@ func (i *AppInstance) ToGRPC() *grpc_application_go.AppInstance {
 		Groups:               groups,
 		Status:               status,
 		Metadata:             metadatas,
+	}
+}
+
+func NewAppInstanceFromGRPC(app *grpc_application_go.AppInstance) AppInstance{
+	groups := make([]ServiceGroupInstance,0)
+	for _, g := range app.Groups {
+		groups = append(groups, NewServiceGroupInstanceFromGRPC(g))
+	}
+	rules := make([]SecurityRule,0)
+	for _, r := range app.Rules {
+		rules = append(rules, NewSecurityRuleFromGRPC(r))
+	}
+	metadata := make([]InstanceMetadata,0)
+	for _, m := range app.Metadata {
+		metadata = append(metadata, NewInstanceMetadataFromGRPC(m))
+	}
+
+	return AppInstance{
+		AppDescriptorId: app.AppDescriptorId,
+		Name: app.Name,
+		AppInstanceId: app.AppInstanceId,
+		Labels: app.Labels,
+		OrganizationId: app.OrganizationId,
+		ConfigurationOptions: app.ConfigurationOptions,
+		EnvironmentVariables: app.EnvironmentVariables,
+		Status: AppStatusFromGRPC[app.Status],
+		Groups: groups,
+		Rules: rules,
+		Metadata: metadata,
 	}
 }
 

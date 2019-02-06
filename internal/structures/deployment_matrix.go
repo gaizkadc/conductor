@@ -6,7 +6,9 @@
 package structures
 
 import (
+    "fmt"
     "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/derrors"
     "github.com/rs/zerolog/log"
     "sort"
 )
@@ -23,14 +25,24 @@ type DeploymentMatrix struct {
     AllocatedScore map[string]entities.ClusterDeploymentScore
     // Groups per cluster
     // cluster -> [groupA, groupB, groupC...]
-    GroupsCluster map[string][]string
+    GroupsCluster map[string][]entities.ServiceGroup
 }
 
-func NewDeploymentMatrix() DeploymentMatrix {
-    return DeploymentMatrix{
-        ClustersScore: make(map[string]entities.ClusterDeploymentScore, 0),
-        AllocatedScore: make(map[string]entities.ClusterDeploymentScore, 0),
-        GroupsCluster: make(map[string][]string),
+// Build a deployment matrix using an existing DeploymentScore
+func NewDeploymentMatrix(scores entities.DeploymentScore) *DeploymentMatrix {
+    clusterScore := make(map[string]entities.ClusterDeploymentScore, 0)
+    allocatedScore := make(map[string]entities.ClusterDeploymentScore, 0)
+
+    // initialize data structures
+    for _, ds := range scores.DeploymentsScore {
+        clusterScore[ds.ClusterId] = ds
+        allocatedScore[ds.ClusterId] = ds
+    }
+
+    return &DeploymentMatrix{
+        ClustersScore: clusterScore,
+        AllocatedScore: allocatedScore,
+        GroupsCluster: make(map[string][]entities.ServiceGroup),
     }
 }
 
@@ -40,7 +52,35 @@ func (dm *DeploymentMatrix) AddClusterScore(score entities.ClusterDeploymentScor
 }
 
 
-func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []string) string {
+// Find the best targets for replicating a group across the deployment. The current solution checks
+// that all the scores are larger than for the group. If not all the groups permit to allocate this
+// group we return an error,
+func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.ServiceGroup) ([]string, derrors.Error) {
+    toReturn := make([]string,0)
+    for _, clusterScore := range dm.AllocatedScore {
+        // take a look at the score for this group
+        groupScoreInCluster, found := clusterScore.Scores[group.Name]
+        if !found {
+            msg := fmt.Sprintf("cluster %s has no score for group %s", clusterScore.ClusterId, group.Name)
+            err := derrors.NewFailedPreconditionError(msg)
+            return nil, err
+        }
+        if groupScoreInCluster <= 0 {
+            msg := fmt.Sprintf("cluster %s has negative score for group %s", clusterScore.ClusterId, group.Name)
+            err := derrors.NewFailedPreconditionError(msg)
+            return nil, err
+        }
+        // Positive score. Allocate and update matrix.
+        dm.allocateGroups(clusterScore.ClusterId, group.Name,[]entities.ServiceGroup{group})
+        toReturn = append(toReturn, clusterScore.ClusterId)
+    }
+
+    return toReturn, nil
+}
+
+
+// Find the best target to deploy a set of groups and update the matrix accordingly.
+func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []entities.ServiceGroup) string {
     groupId := dm.generateGroupId(groups)
     // find the cluster with the largest score
     maxScore := float32(0)
@@ -67,7 +107,7 @@ func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []string) string {
 
 
 // Allocate groups and update scores.
-func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,groups []string) {
+func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,groups []entities.ServiceGroup) {
     dm.GroupsCluster[clusterId] = groups
     scoreToRevisit := dm.AllocatedScore[clusterId]
     load := dm.AllocatedScore[clusterId].Scores[groupId]
@@ -84,10 +124,14 @@ func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,grou
 // Local function to generate the concatenated id for a group of group ids.
 // E.G.:
 // [groupA, groupC, groupB] -> groupAgroupBgroupC
-func (dm *DeploymentMatrix) generateGroupId(groups []string) string {
-    sort.Strings(groups)
+func (dm *DeploymentMatrix) generateGroupId(groups []entities.ServiceGroup) string {
+    groupNames := make([]string, len(groups))
+    for i, g := range groups {
+        groupNames[i] = g.Name
+    }
+    sort.Strings(groupNames)
     concatenated := ""
-    for _, s := range groups {
+    for _, s := range groupNames {
         concatenated = concatenated + s
     }
     return concatenated

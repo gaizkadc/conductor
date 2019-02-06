@@ -25,11 +25,11 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-conductor-go"
-    version="v0.0.78"
+    version="v0.0.79"
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
-    version="v0.0.46"
+    version="v0.0.47"
 
 [[constraint]]
     name="github.com/nalej/grpc-organization-go"
