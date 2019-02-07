@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: musician
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
   labels:
     cluster: application
     component: musician

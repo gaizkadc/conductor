@@ -5,7 +5,7 @@ metadata:
     component: prometheus
     cluster: application
   name: node-exporter
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -18,4 +18,4 @@ subjects:
 # Example: A specific service account in my-namespace
 - kind: ServiceAccount # Omit apiGroup
   name: default
-  namespace: nalej
+  namespace: __NPH_NAMESPACE

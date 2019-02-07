@@ -9,7 +9,7 @@ metadata:
     cluster: management
     component: conductor
   name: conductor
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 spec:
   replicas: 1
   revisionHistoryLimit: 10
@@ -25,15 +25,15 @@ spec:
     spec:
       containers:
       - name: conductor
-        image: nalejregistry.azurecr.io/nalej/conductor:VERSION
+        image: __NPH_REGISTRY.azurecr.io/__NPH_REGISTRY_NAMESPACE/conductor:__NPH_VERSION
         imagePullPolicy: Always
         securityContext:
           runAsUser: 2000
         args:
           - "run"
           - "--debug"
-          - "--systemModelAddress=system-model.nalej:8800"
-          - "--networkManagerAddress=network-manager.nalej:8000"
+          - "--systemModelAddress=system-model.__NPH_NAMESPACE:8800"
+          - "--networkManagerAddress=network-manager.__NPH_NAMESPACE:8000"
         ports:
         - name: api-port
           containerPort: 5000
