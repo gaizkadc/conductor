@@ -5,7 +5,7 @@ metadata:
     cluster: application
     component: musician
   name: musician
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 spec:
   replicas: 1
   revisionHistoryLimit: 10
@@ -27,13 +27,13 @@ spec:
               configMapKeyRef:
                 name: cluster-config
                 key: cluster_id
-        image: nalejregistry.azurecr.io/nalej/conductor:VERSION
+        image: __NPH_REGISTRY.azurecr.io/__NPH_REGISTRY_NAMESPACE/conductor:__NPH_VERSION
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 2000
         args:
         - "musician"
-        - "--prometheus=http://prometheus.nalej.svc.cluster.local:9090"
+        - "--prometheus=http://prometheus.__NPH_NAMESPACE.svc.cluster.local:9090"
         #- "--debug"
         ports:
         - name: musician-port
