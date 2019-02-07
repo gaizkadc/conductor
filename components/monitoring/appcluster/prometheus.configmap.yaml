@@ -5,7 +5,7 @@ metadata:
     cluster: application
     component: prometheus
   name: prometheus-config
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 data:
   prometheus.yml: |
     rule_files:
@@ -31,4 +31,3 @@ data:
         regex: 'node-exporter;(.*)'
         action: replace
         target_label: nodename
-
