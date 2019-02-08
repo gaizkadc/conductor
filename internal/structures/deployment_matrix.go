@@ -81,6 +81,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
 // Find the best target to deploy a set of groups and update the matrix accordingly.
 func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []entities.ServiceGroup) string {
+    log.Debug().Interface("matrix",dm).Msg("FindBestTargetForGroups")
     groupId := dm.generateGroupId(groups)
     // find the cluster with the largest score
     maxScore := float32(0)

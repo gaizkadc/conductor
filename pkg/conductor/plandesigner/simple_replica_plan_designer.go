@@ -95,7 +95,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
 
 
     // Build fragments to deploy replicated groups
-    replicatedDeployment, err := p.buildFragmentsReplicatedGroups(app, toDeploy, deploymentMatrix, groupsOrder, nalejVariables, planId)
+    replicatedDeployment, err := p.buildFragmentsReplicatedGroups(app, toDeploy, deploymentMatrix, groupsOrder, nalejVariables, planId, org)
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment for groups with replica set flag enabled")
         return nil, err
@@ -105,7 +105,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
         Msg("deployment fragments for replicated groups already processed")
 
     // Build fragments to deploy everything into a single cluster
-    uniqueDeployment, err := p.buildFragmentsAllGroups(app,toDeploy,deploymentMatrix, groupsOrder, nalejVariables, planId)
+    uniqueDeployment, err := p.buildFragmentsAllGroups(app,toDeploy,deploymentMatrix, groupsOrder, nalejVariables, planId, org)
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment for the whole application")
         return nil, err
@@ -138,7 +138,8 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsReplicatedGroups(
     deploymentMatrix *structures.DeploymentMatrix,
     groupsOrder map[string][][]entities.Service,
     nalejVariables map[string]string,
-    planId string) ([]entities.DeploymentFragment,derrors.Error) {
+    planId string,
+    org *pbOrganization.Organization) ([]entities.DeploymentFragment,derrors.Error) {
 
 
     // Get the list of groups with replicate set flag enabled
@@ -151,7 +152,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsReplicatedGroups(
             return nil, err
         }
         for _, target := range targets {
-            fragments,err  := p.buildFragments(app, groupsOrder, target, nalejVariables, planId)
+            fragments,err  := p.buildFragments(app, groupsOrder, target, nalejVariables, planId, org)
             if err != nil {
                 return nil, err
             }
@@ -169,7 +170,8 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
     deploymentMatrix *structures.DeploymentMatrix,
     groupsOrder map[string][][]entities.Service,
     nalejVariables map[string]string,
-    planId string) ([]entities.DeploymentFragment,derrors.Error) {
+    planId string,
+    org *pbOrganization.Organization) ([]entities.DeploymentFragment,derrors.Error) {
 
     targetCluster := deploymentMatrix.FindBestTargetForGroups(desc.Groups)
 
@@ -181,7 +183,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
     }
 
     // Create a fragment with all the services contained in this application
-    fragmentsToDeploy, err := p.buildFragments(app, groupsOrder, targetCluster, nalejVariables, planId)
+    fragmentsToDeploy, err := p.buildFragments(app, groupsOrder, targetCluster, nalejVariables, planId, org)
     if err!=nil{
         return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
     }
@@ -195,6 +197,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
     targetCluster string,
     nalejVariables map[string]string,
     planId string,
+    org *pbOrganization.Organization,
     ) ([]entities.DeploymentFragment, derrors.Error) {
 
     fragments := make([]entities.DeploymentFragment,0)
@@ -220,7 +223,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
 
         fragment := entities.DeploymentFragment{
             OrganizationId:         app.OrganizationId,
-            OrganizationName:       app.Name,
+            OrganizationName:       org.Name,
             AppInstanceId:          app.AppInstanceId,
             AppName:                app.Name,
             FragmentId:             fragmentUUID,
@@ -228,6 +231,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
             Stages:                 stages,
             NalejVariables:         nalejVariables,
             GroupServiceInstanceId: group.ServiceGroupInstanceId,
+            ClusterId:              targetCluster,
         }
         fragments = append(fragments, fragment)
     }

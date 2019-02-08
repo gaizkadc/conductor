@@ -28,7 +28,7 @@ spec:
                 name: cluster-config
                 key: cluster_id
         image: nalejregistry.azurecr.io/nalej/conductor:VERSION
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           runAsUser: 2000
         args:

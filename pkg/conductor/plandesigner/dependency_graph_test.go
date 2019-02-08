@@ -24,22 +24,23 @@ var  _ = ginkgo.Describe("Check graph dependencies" , func(){
          2 -> 3, 4
          4 -> 0
          */
+         var s0,s1,s2,s3,s4 entities.Service
          ginkgo.BeforeEach(func(){
-             s0 := entities.Service{
+             s0 = entities.Service{
                  ServiceId: "serv0",
                  DeployAfter: []string{"serv1"},
              }
-             s1 := entities.Service{
+             s1 = entities.Service{
                  ServiceId: "serv1",
              }
-             s2 := entities.Service{
+             s2 = entities.Service{
                  ServiceId: "serv2",
                  DeployAfter: []string{"serv3","serv4"},
              }
-             s3 := entities.Service{
+             s3 = entities.Service{
                  ServiceId: "serv3",
              }
-             s4 := entities.Service{
+             s4 = entities.Service{
                  ServiceId: "serv4",
                  DeployAfter: []string{"serv0"},
              }
@@ -58,11 +59,18 @@ var  _ = ginkgo.Describe("Check graph dependencies" , func(){
              order, err := g.GetDependencyOrderByGroups()
              gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
              log.Info().Msgf("order %v",order)
-             expected := [][]string{
-                 []string{"serv1","serv3"},
-                 []string{"serv0"},
-                 []string{"serv4"},
-                 []string{"serv2"}}
+             expected := [][]entities.Service{
+                 []entities.Service{s1,s3},
+                 []entities.Service{s0},
+                 []entities.Service{s4},
+                 []entities.Service{s2}}
+             // Check everything is ok
+             for i,_ := range expected {
+                 //gomega.Expect(len(expected[i])).To(gomega.Equal(len(order[i])))
+                 for j, _ := range expected[i] {
+                     gomega.Expect(expected[i][j]).To(gomega.Equal(order[i][j]))
+                 }
+             }
              gomega.Expect(order).To(gomega.Equal(expected))
 
          })

@@ -327,6 +327,10 @@ func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInst
 	for _, serv := range group.ServiceInstances {
 		serviceInstances = append(serviceInstances, NewServiceInstanceFromGRPC(serv))
 	}
+	metadata := InstanceMetadata{}
+	if group.Metadata != nil {
+		metadata = NewInstanceMetadataFromGRPC(group.Metadata)
+	}
 	return ServiceGroupInstance{
 		Name: group.Name,
 		Status: ServiceStatusFromGRPC[group.Status],
@@ -339,7 +343,7 @@ func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInst
 		ServiceGroupId: group.ServiceGroupId,
 		Policy: CollocationPolicyFromGRPC[group.Policy],
 		ServiceInstances: serviceInstances,
-		Metadata: NewInstanceMetadataFromGRPC(group.Metadata),
+		Metadata: metadata,
 	}
 }
 
@@ -1103,6 +1107,7 @@ func NewAppInstanceFromGRPC(app *grpc_application_go.AppInstance) AppInstance{
 		rules = append(rules, NewSecurityRuleFromGRPC(r))
 	}
 	metadata := make([]InstanceMetadata,0)
+
 	for _, m := range app.Metadata {
 		metadata = append(metadata, NewInstanceMetadataFromGRPC(m))
 	}

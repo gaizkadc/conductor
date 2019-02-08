@@ -47,7 +47,7 @@ func GetDeploymentNalejVariables(organizationName string, appInstanceId string, 
         for _,s := range g.Services {
             value := fmt.Sprintf("%s-%s-%s.%s", formatName(s.Name), formatName(organizationName), appInstanceId[0:5],
                 NalejServiceSuffix)
-            name := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(s.ServiceId))
+            name := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(s.Name))
             variables[name]=value
         }
     }
