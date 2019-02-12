@@ -159,7 +159,7 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         log.Error().Err(err).Msg("error adding application instance")
         return nil,err
     }
-
+    
     toEnqueue := entities.DeploymentRequest{
         RequestId:      req.RequestId,
         InstanceId:     instance.AppInstanceId,
@@ -309,6 +309,9 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         }
 
         client := pbAppClusterApi.NewDeploymentManagerClient(conn)
+
+        log.Debug().Interface("deploymentFragmentRequest", request).
+            Msg("deployment fragment request")
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
         defer cancel()

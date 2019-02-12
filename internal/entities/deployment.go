@@ -121,6 +121,8 @@ type DeploymentFragment struct {
 	OrganizationId string `json:"organization_id,omitempty"`
 	// OrganizationName this deployment belongs to
 	OrganizationName string `json:"organization_name,omitempty"`
+	// AppDescriptorId
+	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
 	// AppInstanceId for the instance of the application to run
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// AppNamed for the instance of the application to run
@@ -129,8 +131,10 @@ type DeploymentFragment struct {
 	DeploymentId string `json:"deployment_id,omitempty"`
 	// Fragment id
 	FragmentId string `json:"fragment_id,omitempty"`
+	// Group service id
+	ServiceGroupId string `json:"service_group_id,omitempty"`
 	// Group service instance id
-	GroupServiceInstanceId string `json:"group_service_instance_id,omitempty"`
+	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
 	// Cluster id for the deployment target
 	ClusterId string `json:"cluster_id,omitempty"`
 	// Nalej variables
@@ -147,13 +151,15 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 	result := pbConductor.DeploymentFragment{
 		OrganizationId: df.OrganizationId,
 		FragmentId:     df.FragmentId,
+		AppDescriptorId: df.AppDescriptorId,
 		AppInstanceId:  df.AppInstanceId,
+		ServiceGroupId: df.ServiceGroupId,
+		ServiceGroupInstanceId: df.ServiceGroupInstanceId,
 		OrganizationName: df.OrganizationName,
 		AppName: 		df.AppName,
 		DeploymentId:   df.DeploymentId,
 		NalejVariables: df.NalejVariables,
 		Stages:         convertedStages,
-		GroupServiceInstanceId: df.GroupServiceInstanceId,
 		ClusterId: df.ClusterId,
 	}
 	return &result

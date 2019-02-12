@@ -106,20 +106,20 @@
   revision = "233195f38957b7aace33595d69b694c10e66be57"
 
 [[projects]]
-  digest = "1:0a7bd8b950ba48691273b778649a21869078ca5616c775db5c5962f6ef1496e0"
+  digest = "1:c6704921ad435658f76313533b25aa3072db14fea9155d038b3c02d16cb3b46f"
   name = "github.com/nalej/grpc-app-cluster-api-go"
   packages = ["."]
   pruneopts = ""
-  revision = "5520c887b6e5a98353c3112e516c0dd718780d19"
-  version = "v0.0.11"
+  revision = "f831d0fb93835711d40842262bd3828fa4f963d8"
+  version = "v0.0.12"
 
 [[projects]]
-  digest = "1:4c82fca334e6c749696e32c026c15ef368516c73942445da32af5b356061384a"
+  digest = "1:cb2b3882768b29fa2e8eff17f153d8c02f40d8c9039f3321bb16a9de02b3c3e6"
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
   pruneopts = ""
-  revision = "3c6b2ffd25de8c422828ccffec73d294594a9b16"
-  version = "v0.0.47"
+  revision = "4c31e209d43a0759ed41db7ded57fa595aaa3034"
+  version = "v0.0.48"
 
 [[projects]]
   digest = "1:553e0a6941f0dd6a5f61975032c4a3933a40e910c45b41cfae4b7ee2a946e1ca"
@@ -130,12 +130,12 @@
   version = "v0.0.29"
 
 [[projects]]
-  digest = "1:641003678316abde4774749d926e2fef456abb8d852cfa4fc1c9e9d20aa5bccd"
+  digest = "1:71969ef2028f2d0a2e4672939093d226267ab6f8955248f274da7b6e7c2bf5e4"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "dca14451232bc32c317cc18be096a250406eacdb"
-  version = "v0.0.79"
+  revision = "871f24c944e5d9cd6be8a407630fed68ec5988b5"
+  version = "v0.0.81"
 
 [[projects]]
   digest = "1:ed3060af0a8ec263dd630da8a71d533fc0b9aa830465dbf21741a66e62e44bfc"

@@ -10,7 +10,6 @@ package monitor
 import (
     "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/baton"
-    "github.com/nalej/derrors"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     "github.com/rs/zerolog/log"
@@ -106,18 +105,17 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
 
-    // ------> TODO REVISIT
-    return derrors.NewGenericError("UpdateServiceStatus has to be refactored!!!!")
 
     log.Debug().Interface("request", request).Msg("monitor received deployment service update")
-        for _, update := range request.List {
+    for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,
             AppInstanceId: update.ApplicationInstanceId,
             Status: update.Status,
             DeployedOnClusterId: request.ClusterId,
-            //Endpoints: update.Endpoints,
-            //ServiceInstanceId: request.ServiceInstanceId,
+            ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+            ServiceInstanceId: update.ServiceInstanceId,
+            Endpoints: update.Endpoints,
         }
         _, err := m.AppClient.UpdateServiceStatus(context.Background(), &updateService)
         if err != nil {

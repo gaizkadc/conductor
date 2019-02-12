@@ -222,6 +222,8 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
         }
 
         fragment := entities.DeploymentFragment{
+            ServiceGroupId: group.ServiceGroupId,
+            AppDescriptorId: app.AppDescriptorId,
             OrganizationId:         app.OrganizationId,
             OrganizationName:       org.Name,
             AppInstanceId:          app.AppInstanceId,
@@ -230,7 +232,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
             DeploymentId:           planId,
             Stages:                 stages,
             NalejVariables:         nalejVariables,
-            GroupServiceInstanceId: group.ServiceGroupInstanceId,
+            ServiceGroupInstanceId: group.ServiceGroupInstanceId,
             ClusterId:              targetCluster,
         }
         fragments = append(fragments, fragment)
