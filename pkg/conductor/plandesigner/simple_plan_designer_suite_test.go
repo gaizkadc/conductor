@@ -5,7 +5,7 @@
 
 
 package plandesigner
-
+/*
 import (
     "testing"
 
@@ -17,3 +17,4 @@ func TestApiTest(t *testing.T) {
     RegisterFailHandler(Fail)
     RunSpecs(t, "Plan designer Test Suite")
 }
+*/
