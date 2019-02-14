@@ -21,20 +21,39 @@ func NewSimpleRequirementsCollector() RequirementsCollector {
 
 
 func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplication.AppInstance) (*entities.Requirements, error) {
-    // Check if there are any services to be deployed
-    if len(appInstance.Services) == 0 {
-        return nil, derrors.NewFailedPreconditionError("no services specified for the application")
+    // Check if we have any service group to deploy
+    if len(appInstance.Groups) == 0 {
+        return nil, derrors.NewFailedPreconditionError("no groups available for this application")
     }
 
-    // TODO check non-sense requirements
+
     foundRequirements := entities.NewRequirements()
-    for _, serv := range appInstance.Services {
-        var totalStorage int64
-        totalStorage = 0
-        for _,st := range serv.Storage {
-            totalStorage = totalStorage + st.Size
+
+    // Generate one set of requirements per service group
+    for _, g := range appInstance.Groups {
+
+        // Check if there are any services to be analysed
+        if len(g.ServiceInstances) == 0 {
+            return nil, derrors.NewFailedPreconditionError("no services specified for the application")
         }
-        r := entities.NewRequirement(serv.AppInstanceId, serv.Specs.Cpu, serv.Specs.Memory, totalStorage, serv.Specs.Replicas)
+
+        var totalStorage int64
+        var totalCPU int64
+        var totalMemory int64
+
+        for _, serv := range g.ServiceInstances{
+
+
+            totalCPU = totalCPU + serv.Specs.Cpu
+            totalMemory = totalMemory + serv.Specs.Memory
+            // accumulate requested storage
+            for _, st := range serv.Storage {
+                totalStorage = totalStorage + st.Size
+            }
+        }
+
+        r := entities.NewRequirement(appInstance.AppInstanceId, g.Name, totalCPU, totalMemory,
+            totalStorage, g.Specs.NumReplicas)
         foundRequirements.AddRequirement(r)
     }
 

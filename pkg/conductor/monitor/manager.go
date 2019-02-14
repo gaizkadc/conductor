@@ -104,14 +104,17 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 }
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
+
+
     log.Debug().Interface("request", request).Msg("monitor received deployment service update")
-        for _, update := range request.List {
+    for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,
-            ServiceId: update.ServiceInstanceId,
             AppInstanceId: update.ApplicationInstanceId,
             Status: update.Status,
             DeployedOnClusterId: request.ClusterId,
+            ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+            ServiceInstanceId: update.ServiceInstanceId,
             Endpoints: update.Endpoints,
         }
         _, err := m.AppClient.UpdateServiceStatus(context.Background(), &updateService)

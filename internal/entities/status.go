@@ -7,7 +7,7 @@ package entities
 
 import "time"
 
-// System status representation.
+// System Status representation.
 type Status struct {
     Timestamp time.Time `json:"timestamp,omitempty"`
     Mem float64 `json: "mem,omitempty"`

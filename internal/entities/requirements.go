@@ -25,13 +25,16 @@ func (r *Requirements) AddRequirement (req Requirement) {
 
 func (r *Requirements) ToGRPC() []*pbConductor.Requirement {
     toReturn:= make([]*pbConductor.Requirement, len(r.List))
+
     for i, req := range r.List {
         toReturn[i] = &pbConductor.Requirement{
             Replicas: req.Replicas,
             Storage: req.Storage,
             Memory: req.Memory,
             Cpu: req.CPU,
-            ServiceId: req.ServiceId,
+            AppInstanceId: req.AppInstanceId,
+            GroupServiceInstanceId: req.GroupServiceId,
+            RequestId: "",
         }
     }
     return toReturn
@@ -39,8 +42,10 @@ func (r *Requirements) ToGRPC() []*pbConductor.Requirement {
 
 // Requirement for an app.
 type Requirement struct {
-    //Application id
-    ServiceId string `json:"service_id, omitempty"`
+    // Application instance id
+    AppInstanceId string `json: "app_instance_id, omitempty"`
+    //Groupo service id
+    GroupServiceId string `json:"service_id, omitempty"`
     // Amount of CPU
     CPU int64 `json:"cpu, omitempty"`
     // Amount of memory
@@ -51,6 +56,8 @@ type Requirement struct {
     Replicas int32 `json:"replicas, omitempty"`
 }
 
-func NewRequirement(appId string, cpu int64, memory int64, storage int64, replicas int32) Requirement {
-    return Requirement{ServiceId: appId, CPU: cpu, Memory: memory, Storage: storage, Replicas: replicas}
+func NewRequirement(appInstanceId string, groupServiceId string, cpu int64, memory int64, storage int64,
+    replicas int32) Requirement {
+    return Requirement{AppInstanceId: appInstanceId, GroupServiceId: groupServiceId, CPU: cpu, Memory: memory,
+        Storage: storage, Replicas: replicas}
 }

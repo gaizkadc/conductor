@@ -113,7 +113,7 @@ func (c *Manager) Run() {
 			}
 		    // Add again to the queue the non-processed entries
 		    if len(forNextIteration) > 0 {
-                log.Info().Int("pending",len(forNextIteration)).Msg("some deployments where excluded in this round")
+                log.Info().Int("pending",len(forNextIteration)).Msg("some deployments were excluded in this round")
             }
 		    for _, toAdd := range forNextIteration {
 		        c.Queue.PushRequest(toAdd)
@@ -152,7 +152,6 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         OrganizationId: desc.OrganizationId,
         AppDescriptorId: desc.AppDescriptorId,
         Name: req.Name,
-        Description: req.Description,
     }
     // Add instance, by default this is created with queue status
     instance,err := c.AppClient.AddAppInstance(context.Background(),&addReq)
@@ -192,19 +191,21 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     // TODO get all the data from the system model
     // Get the ServiceGroup structure
 
-    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+    retrievedAppInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
     if err != nil {
         err := derrors.NewGenericError("impossible to obtain application descriptor")
-        log.Error().Err(err).Str("appDescriptorId",appInstance.AppDescriptorId)
+        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
+    appInstance := entities.NewAppInstanceFromGRPC(retrievedAppInstance)
+
     // 1) collect requirements for the application descriptor
-    foundRequirements, err := c.ReqCollector.FindRequirements(appInstance)
+    foundRequirements, err := c.ReqCollector.FindRequirements(retrievedAppInstance)
     if err != nil {
         err := derrors.NewGenericError("impossible to find requirements for application")
-        log.Error().Err(err).Str("appDescriptorId",appInstance.AppDescriptorId)
+        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
@@ -213,30 +214,29 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 
     if err != nil {
         err := derrors.NewGenericError("error scoring request")
-        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
     log.Info().Msgf("conductor maximum score for %s has score %v from %d potential candidates",
-        req.RequestId, scoreResult.Scoring, scoreResult.TotalEvaluated)
+        req.RequestId, scoreResult.DeploymentsScore, scoreResult.NumEvaluatedClusters)
 
 
     // 3) design plan
-    // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(appInstance, scoreResult, req)
+    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
 
     if err != nil{
         err := derrors.NewGenericError("error designing plan for request")
-        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
     // 4) Create ZT-network with Network manager
-    ztNetworkId, zt_err := c.CreateZTNetwork(appInstance.AppInstanceId, req.OrganizationId)
+    ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId)
     if zt_err != nil {
         err := derrors.NewGenericError("impossible to create zt network before deployment", zt_err)
-        log.Error().Err(zt_err).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        log.Error().Err(zt_err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
@@ -245,7 +245,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     err_deploy := c.DeployPlan(plan, ztNetworkId)
     if err_deploy != nil {
         err := derrors.NewGenericError("error deploying plan request", err_deploy)
-        log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
+        log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         // Run a rollback
         c.rollback(plan, ztNetworkId)
         return err
@@ -278,7 +278,9 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     c.PendingPlans.AddPendingPlan(plan)
 
     for fragmentIndex, fragment := range plan.Fragments {
-        log.Info().Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
+        log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
+        log.Info().Str("deploymentId",fragment.DeploymentId).
+            Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
 
         targetHostname, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
         if !found {
@@ -306,6 +308,9 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
         }
 
         client := pbAppClusterApi.NewDeploymentManagerClient(conn)
+
+        log.Debug().Interface("deploymentFragmentRequest", request).
+            Msg("deployment fragment request")
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
         defer cancel()
@@ -366,9 +371,11 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     }
 
     clusterIds := make(map[string]bool, 0)
-    for _, svc := range appInstance.Services {
+    for _, g := range appInstance.Groups {
+        for _, svc := range g.ServiceInstances {
         if svc.DeployedOnClusterId != "" {
             clusterIds[svc.DeployedOnClusterId] = true
+        }
         }
     }
 

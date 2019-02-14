@@ -42,11 +42,11 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         ServiceId: "service_001",
         Name: "test-image-1",
         Image: "nginx:1.12",
+        ServiceGroupId: "group001",
         ExposedPorts: []*pbApplication.Port{&port1, &port2},
         Labels: map[string]string { "label1":"value1", "label2":"value2"},
         Specs: &pbApplication.DeploySpecs{Replicas: 1},
         AppDescriptorId: "app001",
-        Description: "Test service",
         EnvironmentVariables: map[string]string{"var1":"var1"},
         Type: pbApplication.ServiceType_DOCKER,
         DeployAfter: []string{},
@@ -57,12 +57,10 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
 
     servGroup := pbApplication.ServiceGroup{
         OrganizationId:resp.OrganizationId,
-        Description:"a service group",
         AppDescriptorId: "app001",
         Name: "group001",
-        Services: []string{"test-image-1"},
+        Services: []*pbApplication.Service{&serv},
         Policy: pbApplication.CollocationPolicy_SAME_CLUSTER,
-        ServiceGroupId: "group-id",
     }
 
     secRule := pbApplication.SecurityRule{
@@ -73,19 +71,19 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         AuthServices: []string{"auth"},
         DeviceGroups: []string{"devgroup"},
         RuleId: "rule001",
-        SourcePort: 30000,
-        SourceServiceId: "sourceserv001",
+        TargetServiceGroupName: "group001",
+        TargetServiceName: "service_001",
+        TargetPort: 30000,
+        AuthServiceGroupName: "group001",
     }
 
     // add a desriptor
     appDescriptor := pbApplication.AddAppDescriptorRequest{
         RequestId: "req001",
         Name:"app_descriptor_test",
-        Description: "app_descriptor_test description",
         OrganizationId: resp.OrganizationId,
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
-        Services: []*pbApplication.Service{&serv},
         ConfigurationOptions: map[string]string{"conf1":"valueconf1", "conf2":"valueconf2"},
         Groups: []*pbApplication.ServiceGroup{&servGroup},
         Rules: []*pbApplication.SecurityRule{&secRule},
@@ -151,7 +149,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         listener = test.GetDefaultListener()
         server = grpc.NewServer()
         scorerMethod := scorer.NewSimpleScorer(connHelper)
-        designer := plandesigner.NewSimplePlanDesigner(connHelper)
+        designer := plandesigner.NewSimpleReplicaPlanDesigner(connHelper)
         reqcoll := requirementscollector.NewSimpleRequirementsCollector()
         q = structures.NewMemoryRequestQueue()
         plans = structures.NewPendingPlans()

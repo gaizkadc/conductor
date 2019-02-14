@@ -4,7 +4,7 @@
  */
 
 package plandesigner
-
+/*
 import (
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             }
             appInstance := CreateApp1(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
-            score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
+            score := entities.DeploymentScore{NumEvaluatedClusters: 1, DeploymentsScore: []entities.ClusterDeploymentScore{{Score: 0.99, ClusterId: "cluster1"}}}
 
             req := entities.DeploymentRequest{
                 InstanceId:appInstance.AppInstanceId,
@@ -105,7 +105,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             }
             appInstance := CreateApp2(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
-            score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
+            score := entities.DeploymentScore{NumEvaluatedClusters: 1, DeploymentsScore: []entities.ClusterDeploymentScore{{Score: 0.99, ClusterId: "cluster1"}}}
 
             req := entities.DeploymentRequest{
                 InstanceId:appInstance.AppInstanceId,
@@ -140,7 +140,7 @@ var _ = ginkgo.Describe("Check plan designer", func(){
             }
             appInstance := CreateApp3(orgClient, appClient)
             localPlanDesigner = NewSimplePlanDesigner(connHelper)
-            score := entities.ClustersScore{TotalEvaluated: 1, Scoring: []entities.ClusterScore{{Score:0.99, ClusterId: "cluster1"}}}
+            score := entities.DeploymentScore{NumEvaluatedClusters: 1, DeploymentsScore: []entities.ClusterDeploymentScore{{Score: 0.99, ClusterId: "cluster1"}}}
             req := entities.DeploymentRequest{
                 InstanceId:appInstance.AppInstanceId,
                 OrganizationId: appInstance.OrganizationId,
@@ -532,3 +532,4 @@ func CreateApp3(orgClient pbOrganization.OrganizationsClient, appClient pbApplic
     return appInstance
 
 }
+*/

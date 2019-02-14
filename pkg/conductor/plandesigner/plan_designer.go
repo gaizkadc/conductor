@@ -7,7 +7,6 @@ package plandesigner
 
 import (
     "github.com/nalej/conductor/internal/entities"
-    pbApplication "github.com/nalej/grpc-application-go"
     "fmt"
     "strings"
 )
@@ -24,8 +23,8 @@ type PlanDesigner interface {
     //   request deployment request for this plan
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
-    DesignPlan(app *pbApplication.AppInstance,
-        score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error)
+    DesignPlan(app entities.AppInstance,
+        score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error)
 }
 
 const (
@@ -42,13 +41,15 @@ const (
 //  desc                deployment descriptor
 // return:
 //  map with variables and values
-func GetDeploymentNalejVariables(organizationName string, appInstanceId string, desc *pbApplication.AppDescriptor) map[string]string{
+func GetDeploymentNalejVariables(organizationName string, appInstanceId string, desc entities.AppDescriptor) map[string]string{
     variables := make(map[string]string,0)
-    for _,s := range desc.Services {
-        value := fmt.Sprintf("%s-%s-%s.%s", formatName(s.Name), formatName(organizationName), appInstanceId[0:5],
-            NalejServiceSuffix)
-        name := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(s.ServiceId))
-        variables[name]=value
+    for _, g := range desc.Groups {
+        for _,s := range g.Services {
+            value := fmt.Sprintf("%s-%s-%s.%s", formatName(s.Name), formatName(organizationName), appInstanceId[0:5],
+                NalejServiceSuffix)
+            name := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(s.Name))
+            variables[name]=value
+        }
     }
     return variables
 }

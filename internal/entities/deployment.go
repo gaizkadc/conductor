@@ -8,33 +8,61 @@ import (
 	"github.com/nalej/derrors"
 	pbApplication "github.com/nalej/grpc-application-go"
 	pbConductor "github.com/nalej/grpc-conductor-go"
+	"sort"
+	"strings"
 	"time"
 )
 
-// Representation of the score for a potential deployment candidate.
-type ClustersScore struct {
-    // RequestId for this score request
-    Scoring  [] ClusterScore `json:"scoring,omitempty"`
-    TotalEvaluated int `json:"total_evaluated,omitempty"`
+// DeploymentsScore for a set of potential deployments.
+type DeploymentScore struct {
+    // Score for every evaluated cluster
+    DeploymentsScore [] ClusterDeploymentScore `json:"scoring,omitempty"`
+    // Total number of evaluated clusters
+    NumEvaluatedClusters int `json:"num_evaluated_clusters,omitempty"`
 }
 
-func NewClustersScore() ClustersScore {
-    return ClustersScore{TotalEvaluated: 0, Scoring: make([]ClusterScore,0)}
+func NewClustersScore() DeploymentScore {
+    return DeploymentScore{NumEvaluatedClusters: 0, DeploymentsScore: make([]ClusterDeploymentScore,0)}
 }
 
 // AddClusterScore appends a cluster score and updates the set of total evaluated clusters
-func (c *ClustersScore) AddClusterScore(score ClusterScore) {
-    c.Scoring = append(c.Scoring, score)
-    c.TotalEvaluated = c.TotalEvaluated + 1
+func (c *DeploymentScore) AddClusterScore(score ClusterDeploymentScore) {
+    c.DeploymentsScore = append(c.DeploymentsScore, score)
+    c.NumEvaluatedClusters = c.NumEvaluatedClusters + 1
 }
 
-// Scoring returned by a certain cluster
-type ClusterScore struct {
-    // ClusterId for the queried cluster
-    ClusterId string `json:"cluster_id,omitempty"`
-    // Score returned by this cluster
-    Score float32 `json:"score,omitempty"`
+
+// Cluster deployment score ------
+
+// Combinations of deployments evaluated by a cluster. Every combination is a set of service groups
+// and their scoring.
+type ClusterDeploymentScore struct {
+	// Cluster that returned this score
+	ClusterId string `json:"cluster_id,omitempty"`
+	// Score of different service group combinations
+	// The key for this map is a concatenation of service group ids. The result is the concatenation of the service
+	// group ids after sorting.
+	Scores map[string]float32 `json: "scores,omitempty"`
 }
+
+func NewClusterDeploymentScore(clusterId string) ClusterDeploymentScore {
+	return ClusterDeploymentScore{
+		ClusterId: clusterId,
+		Scores: make(map[string]float32,0),
+	}
+}
+
+// Add the score for a set of service groups.
+func(cds *ClusterDeploymentScore) AddScore(serviceGroupIds []string, score float32) {
+	sort.Strings(serviceGroupIds)
+	// The key is the concatenation of the ids
+	newKey := strings.Join(serviceGroupIds,"")
+	cds.Scores[newKey] = score
+}
+
+// End of cluster deployment score ------
+
+
 
 // Objects describing received deployment requests. These objects are designed to be stored into
 // a storage structure such as a queue.
@@ -47,7 +75,7 @@ type DeploymentRequest struct {
 	TimeRetry      *time.Time
 }
 
-// Fragment deployment status definition
+// Fragment deployment Status definition
 
 type DeploymentFragmentStatus int
 
@@ -83,6 +111,9 @@ type DeploymentPlan struct {
 	DeploymentRequest *DeploymentRequest `json:"deployment_request,omitempty"`
 }
 
+
+// Start deployment fragment definition ----
+
 // Data structure representing the components of a plan that will be
 // spread across the available clusters.
 type DeploymentFragment struct {
@@ -90,6 +121,8 @@ type DeploymentFragment struct {
 	OrganizationId string `json:"organization_id,omitempty"`
 	// OrganizationName this deployment belongs to
 	OrganizationName string `json:"organization_name,omitempty"`
+	// AppDescriptorId
+	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
 	// AppInstanceId for the instance of the application to run
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// AppNamed for the instance of the application to run
@@ -98,19 +131,16 @@ type DeploymentFragment struct {
 	DeploymentId string `json:"deployment_id,omitempty"`
 	// Fragment id
 	FragmentId string `json:"fragment_id,omitempty"`
-	// Cluster id
+	// Group service id
+	ServiceGroupId string `json:"service_group_id,omitempty"`
+	// Group service instance id
+	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
+	// Cluster id for the deployment target
 	ClusterId string `json:"cluster_id,omitempty"`
 	// Nalej variables
 	NalejVariables map[string]string `json:"nalej_variables,omitempty"`
 	// Deployment stages belonging to this fragment
 	Stages []DeploymentStage `json:"stages,omitempty"`
-}
-
-type UndeployRequest struct {
-	// OrganizationId this deployment belongs to
-	OrganizationId string `json:"organization_id,omitempty"`
-	// AppInstanceId for the instance of the application to run
-	AppInstanceId string `json:"app_instance_id,omitempty"`
 }
 
 func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
@@ -121,28 +151,46 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 	result := pbConductor.DeploymentFragment{
 		OrganizationId: df.OrganizationId,
 		FragmentId:     df.FragmentId,
+		AppDescriptorId: df.AppDescriptorId,
 		AppInstanceId:  df.AppInstanceId,
+		ServiceGroupId: df.ServiceGroupId,
+		ServiceGroupInstanceId: df.ServiceGroupInstanceId,
 		OrganizationName: df.OrganizationName,
 		AppName: 		df.AppName,
 		DeploymentId:   df.DeploymentId,
 		NalejVariables: df.NalejVariables,
 		Stages:         convertedStages,
+		ClusterId: df.ClusterId,
 	}
 	return &result
 }
 
-// Every deployment stage a frament is made of.
+// ----
+
+
+// Deployment fragment definition ----
+
+type UndeployRequest struct {
+	// OrganizationId this deployment belongs to
+	OrganizationId string `json:"organization_id,omitempty"`
+	// AppInstanceId for the instance of the application to run
+	AppInstanceId string `json:"app_instance_id,omitempty"`
+}
+
+
+
+// Every deployment stage a fragment is made of.
 type DeploymentStage struct {
 	// Fragment id
 	FragmentId string `json:"fragment_id,omitempty"`
 	// Stage id
 	StageId string `json:"stage_id,omitempty"`
 	// Set of services
-	Services []Service `json:"stage_id,omitempty"`
+	Services []ServiceInstance `json:"services,omitempty"`
 }
 
 func (ds *DeploymentStage) ToGRPC() *pbConductor.DeploymentStage {
-	convertedServices := make([]*pbApplication.Service, len(ds.Services))
+	convertedServices := make([]*pbApplication.ServiceInstance, len(ds.Services))
 	for i, serv := range ds.Services {
 		convertedServices[i] = serv.ToGRPC()
 	}

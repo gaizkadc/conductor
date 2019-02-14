@@ -19,5 +19,5 @@ type Scorer interface {
     //   requirements to be fulfilled
     //  return:
     //   candidates score
-    ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.ClustersScore, error)
+    ScoreRequirements (organizationId string, requirements *entities.Requirements) (*entities.DeploymentScore, error)
 }

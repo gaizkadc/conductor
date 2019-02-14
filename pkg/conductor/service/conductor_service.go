@@ -118,8 +118,9 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     log.Info().Msg("done")
     scr := scorer.NewSimpleScorer(connectionsHelper)
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
-    designer := plandesigner.NewSimplePlanDesigner(connectionsHelper)
 
+    //designer := plandesigner.NewSimplePlanDesigner(connectionsHelper)
+    designer := plandesigner.NewSimpleReplicaPlanDesigner(connectionsHelper)
 
     batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans)
     if batonMgr == nil {

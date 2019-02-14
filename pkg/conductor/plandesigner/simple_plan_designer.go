@@ -6,19 +6,28 @@
 
 package plandesigner
 
+/*
 import (
     "github.com/nalej/conductor/internal/entities"
     pbApplication "github.com/nalej/grpc-application-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+
     "github.com/google/uuid"
     "context"
     "github.com/rs/zerolog/log"
     "fmt"
     "errors"
     "github.com/nalej/conductor/pkg/utils"
+
 )
 
+*/
 
+/**
+ The simple plan designer allocates any Nalej application into a single cluster. For every service with the multicluster
+ replica flag set on, we force the service to be included into the corresponding fragment.
+ */
+ /*
 type SimplePlanDesigner struct {
     // Applications client
     appClient pbApplication.ApplicationsClient
@@ -27,16 +36,18 @@ type SimplePlanDesigner struct {
     // Connections helper
     connHelper *utils.ConnectionsHelper
 }
-
+*/
+/*
 func NewSimplePlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesigner {
     connectionsSM := connHelper.GetSystemModelClients()
     appClient := pbApplication.NewApplicationsClient(connectionsSM.GetConnections()[0])
     orgClient := pbOrganization.NewOrganizationsClient(connectionsSM.GetConnections()[0])
     return &SimplePlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper}
 }
-
+*/
+/*
 func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
-    score *entities.ClustersScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
+    score *entities.DeploymentScore, request *entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
 
     // Check scores are available and the application fits
     targetCluster := p.findTargetCluster(score)
@@ -47,7 +58,6 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     }
 
     // Build deployment stages for the application
-
     toDeploy ,err :=p.appClient.GetAppDescriptor(context.Background(),
         &pbApplication.AppDescriptorId{OrganizationId: app.OrganizationId, AppDescriptorId: app.AppDescriptorId})
     if err!=nil{
@@ -55,8 +65,6 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
         return nil, err
     }
     // TODO this current version is limited to deployments contained into a single cluster
-
-
 
     fragmentUUID := uuid.New().String()
     index := make(map[string]entities.Service,0)
@@ -127,13 +135,14 @@ func (p SimplePlanDesigner) DesignPlan(app *pbApplication.AppInstance,
     }
 
     return &newPlan, nil
+
 }
 
-func (p SimplePlanDesigner) findTargetCluster(scores *entities.ClustersScore) string {
+func (p SimplePlanDesigner) findTargetCluster(scores *entities.DeploymentScore) string {
     var max float32
     max = 0
     targetCluster := ""
-    for _, s := range scores.Scoring {
+    for _, s := range scores.DeploymentsScore {
         if s.Score > max {
             targetCluster = s.ClusterId
             max = s.Score
@@ -143,3 +152,4 @@ func (p SimplePlanDesigner) findTargetCluster(scores *entities.ClustersScore) st
 }
 
 
+*/
