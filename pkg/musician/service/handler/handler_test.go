@@ -48,8 +48,23 @@ var _ = ginkgo.Describe("Deployment server API", func() {
             // Register the service.
             pbConductor.RegisterMusicianServer(server, NewHandler(mgr))
 
-            request = pbConductor.ClusterScoreRequest{RequestId: "myrequestId"}
-            response = pbConductor.ClusterScoreResponse{RequestId: "myrequestId", Score: 0.1}
+            request = pbConductor.ClusterScoreRequest{
+                RequestId: "myrequestId",
+                Requirements: []*pbConductor.Requirement{
+                    {AppInstanceId: "myappinstanceid",
+                    Storage: 0.0,
+                    GroupServiceInstanceId: "mygroupserviceinstanceid",
+                    Replicas: 1,
+                    RequestId: "myrequestid",
+                    Memory: 1.0,
+                    Cpu:    1.0,
+                    },
+                },
+            }
+            response = pbConductor.ClusterScoreResponse{RequestId: "myrequestId", Score:
+                []*pbConductor.DeploymentScore{
+                    {Score: 0.1,AppInstanceId: "myappinstanceid",GroupServiceInstances:[]string{"mygroupserviceinstanceid"}},
+                },}
 
             conn, err := test.GetConn(*listener)
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())

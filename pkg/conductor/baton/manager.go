@@ -159,7 +159,7 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         log.Error().Err(err).Msg("error adding application instance")
         return nil,err
     }
-    
+
     toEnqueue := entities.DeploymentRequest{
         RequestId:      req.RequestId,
         InstanceId:     instance.AppInstanceId,
@@ -223,7 +223,6 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 
 
     // 3) design plan
-    // TODO elaborate plan, modify system model accordingly
     // Elaborate deployment plan for the application
     plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
 

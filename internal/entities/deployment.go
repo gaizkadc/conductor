@@ -186,11 +186,11 @@ type DeploymentStage struct {
 	// Stage id
 	StageId string `json:"stage_id,omitempty"`
 	// Set of services
-	Services []Service `json:"stage_id,omitempty"`
+	Services []ServiceInstance `json:"services,omitempty"`
 }
 
 func (ds *DeploymentStage) ToGRPC() *pbConductor.DeploymentStage {
-	convertedServices := make([]*pbApplication.Service, len(ds.Services))
+	convertedServices := make([]*pbApplication.ServiceInstance, len(ds.Services))
 	for i, serv := range ds.Services {
 		convertedServices[i] = serv.ToGRPC()
 	}

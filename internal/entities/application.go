@@ -102,7 +102,7 @@ func (im *InstanceMetadata) ToGRPC() *grpc_application_go.InstanceMetadata {
 	}
 }
 
-func NewInstanceMetadataFromGRPC( ins *grpc_application_go.InstanceMetadata) InstanceMetadata {
+func NewInstanceMetadataFromGRPC(ins *grpc_application_go.InstanceMetadata) InstanceMetadata {
 	status := make(map[string]ServiceStatus,0)
 	for k, v := range ins.Status{
 		status[k] = ServiceStatusFromGRPC[v]
@@ -793,10 +793,10 @@ type ServiceInstance struct {
 	ServiceId string `json:"service_id,omitempty"`
 	// ServiceGroupInstanceId with the service group identifier.
 	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
+	// ServiceGroupId with the service group identifier.
+	ServiceGroupId string `json:"service_group_id,omitempty"`
 	// Name of the service.
 	Name string `json:"name,omitempty"`
-	// Description of the service.
-	Description string `json:"description,omitempty"`
 	// ServiceType represents the underlying technology of the service to be launched.
 	Type ServiceType `json:"type,omitempty"`
 	// Image contains the URL/name of the image to be executed.
@@ -872,12 +872,31 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 		Info:                 si.Info,
 		Endpoints:            endpoints,
 		ServiceInstanceId:    si.ServiceInstanceId,
+		ServiceGroupId:       si.ServiceGroupId,
 		DeployedOnClusterId: si.DeployedOnClusterID,
 	}
 
 }
 
 func NewServiceInstanceFromGRPC(ins *grpc_application_go.ServiceInstance) ServiceInstance {
+
+	endpoints := make([]EndpointInstance, len(ins.Endpoints))
+	for i, e := range ins.Endpoints {
+		endpoints[i] = NewEndpointInstanceFromGRPC(e)
+	}
+	storages := make([]Storage, len(ins.Storage))
+	for i, s := range ins.Storage {
+		storages[i] = *NewStorageFromGRPC(s)
+	}
+	configs := make([]ConfigFile, len(ins.Configs))
+	for i, c := range ins.Configs {
+		configs[i] = *NewConfigFileFromGRPC(ins.AppDescriptorId, c)
+	}
+	exposedPorts := make([]Port, len(ins.ExposedPorts))
+	for i, p := range ins.ExposedPorts {
+		exposedPorts[i] = *NewPortFromGRPC(p)
+	}
+
 	return ServiceInstance{
 		Status: ServiceStatusFromGRPC[ins.Status],
 		Type: ServiceTypeFromGRPC[ins.Type],
@@ -886,12 +905,22 @@ func NewServiceInstanceFromGRPC(ins *grpc_application_go.ServiceInstance) Servic
 		AppInstanceId: ins.AppInstanceId,
 		AppDescriptorId: ins.AppDescriptorId,
 		ServiceGroupInstanceId: ins.ServiceGroupInstanceId,
+		ServiceGroupId: ins.ServiceGroupId,
 		Labels: ins.Labels,
 		Name: ins.Name,
 		Specs: NewDeploySpecsFromGRPC(ins.Specs),
 		EnvironmentVariables: ins.EnvironmentVariables,
 		ServiceInstanceId: ins.ServiceInstanceId,
-
+		ServiceId: ins.ServiceId,
+		DeployedOnClusterID: ins.DeployedOnClusterId,
+		RunArguments: ins.RunArguments,
+		DeployAfter: ins.DeployAfter,
+		Image: ins.Image,
+		Endpoints: endpoints,
+		Storage: storages,
+		Configs: configs,
+		Credentials: NewImageCredentialsFromGRPC(ins.Credentials),
+		ExposedPorts: exposedPorts,
 	}
 }
 
@@ -911,6 +940,14 @@ func(e *EndpointInstance) ToGRPC() * grpc_application_go.EndpointInstance {
 		Type: EndpointTypeToGRPC[e.EndpointType],
 		EndpointInstanceId: e.EnpointInstanceId,
 		Fqdn: e.FQDN,
+	}
+}
+
+func NewEndpointInstanceFromGRPC(endpoint *grpc_application_go.EndpointInstance) EndpointInstance {
+	return EndpointInstance{
+		FQDN: endpoint.Fqdn,
+		EnpointInstanceId: endpoint.EndpointInstanceId,
+		EndpointType: EndpointTypeFromGRPC[endpoint.Type],
 	}
 }
 
@@ -1097,7 +1134,7 @@ func (i *AppInstance) ToGRPC() *grpc_application_go.AppInstance {
 	}
 }
 
-func NewAppInstanceFromGRPC(app *grpc_application_go.AppInstance) AppInstance{
+func NewAppInstanceFromGRPC(app *grpc_application_go.AppInstance) AppInstance {
 	groups := make([]ServiceGroupInstance,0)
 	for _, g := range app.Groups {
 		groups = append(groups, NewServiceGroupInstanceFromGRPC(g))

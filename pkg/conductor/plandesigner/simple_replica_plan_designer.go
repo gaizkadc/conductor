@@ -24,8 +24,6 @@ import (
  * replication in all the available clusters of the organization.
  */
 
-
-
 type SimpleReplicaPlanDesigner struct {
     // Applications client
     appClient pbApplication.ApplicationsClient
@@ -206,6 +204,19 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
         // UUID for this fragment
         fragmentUUID := uuid.New().String()
 
+        // Add new ServiceGroupInstance
+        newServiceGroupRequest := pbApplication.AddServiceGroupInstanceRequest{
+            OrganizationId: app.OrganizationId,
+            AppDescriptorId: app.AppDescriptorId,
+            AppInstanceId: app.AppInstanceId,
+            ServiceGroupId: group.ServiceGroupId,
+        }
+        groupInstance, err := p.appClient.AddServiceGroupInstance(context.Background(),&newServiceGroupRequest)
+        if err != nil {
+            return nil, derrors.NewGenericError("impossible to instantiate service group instance", err)
+        }
+        localGroupInstance := entities.NewServiceGroupInstanceFromGRPC(groupInstance)
+
         order := groupsOrder[group.Name]
         // create the stages corresponding to this group
         log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",group.Name).
@@ -213,12 +224,12 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
         stages := make([]entities.DeploymentStage, 0)
         for _, sequence := range order {
             // this stage must deploy the services following this order
-            stage := entities.DeploymentStage{
-                FragmentId: fragmentUUID,
-                StageId: uuid.New().String(),
-                Services: sequence,
+            stage, err := p.buildDeploymentStage(fragmentUUID, localGroupInstance, sequence)
+            if err != nil {
+                log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
+                return nil, derrors.NewGenericError("impossible to build stage", err)
             }
-            stages = append(stages, stage)
+            stages = append(stages, *stage)
         }
 
         fragment := entities.DeploymentFragment{
@@ -232,15 +243,44 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
             DeploymentId:           planId,
             Stages:                 stages,
             NalejVariables:         nalejVariables,
-            ServiceGroupInstanceId: group.ServiceGroupInstanceId,
+            ServiceGroupInstanceId: groupInstance.ServiceGroupInstanceId,
             ClusterId:              targetCluster,
         }
         fragments = append(fragments, fragment)
     }
 
-
     return fragments, nil
+}
 
+// For a given sequence of services, it generates the corresponding deployment stage. This includes the
+// instantiation of new services in a service group instance.
+func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(fragmentUUID string, group entities.ServiceGroupInstance,
+    sequence []entities.Service) (*entities.DeploymentStage, error) {
+    instances := make([]entities.ServiceInstance,len(sequence))
+    for i, s := range sequence {
+        // Instantiate this service
+        request := pbApplication.AddServiceInstanceRequest{
+            OrganizationId: group.OrganizationId,
+            AppDescriptorId: group.AppDescriptorId,
+            AppInstanceId: group.AppInstanceId,
+            ServiceGroupId: group.ServiceGroupId,
+            ServiceGroupInstanceId: group.ServiceGroupInstanceId,
+            ServiceId: s.ServiceId,
+        }
+        instance, err := p.appClient.AddServiceInstance(context.Background(), &request)
+        if err != nil {
+            log.Error().Err(err).Msg("error when adding a new service instance")
+            return nil, err
+        }
+        instances[i] = entities.NewServiceInstanceFromGRPC(instance)
+    }
+
+    ds := entities.DeploymentStage{
+        StageId: uuid.New().String(),
+        FragmentId: fragmentUUID,
+        Services: instances,
+    }
+    return &ds,nil
 }
 
 // Local function to collect the list of groups with a replica set flag enabled.
@@ -252,7 +292,6 @@ func(p *SimpleReplicaPlanDesigner) getReplicatedGroups(toDeploy entities.AppDesc
         if g.Specs.MultiClusterReplica {
             toReturn = append(toReturn, g)
         }
-
     }
     return toReturn
 }

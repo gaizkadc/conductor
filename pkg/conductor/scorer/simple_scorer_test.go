@@ -88,7 +88,6 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
             OrganizationId: orgResp.OrganizationId,
             Name: "testCluster",
             RequestId: "req001",
-            Description: "A test description",
             Labels: map[string]string{"key1":"value1"},
         }
         _, err = smClient.AddCluster(context.Background(),&req)
@@ -180,7 +179,7 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
                 gomega.Expect(response).NotTo(gomega.BeNil())
                 gomega.Expect(response.NumEvaluatedClusters).To(gomega.Equal(1))
                 gomega.Expect(len(response.DeploymentsScore)).To(gomega.Equal(1))
-                gomega.Expect(response.DeploymentsScore[0].Score).To(gomega.Equal(float32(-48.87312316894531)))
+                gomega.Expect(response.DeploymentsScore[0].Scores["serviceid"]).To(gomega.Equal(float32(-48.87312316894531)))
             })
         })
     })
