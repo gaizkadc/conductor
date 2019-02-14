@@ -5,7 +5,7 @@ metadata:
     component: prometheus
     cluster: application
   name: kube-state-metrics
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 spec:
   selector:
     matchLabels:

@@ -9,7 +9,7 @@ metadata:
     component: prometheus
     cluster: application
   name: prometheus
-  namespace: nalej
+  namespace: __NPH_NAMESPACE
 spec:
   replicas: 1
   selector:
