@@ -120,6 +120,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
 
     // Fill variables
     finalFragments = p.fillVariables(finalFragments)
+    log.Debug().Interface("finalFragments",finalFragments).Msg("------after filling variables")
 
     // Now that we have all the fragments, build the deployment plan
     newPlan := entities.DeploymentPlan{
@@ -363,6 +364,7 @@ func (p *SimpleReplicaPlanDesigner) findTargetCluster(serviceGroups []entities.S
 // Fill the fragments with the corresponding variables per group. This has to be done after the generation of the fragments
 // to correctly fill the entries with the corresponding values.
 func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.DeploymentFragment) []entities.DeploymentFragment {
+    toChange := make(map[string]map[string]string,0)
     for _, f := range fragmentsToDeploy {
         // Create the service entries we need for this fragment
         variables := make(map[string]string,0)
@@ -372,7 +374,14 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
                 variables[key] = value
             }
         }
-        f.NalejVariables = variables
+        toChange[f.FragmentId] = variables
     }
+
+    for _,f := range fragmentsToDeploy {
+        f.NalejVariables = toChange[f.FragmentId]
+    }
+
+    log.Debug().Interface("fragments",f).Msg("---------->>>>>>>>>>>>>>>")
+
     return fragmentsToDeploy
 }
