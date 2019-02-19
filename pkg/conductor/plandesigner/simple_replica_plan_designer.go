@@ -66,8 +66,6 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     // Get a local representation of the object
     toDeploy := entities.NewAppDescriptorFromGRPC(retrievedDesc)
 
-    // Build nalej variables
-    nalejVariables := GetDeploymentNalejVariables(org.Name, app.AppInstanceId, toDeploy)
 
     planId := uuid.New().String()
     log.Info().Str("planId",planId).Msg("start building the plan")
@@ -93,7 +91,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
 
 
     // Build fragments to deploy replicated groups
-    replicatedDeployment, err := p.buildFragmentsReplicatedGroups(app, toDeploy, deploymentMatrix, groupsOrder, nalejVariables, planId, org)
+    replicatedDeployment, err := p.buildFragmentsReplicatedGroups(app, toDeploy, deploymentMatrix, groupsOrder, planId, org)
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment for groups with replica set flag enabled")
         return nil, err
@@ -103,7 +101,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
         Msg("deployment fragments for replicated groups already processed")
 
     // Build fragments to deploy everything into a single cluster
-    uniqueDeployment, err := p.buildFragmentsAllGroups(app,toDeploy,deploymentMatrix, groupsOrder, nalejVariables, planId, org)
+    uniqueDeployment, err := p.buildFragmentsAllGroups(app,toDeploy,deploymentMatrix, groupsOrder, planId, org)
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment for the whole application")
         return nil, err
@@ -114,10 +112,14 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     finalFragments := make([]entities.DeploymentFragment,len(replicatedDeployment)+len(uniqueDeployment))
     for i, f := range replicatedDeployment {
         finalFragments[i] = f
+
     }
     for i, f := range uniqueDeployment{
         finalFragments[len(replicatedDeployment)+i] = f
     }
+
+    // Fill variables
+    finalFragments = p.fillVariables(finalFragments)
 
     // Now that we have all the fragments, build the deployment plan
     newPlan := entities.DeploymentPlan{
@@ -142,7 +144,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsReplicatedGroups(
     desc entities.AppDescriptor,
     deploymentMatrix *structures.DeploymentMatrix,
     groupsOrder map[string][][]entities.Service,
-    nalejVariables map[string]string,
     planId string,
     org *pbOrganization.Organization) ([]entities.DeploymentFragment,derrors.Error) {
 
@@ -158,7 +159,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsReplicatedGroups(
             return nil, err
         }
         for _, target := range targets {
-            fragments,err  := p.buildFragments(app, groupsOrder, target, nalejVariables, planId, org)
+            fragments,err  := p.buildFragments(app, groupsOrder, target, planId, org)
             if err != nil {
                 log.Error().Str("targetCluster",target).Err(err).Msg("impossible to build fragments")
                 return nil, err
@@ -176,7 +177,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
     desc entities.AppDescriptor,
     deploymentMatrix *structures.DeploymentMatrix,
     groupsOrder map[string][][]entities.Service,
-    nalejVariables map[string]string,
     planId string,
     org *pbOrganization.Organization) ([]entities.DeploymentFragment,derrors.Error) {
 
@@ -196,10 +196,11 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
     }
 
     // Create a fragment with all the services contained in this application
-    fragmentsToDeploy, err := p.buildFragments(app, groupsOrder, targetCluster, nalejVariables, planId, org)
+    fragmentsToDeploy, err := p.buildFragments(app, groupsOrder, targetCluster, planId, org)
     if err!=nil{
         return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
     }
+
     return fragmentsToDeploy, nil
 }
 
@@ -208,7 +209,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
     app entities.AppInstance,
     groupsOrder map[string][][]entities.Service,
     targetCluster string,
-    nalejVariables map[string]string,
     planId string,
     org *pbOrganization.Organization,
     ) ([]entities.DeploymentFragment, derrors.Error) {
@@ -258,7 +258,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
             FragmentId:             fragmentUUID,
             DeploymentId:           planId,
             Stages:                 stages,
-            NalejVariables:         nalejVariables,
             ServiceGroupInstanceId: groupInstance.ServiceGroupInstanceId,
             ClusterId:              targetCluster,
         }
@@ -358,4 +357,22 @@ func (p *SimpleReplicaPlanDesigner) findTargetCluster(serviceGroups []entities.S
 
     log.Debug().Str("bestCandidate",bestCandidate).Float32("score",maxScore).Msg("Best cluster found with score")
     return bestCandidate
+}
+
+
+// Fill the fragments with the corresponding variables per group. This has to be done after the generation of the fragments
+// to correctly fill the entries with the corresponding values.
+func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.DeploymentFragment) []entities.DeploymentFragment {
+    for _, f := range fragmentsToDeploy {
+        // Create the service entries we need for this fragment
+        variables := make(map[string]string,0)
+        for _, stage := range f.Stages {
+            for _, serv := range stage.Services {
+                key, value := GetDeploymentVariableForService(serv)
+                variables[key] = value
+            }
+        }
+        f.NalejVariables = variables
+    }
+    return fragmentsToDeploy
 }
