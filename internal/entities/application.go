@@ -819,7 +819,7 @@ type ServiceInstance struct {
 	// DeployAfter contains the list of services that must be running before launching a service.
 	DeployAfter []string `json:"deploy_after,omitempty"`
 	// Status of the deployed service
-	Status ServiceStatus `json:"tatus,omitempty"`
+	Status ServiceStatus `json:"status,omitempty"`
 	// Endpoints exposed to the users by the service.
 	Endpoints []EndpointInstance `json:"endpoints,omitempty"`
 	// DeployedOnClusterId specifies which is the cluster where the service is running.

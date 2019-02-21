@@ -34,24 +34,17 @@ const (
     NalejServiceSuffix = "service.nalej"
 )
 
-// Generate the set of Nalej variables for a deployment.
+
+// Generate the tuple key and value for a nalej service to be represented.
 // params:
-//  organizationName    name of the organization
-//  appInstanceId       application instance
-//  desc                deployment descriptor
+//  serv service instance to be processed
 // return:
-//  map with variables and values
-func GetDeploymentNalejVariables(organizationName string, appInstanceId string, desc entities.AppDescriptor) map[string]string{
-    variables := make(map[string]string,0)
-    for _, g := range desc.Groups {
-        for _,s := range g.Services {
-            value := fmt.Sprintf("%s-%s-%s.%s", formatName(s.Name), formatName(organizationName), appInstanceId[0:5],
-                NalejServiceSuffix)
-            name := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(s.Name))
-            variables[name]=value
-        }
-    }
-    return variables
+//  variable name, variable value
+func GetDeploymentVariableForService(serv entities.ServiceInstance) (string, string) {
+    key := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(serv.Name))
+    value := fmt.Sprintf("%s-%s-%s-%s.%s", formatName(serv.Name), serv.OrganizationId[0:5],
+        serv.ServiceGroupInstanceId[0:5], serv.AppInstanceId[0:5], NalejServiceSuffix)
+    return key,value
 }
 
 
