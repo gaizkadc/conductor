@@ -34,6 +34,7 @@ spec:
           - "--debug"
           - "--systemModelAddress=system-model.__NPH_NAMESPACE:8800"
           - "--networkManagerAddress=network-manager.__NPH_NAMESPACE:8000"
+          - "--authxAddress=authx.__NPH_NAMESPACE:8010"
         ports:
         - name: api-port
           containerPort: 5000
