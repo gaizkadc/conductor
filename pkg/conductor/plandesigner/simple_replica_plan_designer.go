@@ -9,6 +9,8 @@ import (
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/structures"
     pbApplication "github.com/nalej/grpc-application-go"
+    pbAuthx "github.com/nalej/grpc-authx-go"
+    "github.com/nalej/grpc-device-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
     "github.com/nalej/derrors"
     "github.com/nalej/conductor/internal/entities"
@@ -31,13 +33,17 @@ type SimpleReplicaPlanDesigner struct {
     orgClient pbOrganization.OrganizationsClient
     // Connections helper
     connHelper *utils.ConnectionsHelper
+    // Authx client
+    authxClient pbAuthx.AuthxClient // TODO: inicializar
 }
 
 func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesigner {
     connectionsSM := connHelper.GetSystemModelClients()
     appClient := pbApplication.NewApplicationsClient(connectionsSM.GetConnections()[0])
     orgClient := pbOrganization.NewOrganizationsClient(connectionsSM.GetConnections()[0])
-    return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper}
+    connectionsAuthx := connHelper.GetAuthxClients()
+    authxClient := pbAuthx.NewAuthxClient(connectionsAuthx.GetConnections()[0])
+    return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper, authxClient:authxClient}
 }
 
 
@@ -159,7 +165,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsReplicatedGroups(
             return nil, err
         }
         for _, target := range targets {
-            fragments,err  := p.buildFragments(app, groupsOrder, target, planId, org)
+            fragments,err  := p.buildFragments(desc, app, groupsOrder, target, planId, org)
             if err != nil {
                 log.Error().Str("targetCluster",target).Err(err).Msg("impossible to build fragments")
                 return nil, err
@@ -196,7 +202,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
     }
 
     // Create a fragment with all the services contained in this application
-    fragmentsToDeploy, err := p.buildFragments(app, groupsOrder, targetCluster, planId, org)
+    fragmentsToDeploy, err := p.buildFragments(desc, app, groupsOrder, targetCluster, planId, org)
     if err!=nil{
         return nil, derrors.NewGenericError("impossible to build deployment fragment", err)
     }
@@ -206,6 +212,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsAllGroups(
 
 // This local function returns a fragment for a given list of services and its dependency graph
 func (p *SimpleReplicaPlanDesigner) buildFragments(
+    desc entities.AppDescriptor,
     app entities.AppInstance,
     groupsOrder map[string][][]entities.Service,
     targetCluster string,
@@ -240,7 +247,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
         stages := make([]entities.DeploymentStage, 0)
         for _, sequence := range order {
             // this stage must deploy the services following this order
-            stage, err := p.buildDeploymentStage(fragmentUUID, localGroupInstance, sequence)
+            stage, err := p.buildDeploymentStage(desc, fragmentUUID, localGroupInstance, sequence)
             if err != nil {
                 log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
                 return nil, derrors.NewGenericError("impossible to build stage", err)
@@ -267,10 +274,22 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
     return fragments, nil
 }
 
+func (p*SimpleReplicaPlanDesigner) existsService (sequence []entities.Service, serviceName string ) *entities.Service {
+
+    for i:=0;i<len(sequence);i++ {
+        if sequence[i].Name == serviceName {
+            return &sequence[i]
+        }
+    }
+    return nil
+}
+
 // For a given sequence of services, it generates the corresponding deployment stage. This includes the
 // instantiation of new services in a service group instance.
-func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(fragmentUUID string, group entities.ServiceGroupInstance,
+func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescriptor, fragmentUUID string, group entities.ServiceGroupInstance,
     sequence []entities.Service) (*entities.DeploymentStage, error) {
+
+    serviceNames := make(map[string]*pbApplication.ServiceInstance, 0)    // variable to store the service names
     instances := make([]entities.ServiceInstance,len(sequence))
     for i, s := range sequence {
         // Instantiate this service
@@ -288,12 +307,43 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(fragmentUUID string, gro
             return nil, err
         }
         instances[i] = entities.NewServiceInstanceFromGRPC(instance)
+        serviceNames[s.Name] = instance
+    }
+
+    deviceSecurityRules := make ([]entities.DeviceGroupSecurityRuleInstance, 0)
+    publicSecurityRules := make ([]entities.PublicSecurityRuleInstance, 0)
+
+    // NP-852. Send the new information regarding security rule instances (DeviceGroupRules and PublicRules)
+    for _, rule := range desc.Rules {
+        service, exists := serviceNames[rule.TargetServiceName]
+        if exists {
+            if rule.Access == entities.Public {
+                publicSecurityRules = append(publicSecurityRules, *entities.NewPublicSercurityRuleInstance(*service, rule))
+            } else if rule.Access == entities.DeviceGroup{
+                sgJwtSecrets := make ([]string, 0)
+                for _, sg := range rule.DeviceGroups {
+                    secret, err := p.authxClient.GetDeviceGroupSecret(context.Background(), &grpc_device_go.DeviceGroupId{
+                        OrganizationId: rule.OrganizationId,
+                        DeviceGroupId:  sg,
+                    })
+                    if err != nil {
+                        log.Error().Err(err).Str("organization_id", rule.OrganizationId).
+                            Str("device_group_id", sg).Msg("error getting the Jwt secret")
+                    }else{
+                        sgJwtSecrets = append(sgJwtSecrets, secret.Secret)
+                    }
+                }
+                deviceSecurityRules = append(deviceSecurityRules, *entities.NewDeviceGroupSecurityRuleInstance(*service, rule, sgJwtSecrets))
+            }
+        }
     }
 
     ds := entities.DeploymentStage{
         StageId: uuid.New().String(),
         FragmentId: fragmentUUID,
         Services: instances,
+        PublicRules:publicSecurityRules,
+        DeviceGroupRules:deviceSecurityRules,
     }
     return &ds,nil
 }

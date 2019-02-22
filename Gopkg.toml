@@ -25,7 +25,7 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-conductor-go"
-    version="v0.0.82"
+    version="v0.0.84"
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
@@ -50,6 +50,10 @@
 [[constraint]]
     name="github.com/nalej/grpc-network-go"
     version="v0.0.30"
+
+[[constraint]]
+    name="github.com/nalej/grpc-authx-go"
+    version="v0.0.42"
 
  [[constraint]]
    name="github.com/onsi/ginkgo"

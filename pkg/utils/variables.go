@@ -31,3 +31,5 @@ var MUSICIAN_PORT uint32 = 5100
 var DEPLOYMENT_MANAGER_PORT uint32 = 443
 // Networking service port
 var NETWORKING_SERVICE_PORT uint32 = 8000
+// Standard authx port
+var AUTHX_PORT uint32 = 8010
