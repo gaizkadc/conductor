@@ -39,14 +39,17 @@ type ConductorConfig struct {
     CACertPath string
     // Skip CA validation
     SkipCAValidation bool
+    // URL where authx client is available
+    AuthxURL string
 }
 
 func (conf * ConductorConfig) Print() {
     log.Info().Uint32("port", conf.Port).Msg("gRPC port")
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
+    log.Info().Str("AuthxURL", conf.AuthxURL).Msg("Authx service URL")
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
-    log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connecto the the Application Cluster API")
+    log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
 }
 
 
@@ -106,6 +109,24 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     _, err = cnPool.AddConnection(netHost, netp)
     if err != nil {
         log.Error().Err(err).Msg("error creating connection with system model")
+        return nil, err
+    }
+
+    // Initialize connections pool with authx client
+    authxPool := connectionsHelper.GetAuthxClients()
+    authxHost, authxPort, err := net.SplitHostPort(config.AuthxURL)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the authx url")
+    }
+
+    authxp, err := strconv.Atoi(authxPort)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the authx port")
+    }
+
+    _, err = authxPool.AddConnection(authxHost, authxp)
+    if err != nil {
+        log.Error().Err(err).Msg("error creating connection with authx")
         return nil, err
     }
 

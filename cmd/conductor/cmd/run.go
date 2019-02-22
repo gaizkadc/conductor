@@ -36,6 +36,8 @@ func init() {
         "host:port address for system model")
     runCmd.Flags().StringP("networkManagerAddress", "n", fmt.Sprintf("localhost:%d", utils.NETWORKING_SERVICE_PORT),
         "host:port address for networking manager")
+    runCmd.Flags().StringP("authxAddress","a",fmt.Sprintf("localhost:%d",utils.AUTHX_PORT),
+        "host:port address for authx")
     runCmd.Flags().Uint32P("appClusterPort","p",utils.APP_CLUSTER_API_PORT, "port where the application cluster api is listening")
     runCmd.Flags().Bool("useTLS", true, "Use TLS to connect to the application cluster API")
     runCmd.Flags().String("caCertPath", "", "Part for the CA certificate")
@@ -60,10 +62,13 @@ func RunConductor() {
     var caCertPath string
     // Skip CA validation
     var skipCAValidation bool
+    // Authx url
+    var authxService string
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
     networkingService = viper.GetString("networkManagerAddress")
+    authxService = viper.GetString("authxAddress")
     appClusterApiPort = uint32(viper.GetInt32("appClusterPort"))
     useTLS = viper.GetBool("useTLS")
     caCertPath = viper.GetString("caCertPath")
@@ -81,6 +86,7 @@ func RunConductor() {
         UseTLSForClusterAPI: useTLS,
         CACertPath: caCertPath,
         SkipCAValidation: skipCAValidation,
+        AuthxURL:authxService,
     }
     config.Print()
 
