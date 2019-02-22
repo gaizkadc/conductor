@@ -106,6 +106,36 @@ func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []entities.ServiceGro
     return candidate
 }
 
+// Find the best target to deploy a single group and update the matrix accordingly.
+func (dm *DeploymentMatrix) FindBestTargetForGroup(group entities.ServiceGroup) (string, derrors.Error) {
+    log.Debug().Interface("matrix",dm).Msg("FindBestTargetForGroup")
+    groupId := group.Name
+    // find the cluster with the largest score
+    maxScore := float32(0)
+    candidate := ""
+    for _, clusterScore := range dm.AllocatedScore {
+        score, found := clusterScore.Scores[groupId]
+        if found {
+            if score > maxScore {
+                maxScore = score
+                candidate = clusterScore.ClusterId
+            }
+        } else {
+            log.Debug().Str("clusterId",clusterScore.ClusterId).Str("groupId", groupId).
+                Msg("set of groups not found")
+        }
+    }
+
+    if candidate != "" {
+        dm.allocateGroups(candidate, groupId, []entities.ServiceGroup{group})
+        return candidate, nil
+    }
+
+    return "", derrors.NewGenericError("impossible to find cluster for single group deployment")
+
+
+}
+
 
 // Allocate groups and update scores.
 func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,groups []entities.ServiceGroup) {
