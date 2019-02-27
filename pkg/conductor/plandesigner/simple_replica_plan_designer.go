@@ -32,7 +32,7 @@ type SimpleReplicaPlanDesigner struct {
     // Connections helper
     connHelper *utils.ConnectionsHelper
     // Authx client
-    authxClient pbAuthx.AuthxClient // TODO: inicializar
+    authxClient pbAuthx.AuthxClient
 }
 
 func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesigner {

@@ -21,7 +21,7 @@
           "name": "simple-wordpress",
           "image": "wordpress:5.0.0",
           "specs": {
-            "replicas": 1
+            "replicas": 2
           },
           "storage": [
             {
