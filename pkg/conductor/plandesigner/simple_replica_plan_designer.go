@@ -125,7 +125,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     return &newPlan, nil
 }
 
-
+/*
 // Build the fragments to be sent to every cluster
 func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
     desc entities.AppDescriptor,
@@ -177,8 +177,6 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
                 OrganizationId: org.OrganizationId,
                 AppInstanceId: app.AppInstanceId,
                 AppDescriptorId: app.AppDescriptorId,
-                ServiceGroupInstanceId: groupInstance.ServiceGroupInstanceId,
-                ServiceGroupId: g.ServiceGroupId,
                 // To be filled in global instances
                 //NalejVariables: ,
                 FragmentId: fragmentUUID,
@@ -193,6 +191,73 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
     }
     return toReturn, nil
 }
+*/
+
+// Build the fragments to be sent to every cluster
+func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
+    desc entities.AppDescriptor,
+    clustersMap map[string][]entities.ServiceGroup,
+    app entities.AppInstance,
+    groupsOrder map[string][][]entities.Service,
+    planId string,
+    org *pbOrganization.Organization) ([]entities.DeploymentFragment, derrors.Error) {
+
+        toReturn := make([]entities.DeploymentFragment, 0)
+    // combine all the groups per cluster into the corresponding fragment
+    for cluster, listGroups := range clustersMap {
+        // collect stages per group and generate one fragment
+        // UUID for this fragment
+        fragmentUUID := uuid.New().String()
+        stages := make([]entities.DeploymentStage, 0)
+
+        for _, g := range listGroups {
+            // Add new ServiceGroupInstance
+            newServiceGroupRequest := pbApplication.AddServiceGroupInstanceRequest{
+                OrganizationId: app.OrganizationId,
+                AppDescriptorId: app.AppDescriptorId,
+                AppInstanceId: app.AppInstanceId,
+                ServiceGroupId: g.ServiceGroupId,
+            }
+            groupInstance, err := p.appClient.AddServiceGroupInstance(context.Background(),&newServiceGroupRequest)
+            if err != nil {
+                log.Error().Err(err).Msg("error creating new service group instance")
+                return nil, derrors.NewGenericError("impossible to instantiate service group instance", err)
+            }
+            localGroupInstance := entities.NewServiceGroupInstanceFromGRPC(groupInstance)
+
+            // create the stages corresponding to this group
+            log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",g.Name).
+                Interface("sequences", groupsOrder).Msg("create stages for deployment sequence")
+
+            for _, sequence := range groupsOrder[g.Name] {
+                // this stage must deploy the services following this order
+                stage, err := p.buildDeploymentStage(desc,fragmentUUID, localGroupInstance, sequence)
+                if err != nil {
+                    log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
+                    return nil, derrors.NewGenericError("impossible to build stage", err)
+                }
+                stages = append(stages, *stage)
+            }
+        }
+        // one fragment per group
+        fragment := entities.DeploymentFragment{
+            ClusterId: cluster,
+            OrganizationId: org.OrganizationId,
+            AppInstanceId: app.AppInstanceId,
+            AppDescriptorId: app.AppDescriptorId,
+            // To be filled in global instances
+            //NalejVariables: ,
+            FragmentId: fragmentUUID,
+            Stages: stages,
+            AppName: app.Name,
+            DeploymentId: planId,
+            OrganizationName: org.Name,
+        }
+        toReturn = append(toReturn, fragment)
+    }
+    return toReturn, nil
+}
+
 
 // Return a map with the list of groups to be deployed per cluster.
 func (p* SimpleReplicaPlanDesigner) findTargetClusters(
@@ -298,7 +363,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
     }
 
     fragment := entities.DeploymentFragment{
-        ServiceGroupId: group.ServiceGroupId,
         AppDescriptorId: app.AppDescriptorId,
         OrganizationId:         app.OrganizationId,
         OrganizationName:       org.Name,
@@ -307,7 +371,6 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
         FragmentId:             fragmentUUID,
         DeploymentId:           planId,
         Stages:                 stages,
-        ServiceGroupInstanceId: groupInstance.ServiceGroupInstanceId,
         ClusterId:              targetCluster,
     }
     fragments = append(fragments, fragment)
@@ -395,6 +458,7 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
 // to correctly fill the entries with the corresponding values.
 func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.DeploymentFragment) []entities.DeploymentFragment {
     toChange := make(map[int]map[string]string,0)
+    allServices := make(map[string]string,0)
     for fragmentIndex, f := range fragmentsToDeploy {
         // Create the service entries we need for this fragment
         variables := make(map[string]string,0)
@@ -402,6 +466,8 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
             for _, serv := range stage.Services {
                 key, value := GetDeploymentVariableForService(serv)
                 variables[key] = value
+                // TODO: this might be modified depending on decissions about how to declare variables
+                allServices[key] = value
             }
         }
         toChange[fragmentIndex] = variables
@@ -409,6 +475,14 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
 
     for fragmentIndex, variables := range toChange {
         fragmentsToDeploy[fragmentIndex].NalejVariables = variables
+        // This fragment must know all the variables for the sake of completeness
+        for key, variable := range allServices {
+            _, found := fragmentsToDeploy[fragmentIndex].NalejVariables[key]
+            if !found {
+                // we couldn't find it, add the first entry we know
+                fragmentsToDeploy[fragmentIndex].NalejVariables[key] = variable
+            }
+        }
     }
 
     return fragmentsToDeploy
