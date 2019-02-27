@@ -168,8 +168,6 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 // ----
 
 
-// Deployment fragment definition ----
-
 type UndeployRequest struct {
 	// OrganizationId this deployment belongs to
 	OrganizationId string `json:"organization_id,omitempty"`
@@ -177,7 +175,109 @@ type UndeployRequest struct {
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 }
 
+// ------------------------------------ //
+// -- Deployment fragment definition -- //
+// ------------------------------------ //
+// DeviceGroupSecurityRuleInstance
+type DeviceGroupSecurityRuleInstance struct {
+	// OrganizationId with the organization identifier.
+	OrganizationId string `json:"organization_id,omitempty"`
+	// AppDescriptorId with the application descriptor identifier.
+	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
+	// RuleId with the security rule identifier.
+	RuleId string `json:"rule_id,omitempty"`
+	// TargetServiceGroupId with the group identifier as provided by the user.
+	TargetServiceGroupId string `json:"target_service_group_id,omitempty"`
+	// TargetServiceGroupInstanceId with the group identifier provided by the system.
+	TargetServiceGroupInstanceId string `json:"target_service_group_instance_id,omitempty"`
+	// TargetServiceId with the service identifier as provided by the user.
+	TargetServiceId string `json:"target_service_id,omitempty"`
+	// TargetServiceInstanceId with the service identifier as provided by the system.
+	TargetServiceInstanceId string `json:"target_service_instance_id,omitempty"`
+	// TargetPort defining the port that is affected by the current rule.
+	TargetPort int32 `json:"target_port,omitempty"`
+	// DeviceGroupIds with the identifiers of the device groups that have access to the service.
+	DeviceGroupIds []string `json:"device_group_ids,omitempty"`
+	// DeviceGroupJWTSecrets with the secrets of those groups so that JWT can be enforced by the apps.
+	DeviceGroupJwtSecrets []string `json:"device_group_jwt_secrets,omitempty"`
+}
+func NewDeviceGroupSecurityRuleInstance(service pbApplication.ServiceInstance, rule SecurityRule, jwtSecrets []string) *DeviceGroupSecurityRuleInstance {
+	return &DeviceGroupSecurityRuleInstance{
+		OrganizationId: 	service.OrganizationId,
+		AppDescriptorId: 	service.AppDescriptorId,
+		RuleId: 			rule.RuleId,
+		TargetServiceGroupId: service.ServiceGroupId,
+		TargetServiceGroupInstanceId: service.ServiceGroupInstanceId,
+		TargetServiceId: 	service.ServiceId,
+		TargetServiceInstanceId: service.ServiceInstanceId,
+		TargetPort: rule.TargetPort,
+		DeviceGroupIds: rule.DeviceGroups,
+		DeviceGroupJwtSecrets: jwtSecrets,
+	}
+}
 
+
+func (dg *DeviceGroupSecurityRuleInstance) ToGRPC() *pbConductor.DeviceGroupSecurityRuleInstance {
+	return &pbConductor.DeviceGroupSecurityRuleInstance {
+		OrganizationId:  dg.OrganizationId,
+		AppDescriptorId: dg.AppDescriptorId,
+		RuleId: dg.RuleId,
+		TargetServiceGroupId: dg.TargetServiceGroupId,
+		TargetServiceGroupInstanceId: dg.TargetServiceGroupInstanceId,
+		TargetServiceId: dg.TargetServiceId,
+		TargetServiceInstanceId: dg.TargetServiceInstanceId,
+		TargetPort: dg.TargetPort,
+		DeviceGroupIds: dg.DeviceGroupIds,
+		DeviceGroupJwtSecrets: dg.DeviceGroupJwtSecrets,
+	}
+}
+
+// PublicSecurityRuleInstance
+type PublicSecurityRuleInstance struct {
+	// OrganizationId with the organization identifier.
+	OrganizationId string `json:"organization_id,omitempty"`
+	// AppDescriptorId with the application descriptor identifier.
+	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
+	// RuleId with the security rule identifier.
+	RuleId string `json:"rule_id,omitempty"`
+	// TargetServiceGroupId with the group identifier as provided by the user.
+	TargetServiceGroupId string `json:"target_service_group_id,omitempty"`
+	// TargetServiceGroupInstanceId with the group identifier provided by the system.
+	TargetServiceGroupInstanceId string `json:"target_service_group_instance_id,omitempty"`
+	// TargetServiceId with the service identifier as provided by the user.
+	TargetServiceId string `json:"target_service_id,omitempty"`
+	// TargetServiceInstanceId with the service identifier as provided by the system.
+	TargetServiceInstanceId string `json:"target_service_instance_id,omitempty"`
+	// TargetPort defining the port that is affected by the current rule.
+	TargetPort int32    `json:"target_port,omitempty"`
+}
+
+func NewPublicSercurityRuleInstance(service pbApplication.ServiceInstance, rule SecurityRule) *PublicSecurityRuleInstance {
+
+	return &PublicSecurityRuleInstance{
+		OrganizationId: 	service.OrganizationId,
+		AppDescriptorId: 	service.AppDescriptorId,
+		RuleId: 			rule.RuleId,
+		TargetServiceGroupId: service.ServiceGroupId,
+		TargetServiceGroupInstanceId: service.ServiceGroupInstanceId,
+		TargetServiceId: 	service.ServiceId,
+		TargetServiceInstanceId: service.ServiceInstanceId,
+		TargetPort: rule.TargetPort,
+	}
+}
+
+func (pr * PublicSecurityRuleInstance) ToGRPC() *pbConductor.PublicSecurityRuleInstance {
+	return &pbConductor.PublicSecurityRuleInstance{
+		OrganizationId: pr.OrganizationId,
+		AppDescriptorId: pr.AppDescriptorId,
+		RuleId: pr.RuleId,
+		TargetServiceGroupId: pr.TargetServiceGroupId,
+		TargetServiceGroupInstanceId: pr.TargetServiceGroupInstanceId,
+		TargetServiceId: pr.TargetServiceId,
+		TargetServiceInstanceId: pr.TargetServiceInstanceId,
+		TargetPort: pr.TargetPort,
+	}
+}
 
 // Every deployment stage a fragment is made of.
 type DeploymentStage struct {
@@ -187,6 +287,10 @@ type DeploymentStage struct {
 	StageId string `json:"stage_id,omitempty"`
 	// Set of services
 	Services []ServiceInstance `json:"services,omitempty"`
+	// DeviceGroupRules with the security rules affecting device group access.
+	DeviceGroupRules []DeviceGroupSecurityRuleInstance `json:"device_group_rules,omitempty"`
+	// PublicRules with the security rules related to public access of a given endpoint.
+	PublicRules []PublicSecurityRuleInstance `json:"public_rules,omitempty"`
 }
 
 func (ds *DeploymentStage) ToGRPC() *pbConductor.DeploymentStage {
@@ -194,10 +298,20 @@ func (ds *DeploymentStage) ToGRPC() *pbConductor.DeploymentStage {
 	for i, serv := range ds.Services {
 		convertedServices[i] = serv.ToGRPC()
 	}
+	publicRules := make([]*pbConductor.PublicSecurityRuleInstance, len(ds.PublicRules))
+	for i, rules := range ds.PublicRules{
+		publicRules[i] = rules.ToGRPC()
+	}
+	deviceGroupRules := make([]*pbConductor.DeviceGroupSecurityRuleInstance, len(ds.DeviceGroupRules))
+	for i, deviceRules := range ds.DeviceGroupRules{
+		deviceGroupRules[i] = deviceRules.ToGRPC()
+	}
 	result := pbConductor.DeploymentStage{
 		FragmentId: ds.FragmentId,
 		StageId:    ds.StageId,
 		Services:   convertedServices,
+		PublicRules: publicRules,
+		DeviceGroupRules: deviceGroupRules,
 	}
 	return &result
 }

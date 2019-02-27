@@ -44,6 +44,9 @@ type ConnectionsHelper struct {
     caCertPath string
     // skip CA validation
     skipCAValidation bool
+    // Singleton instance of connections with the system model
+    AuthxClients *tools.ConnectionsMap
+    onceAuthx sync.Once
 }
 
 func NewConnectionsHelper(useTLS bool, caCertPath string, skipCAValidation bool) *ConnectionsHelper {
@@ -64,6 +67,13 @@ func(h *ConnectionsHelper) GetSystemModelClients() *tools.ConnectionsMap {
     return h.SMClients
 }
 
+func(h *ConnectionsHelper) GetAuthxClients() *tools.ConnectionsMap {
+    h.onceAuthx.Do(func(){
+        // reuse the conductor factory
+        h.AuthxClients = tools.NewConnectionsMap(authxClientFactory)
+    })
+    return h.AuthxClients
+}
 
 func(h *ConnectionsHelper) GetClusterClients() *tools.ConnectionsMap {
     h.onceClusters.Do(func(){
@@ -161,6 +171,17 @@ func secureClientFactory(hostname string, port int, useTLS bool, caCertPath stri
 //  return:
 //   client and error if any
 func systemModelClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
+    return basicClientFactory(hostname, port)
+}
+
+// Factory in charge of generating new connections for Conductor->authx.
+//  params:
+//   hostname
+//   port
+//   params
+//  return:
+//   client and error if any
+func authxClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
     return basicClientFactory(hostname, port)
 }
 
