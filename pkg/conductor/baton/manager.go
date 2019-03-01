@@ -280,7 +280,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     for fragmentIndex, fragment := range plan.Fragments {
         log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
         log.Info().Str("deploymentId",fragment.DeploymentId).
-            Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex, len(plan.Fragments))
+            Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex+1, len(plan.Fragments))
 
         targetHostname, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
         if !found {

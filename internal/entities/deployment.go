@@ -131,10 +131,6 @@ type DeploymentFragment struct {
 	DeploymentId string `json:"deployment_id,omitempty"`
 	// Fragment id
 	FragmentId string `json:"fragment_id,omitempty"`
-	// Group service id
-	ServiceGroupId string `json:"service_group_id,omitempty"`
-	// Group service instance id
-	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
 	// Cluster id for the deployment target
 	ClusterId string `json:"cluster_id,omitempty"`
 	// Nalej variables
@@ -153,8 +149,6 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 		FragmentId:     df.FragmentId,
 		AppDescriptorId: df.AppDescriptorId,
 		AppInstanceId:  df.AppInstanceId,
-		ServiceGroupId: df.ServiceGroupId,
-		ServiceGroupInstanceId: df.ServiceGroupInstanceId,
 		OrganizationName: df.OrganizationName,
 		AppName: 		df.AppName,
 		DeploymentId:   df.DeploymentId,

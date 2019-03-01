@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright (C) 2019 Nalej Group - All Rights Reserved
  *
  */
 
-
 package plandesigner
-/*
+
+
 import (
     "testing"
 
@@ -15,6 +15,5 @@ import (
 
 func TestApiTest(t *testing.T) {
     RegisterFailHandler(Fail)
-    RunSpecs(t, "Plan designer Test Suite")
+    RunSpecs(t, "Simple replica plan designer suite")
 }
-*/
