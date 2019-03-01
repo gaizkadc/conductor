@@ -45,7 +45,6 @@ func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesi
 }
 
 
-
 func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
 score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
 
@@ -125,73 +124,6 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     return &newPlan, nil
 }
 
-/*
-// Build the fragments to be sent to every cluster
-func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
-    desc entities.AppDescriptor,
-    clustersMap map[string][]entities.ServiceGroup,
-    app entities.AppInstance,
-    groupsOrder map[string][][]entities.Service,
-    planId string,
-    org *pbOrganization.Organization) ([]entities.DeploymentFragment, derrors.Error) {
-    toReturn := make([]entities.DeploymentFragment, 0)
-    // combine all the groups per cluster into the corresponding fragment
-    for cluster, listGroups := range clustersMap {
-        for _, g := range listGroups {
-            // collect stages per group and generate one fragment
-            // UUID for this fragment
-            fragmentUUID := uuid.New().String()
-
-            // Add new ServiceGroupInstance
-            newServiceGroupRequest := pbApplication.AddServiceGroupInstanceRequest{
-                OrganizationId: app.OrganizationId,
-                AppDescriptorId: app.AppDescriptorId,
-                AppInstanceId: app.AppInstanceId,
-                ServiceGroupId: g.ServiceGroupId,
-            }
-            groupInstance, err := p.appClient.AddServiceGroupInstance(context.Background(),&newServiceGroupRequest)
-            if err != nil {
-                log.Error().Err(err).Msg("error creating new service group instance")
-                return nil, derrors.NewGenericError("impossible to instantiate service group instance", err)
-            }
-            localGroupInstance := entities.NewServiceGroupInstanceFromGRPC(groupInstance)
-
-            // create the stages corresponding to this group
-            log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",g.Name).
-                Interface("sequences", groupsOrder).Msg("create stages for deployment sequence")
-            stages := make([]entities.DeploymentStage, 0)
-            for _, sequence := range groupsOrder[g.Name] {
-                // this stage must deploy the services following this order
-
-                stage, err := p.buildDeploymentStage(desc,fragmentUUID, localGroupInstance, sequence)
-                if err != nil {
-                    log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
-                    return nil, derrors.NewGenericError("impossible to build stage", err)
-                }
-                stages = append(stages, *stage)
-            }
-
-            // one fragment per group
-            fragment := entities.DeploymentFragment{
-                ClusterId: cluster,
-                OrganizationId: org.OrganizationId,
-                AppInstanceId: app.AppInstanceId,
-                AppDescriptorId: app.AppDescriptorId,
-                // To be filled in global instances
-                //NalejVariables: ,
-                FragmentId: fragmentUUID,
-                Stages: stages,
-                AppName: app.Name,
-                DeploymentId: planId,
-                OrganizationName: org.Name,
-            }
-            toReturn = append(toReturn, fragment)
-        }
-
-    }
-    return toReturn, nil
-}
-*/
 
 // Build the fragments to be sent to every cluster
 func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
@@ -267,36 +199,20 @@ func (p* SimpleReplicaPlanDesigner) findTargetClusters(
     result := make(map[string][]entities.ServiceGroup,0)
 
     for _, g := range desc.Groups {
-        if g.Specs.MultiClusterReplica {
-            targets, err := deploymentMatrix.FindBestTargetsForReplication(g)
-            if err != nil {
-                log.Error().Err(err).Msg("impossible to find best targets for replication")
-                return nil, err
-            }
-            // Add the group per cluster
-            for _, t := range targets {
-                current, found := result[t]
-                if !found {
-                    result[t] = []entities.ServiceGroup{g}
-                } else {
-                    result[t] = append(current, g)
-                }
-            }
-        } else {
-            // Single replica look for a single cluster
-            target, err := deploymentMatrix.FindBestTargetForGroup(g)
-            if err != nil {
-                log.Error().Err(err).Msg("impossible to find best targets for replication")
-                return nil, err
-            }
-            current, found := result[target]
+        targets, err := deploymentMatrix.FindBestTargetsForReplication(g)
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to find best targets for replication")
+            return nil, err
+        }
+        // Add the group per cluster
+        for _, t := range targets {
+            current, found := result[t]
             if !found {
-                result[target] = []entities.ServiceGroup{g}
+                result[t] = []entities.ServiceGroup{g}
             } else {
-                result[target] = append(current, g)
+                result[t] = append(current, g)
             }
         }
-
     }
     return result, nil
 }
@@ -344,21 +260,7 @@ func (p *SimpleReplicaPlanDesigner) buildFragments(
             log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
             return nil, derrors.NewGenericError("impossible to build stage", err)
         }
-        /*
-        // create the stages corresponding to this group
-        log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",group.Name).
-            Interface("sequences", order).Msg("create stages for deployment sequence")
-        stages := make([]entities.DeploymentStage, 0)
-        for _, sequence := range order {
-            // this stage must deploy the services following this order
-            stage, err := p.buildDeploymentStage(desc, fragmentUUID, localGroupInstance, sequence)
-            if err != nil {
-                log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
-                return nil, derrors.NewGenericError("impossible to build stage", err)
-            }
-            stages = append(stages, *stage)
-        }
-        */
+
         stages = append(stages, *stage)
     }
 

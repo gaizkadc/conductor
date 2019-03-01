@@ -130,6 +130,20 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
         req.NumRetries = req.NumRetries + 1
         if req.NumRetries >= ConductorMaxDeploymentRetries {
             log.Error().Str("requestId", req.RequestId).Msg("exceeded number of retries")
+            // Consider this deployment to be failed
+            // Update instance value to ERROR
+            smConn := c.ConnHelper.SMClients.GetConnections()[0]
+            client := pbApplication.NewApplicationsClient(smConn)
+            updateRequest := pbApplication.UpdateAppStatusRequest{
+                AppInstanceId: req.InstanceId,
+                OrganizationId: req.OrganizationId,
+                Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
+            }
+            _, errUpdate := client.UpdateAppStatus(context.Background(), &updateRequest)
+            if errUpdate != nil {
+                log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
+            }
+
         } else {
             log.Error().Err(err).Str("requestId", req.RequestId).Msg("enqueue again after errors")
             currentTime := time.Now()

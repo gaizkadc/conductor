@@ -1,0 +1,95 @@
+{
+  "name": "replicated wordpress",
+  "labels": {
+    "app": "simple-app"
+  },
+  "rules": [
+    {
+      "rule_id": "001",
+      "name": "allow access to wordpress",
+      "target_service_group_name": "g1",
+      "target_service_name": "2",
+      "target_port": 80,
+      "access": 2
+    }
+  ],
+  "groups": [
+    {
+      "name": "g1",
+      "services": [
+        {
+          "name": "simple-wordpress",
+          "image": "wordpress:5.0.0",
+          "specs": {
+            "replicas": 2
+          },
+          "storage": [
+            {
+              "size": 104857600,
+              "mount_path": "/tmp"
+            }
+          ],
+          "exposed_ports": [
+            {
+              "name": "wordpressport",
+              "internal_port": 80,
+              "exposed_port": 80,
+              "endpoints": [
+                {
+                  "type": 2,
+                  "path": "/"
+                }
+              ]
+            }
+          ],
+          "environment_variables": {
+            "WORDPRESS_DB_HOST": "NALEJ_SERV_SIMPLE-MYSQL:3306",
+            "WORDPRESS_DB_PASSWORD": "root"
+          },
+          "labels": {
+            "app": "simple-wordpress",
+            "component": "simple-app"
+          }
+        }
+      ],
+      "specs": {
+        "num_replicas": 1
+      }
+    },
+    {
+      "name": "g2",
+      "services": [
+        {
+          "name": "simple-mysql",
+          "image": "mysql:5.6",
+          "specs": {
+            "replicas": 1
+          },
+          "storage": [
+            {
+              "size": 104857600,
+              "mount_path": "/tmp"
+            }
+          ],
+          "exposed_ports": [
+            {
+              "name": "mysqlport",
+              "internal_port": 3306,
+              "exposed_port": 3306
+            }
+          ],
+          "environment_variables": {
+            "MYSQL_ROOT_PASSWORD": "root"
+          },
+          "labels": {
+            "app": "simple-mysql",
+            "component": "simple-app"
+          }
+        }
+      ],
+      "specs": {
+        "num_replicas": 1
+      }
+    }
+  ]
+}
