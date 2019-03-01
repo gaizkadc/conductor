@@ -132,12 +132,11 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
             log.Error().Str("requestId", req.RequestId).Msg("exceeded number of retries")
             // Consider this deployment to be failed
             // Update instance value to ERROR
-            log.Debug().Str("instanceId", plan.AppInstanceId).Msg("set instance to error")
             smConn := c.ConnHelper.SMClients.GetConnections()[0]
             client := pbApplication.NewApplicationsClient(smConn)
             updateRequest := pbApplication.UpdateAppStatusRequest{
-                AppInstanceId: plan.AppInstanceId,
-                OrganizationId: plan.OrganizationId,
+                AppInstanceId: req.InstanceId,
+                OrganizationId: req.OrganizationId,
                 Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
             }
             _, errUpdate := client.UpdateAppStatus(context.Background(), &updateRequest)
