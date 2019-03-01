@@ -93,7 +93,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
         } else {
             // It was impossible to allocate a remaining replica...
             msg := fmt.Sprintf("only %d replicas could be allocated out of the %d desired",len(targetClusters), desiredReplicas)
-            return nil, derrors.NewGenericError(msg)
+            return nil, derrors.NewUnavailableError(msg)
         }
     }
 
