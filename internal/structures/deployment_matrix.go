@@ -56,84 +56,57 @@ func (dm *DeploymentMatrix) AddClusterScore(score entities.ClusterDeploymentScor
 // that all the scores are larger than for the group. If not all the groups permit to allocate this
 // group we return an error,
 func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.ServiceGroup) ([]string, derrors.Error) {
-    toReturn := make([]string,0)
-    for _, clusterScore := range dm.AllocatedScore {
-        // take a look at the score for this group
-        groupScoreInCluster, found := clusterScore.Scores[group.Name]
-        if !found {
-            msg := fmt.Sprintf("cluster %s has no score for group %s", clusterScore.ClusterId, group.Name)
-            err := derrors.NewFailedPreconditionError(msg)
-            return nil, err
+    // Iterate until we find the best solution to deploy as many replicas as required
+    var desiredReplicas int
+
+    if group.Specs.MultiClusterReplica{
+        // This is a multiple cluster. Replicate as many times as available clusters we have.
+        desiredReplicas = len(dm.AllocatedScore)
+    } else {
+        // Deploy as many replicas as mentioned in the deploy specs.
+        desiredReplicas = int(group.Specs.NumReplicas)
+    }
+
+    targetClusters := make(map[string]float32, 0)
+    // Allocate a replica in the cluster with the largest score
+    // Greedy approach to find the best cluster with no allocated replica
+    for i := 0; i < desiredReplicas; i++ {
+        roundCandidate := ""
+        candidateScore := float32(-1)
+        for clusterId, clusterScore := range dm.AllocatedScore {
+            _, usedCluster := targetClusters[clusterId]
+            if !usedCluster {
+                // We have not allocated anything in this cluster
+                groupScoreInCluster, found := clusterScore.Scores[group.Name]
+                if !found {
+                    msg := fmt.Sprintf("cluster %s has no score for group %s", clusterScore.ClusterId, group.Name)
+                    log.Warn().Msg(msg)
+                } else if groupScoreInCluster >= 0 && groupScoreInCluster > candidateScore{
+                    // Consider this cluster a potential candidate
+                    roundCandidate = clusterId
+                    candidateScore = groupScoreInCluster
+                }
+            }
         }
-        if groupScoreInCluster <= 0 {
-            msg := fmt.Sprintf("cluster %s has negative score for group %s", clusterScore.ClusterId, group.Name)
-            err := derrors.NewFailedPreconditionError(msg)
-            return nil, err
+        if roundCandidate != "" {
+            targetClusters[roundCandidate] = candidateScore
+        } else {
+            // It was impossible to allocate a remaining replica...
+            msg := fmt.Sprintf("only %d replicas could be allocated out of the %d desired",len(targetClusters), desiredReplicas)
+            return nil, derrors.NewGenericError(msg)
         }
-        // Positive score. Allocate and update matrix.
-        dm.allocateGroups(clusterScore.ClusterId, group.Name,[]entities.ServiceGroup{group})
-        toReturn = append(toReturn, clusterScore.ClusterId)
+    }
+
+    // Allocate all the replicas
+    toReturn := make([]string,desiredReplicas)
+    i := 0
+    for clusterId, _ := range targetClusters {
+        dm.allocateGroups(clusterId, group.Name,[]entities.ServiceGroup{group})
+        toReturn[i] = clusterId
+        i++
     }
 
     return toReturn, nil
-}
-
-
-// Find the best target to deploy a set of groups and update the matrix accordingly.
-func (dm *DeploymentMatrix) FindBestTargetForGroups(groups []entities.ServiceGroup) string {
-    log.Debug().Interface("matrix",dm).Msg("FindBestTargetForGroups")
-    groupId := dm.generateGroupId(groups)
-    // find the cluster with the largest score
-    maxScore := float32(0)
-    candidate := ""
-    for _, clusterScore := range dm.AllocatedScore {
-        score, found := clusterScore.Scores[groupId]
-        if found {
-            if score > maxScore {
-                maxScore = score
-                candidate = clusterScore.ClusterId
-            }
-        } else {
-            log.Debug().Str("clusterId",clusterScore.ClusterId).Str("groupId", groupId).
-                Msg("set of groups not found")
-        }
-    }
-
-    if candidate != "" {
-        dm.allocateGroups(candidate, groupId, groups)
-    }
-
-    return candidate
-}
-
-// Find the best target to deploy a single group and update the matrix accordingly.
-func (dm *DeploymentMatrix) FindBestTargetForGroup(group entities.ServiceGroup) (string, derrors.Error) {
-    log.Debug().Interface("matrix",dm).Msg("FindBestTargetForGroup")
-    groupId := group.Name
-    // find the cluster with the largest score
-    maxScore := float32(0)
-    candidate := ""
-    for _, clusterScore := range dm.AllocatedScore {
-        score, found := clusterScore.Scores[groupId]
-        if found {
-            if score > maxScore {
-                maxScore = score
-                candidate = clusterScore.ClusterId
-            }
-        } else {
-            log.Debug().Str("clusterId",clusterScore.ClusterId).Str("groupId", groupId).
-                Msg("set of groups not found")
-        }
-    }
-
-    if candidate != "" {
-        dm.allocateGroups(candidate, groupId, []entities.ServiceGroup{group})
-        return candidate, nil
-    }
-
-    return "", derrors.NewGenericError("impossible to find cluster for single group deployment")
-
-
 }
 
 
