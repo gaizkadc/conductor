@@ -93,12 +93,35 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     deploymentMatrix := structures.NewDeploymentMatrix(score)
 
     // Compute the list of groups to be deployed per cluster
-    clustersMap, err := p.findTargetClusters(toDeploy, deploymentMatrix)
+    clustersMap, groupReplicas, err := p.findTargetClusters(toDeploy, deploymentMatrix)
     if err != nil {
         return nil, err
     }
 
-    fragments, err := p.buildFragmentsPerCluster(toDeploy,clustersMap, app, groupsOrder, planId, org)
+    // Instantiate the number of replicas we need for every group
+    groupInstances := make(map[string][]entities.ServiceGroupInstance)
+    for serviceGroupId, numReplicas := range groupReplicas {
+        log.Debug().Str("serviceGroupId", serviceGroupId).Int("numReplicas", numReplicas).Msg("instantiate service groups")
+        instancesReq := pbApplication.AddServiceGroupInstancesRequest{
+            AppDescriptorId: app.AppDescriptorId,
+            AppInstanceId: app.AppInstanceId,
+            OrganizationId: app.OrganizationId,
+            ServiceGroupId: serviceGroupId,
+            NumInstances: int32(numReplicas),
+        }
+        serviceInstances, err := p.appClient.AddServiceGroupInstances(context.Background(), &instancesReq)
+        if err != nil {
+            log.Error().Err(err).Msg("it was impossible to instantiate the service")
+            return nil, err
+        }
+        createdInstances := make([]entities.ServiceGroupInstance,len(serviceInstances.ServiceGroupInstances))
+        for i, theInstance := range serviceInstances.ServiceGroupInstances {
+            createdInstances[i] = entities.NewServiceGroupInstanceFromGRPC(theInstance)
+        }
+        groupInstances[serviceInstances.ServiceGroupInstances[0].Name] = createdInstances
+    }
+
+    fragments, err := p.buildFragmentsPerCluster(toDeploy,clustersMap, app, groupsOrder, groupInstances, planId, org)
 
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment fragments")
@@ -131,6 +154,7 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
     clustersMap map[string][]entities.ServiceGroup,
     app entities.AppInstance,
     groupsOrder map[string][][]entities.Service,
+    groupInstances map[string][]entities.ServiceGroupInstance,
     planId string,
     org *pbOrganization.Organization) ([]entities.DeploymentFragment, derrors.Error) {
 
@@ -143,19 +167,12 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
         stages := make([]entities.DeploymentStage, 0)
 
         for _, g := range listGroups {
-            // Add new ServiceGroupInstance
-            newServiceGroupRequest := pbApplication.AddServiceGroupInstanceRequest{
-                OrganizationId: app.OrganizationId,
-                AppDescriptorId: app.AppDescriptorId,
-                AppInstanceId: app.AppInstanceId,
-                ServiceGroupId: g.ServiceGroupId,
-            }
-            groupInstance, err := p.appClient.AddServiceGroupInstance(context.Background(),&newServiceGroupRequest)
-            if err != nil {
-                log.Error().Err(err).Msg("error creating new service group instance")
-                return nil, derrors.NewGenericError("impossible to instantiate service group instance", err)
-            }
-            localGroupInstance := entities.NewServiceGroupInstanceFromGRPC(groupInstance)
+
+            // take one instance from the available list
+            availableGroupInstances := groupInstances[g.Name]
+            localGroupInstance := availableGroupInstances[0]
+            // remove one entry
+            groupInstances[g.Name] = availableGroupInstances[1:]
 
             // create the stages corresponding to this group
             log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",g.Name).
@@ -192,93 +209,39 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
 
 
 // Return a map with the list of groups to be deployed per cluster.
+// return:
+//  map with the list of groups to be deployed per cluster clusterId -> [group0, group1...]
+//  map with the number of replicas per group id
+//  error if any
 func (p* SimpleReplicaPlanDesigner) findTargetClusters(
     desc entities.AppDescriptor,
-    deploymentMatrix *structures.DeploymentMatrix) (map[string][]entities.ServiceGroup,derrors.Error) {
+    deploymentMatrix *structures.DeploymentMatrix) (map[string][]entities.ServiceGroup, map[string]int, derrors.Error) {
 
-    result := make(map[string][]entities.ServiceGroup,0)
+    resultClusters := make(map[string][]entities.ServiceGroup,0)
+    resultReplicas := make(map[string]int,0)
 
     for _, g := range desc.Groups {
         targets, err := deploymentMatrix.FindBestTargetsForReplication(g)
         if err != nil {
             log.Error().Err(err).Msg("impossible to find best targets for replication")
-            return nil, err
+            return nil, nil, err
         }
+        // Add the number of replicas we need for this group
+        resultReplicas[g.ServiceGroupId] = len(targets)
+
         // Add the group per cluster
         for _, t := range targets {
-            current, found := result[t]
+            current, found := resultClusters[t]
             if !found {
-                result[t] = []entities.ServiceGroup{g}
+                resultClusters[t] = []entities.ServiceGroup{g}
             } else {
-                result[t] = append(current, g)
+                resultClusters[t] = append(current, g)
             }
         }
     }
-    return result, nil
+    return resultClusters, resultReplicas, nil
 }
 
-
-
-// This local function returns a fragment for a given list of services and its dependency graph
-func (p *SimpleReplicaPlanDesigner) buildFragments(
-    desc entities.AppDescriptor,
-    app entities.AppInstance,
-    group entities.ServiceGroup,
-    groupsOrder [][]entities.Service,
-    targetCluster string,
-    planId string,
-    org *pbOrganization.Organization,
-    ) ([]entities.DeploymentFragment, derrors.Error) {
-
-    fragments := make([]entities.DeploymentFragment,0)
-    // collect stages per group and generate one fragment
-    // UUID for this fragment
-    fragmentUUID := uuid.New().String()
-
-    // Add new ServiceGroupInstance
-    newServiceGroupRequest := pbApplication.AddServiceGroupInstanceRequest{
-        OrganizationId: app.OrganizationId,
-        AppDescriptorId: app.AppDescriptorId,
-        AppInstanceId: app.AppInstanceId,
-        ServiceGroupId: group.ServiceGroupId,
-    }
-    groupInstance, err := p.appClient.AddServiceGroupInstance(context.Background(),&newServiceGroupRequest)
-    if err != nil {
-        log.Error().Err(err).Msg("error creating new service group instance")
-        return nil, derrors.NewGenericError("impossible to instantiate service group instance", err)
-    }
-    localGroupInstance := entities.NewServiceGroupInstanceFromGRPC(groupInstance)
-
-    // create the stages corresponding to this group
-    log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName",group.Name).
-        Interface("sequences", groupsOrder).Msg("create stages for deployment sequence")
-    stages := make([]entities.DeploymentStage, 0)
-    for _, sequence := range groupsOrder {
-        // this stage must deploy the services following this order
-        stage, err := p.buildDeploymentStage(desc,fragmentUUID, localGroupInstance, sequence)
-        if err != nil {
-            log.Error().Err(err).Str("fragmentId",fragmentUUID).Msg("impossible to build stage")
-            return nil, derrors.NewGenericError("impossible to build stage", err)
-        }
-
-        stages = append(stages, *stage)
-    }
-
-    fragment := entities.DeploymentFragment{
-        AppDescriptorId: app.AppDescriptorId,
-        OrganizationId:         app.OrganizationId,
-        OrganizationName:       org.Name,
-        AppInstanceId:          app.AppInstanceId,
-        AppName:                app.Name,
-        FragmentId:             fragmentUUID,
-        DeploymentId:           planId,
-        Stages:                 stages,
-        ClusterId:              targetCluster,
-    }
-    fragments = append(fragments, fragment)
-
-    return fragments, nil
-}
 
 func (p*SimpleReplicaPlanDesigner) existsService (sequence []entities.Service, serviceName string ) *entities.Service {
 
@@ -296,24 +259,9 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
     sequence []entities.Service) (*entities.DeploymentStage, error) {
 
     serviceNames := make(map[string]*pbApplication.ServiceInstance, 0)    // variable to store the service names
-    instances := make([]entities.ServiceInstance,len(sequence))
-    for i, s := range sequence {
-        // Instantiate this service
-        request := pbApplication.AddServiceInstanceRequest{
-            OrganizationId: group.OrganizationId,
-            AppDescriptorId: group.AppDescriptorId,
-            AppInstanceId: group.AppInstanceId,
-            ServiceGroupId: group.ServiceGroupId,
-            ServiceGroupInstanceId: group.ServiceGroupInstanceId,
-            ServiceId: s.ServiceId,
-        }
-        instance, err := p.appClient.AddServiceInstance(context.Background(), &request)
-        if err != nil {
-            log.Error().Err(err).Msg("error when adding a new service instance")
-            return nil, err
-        }
-        instances[i] = entities.NewServiceInstanceFromGRPC(instance)
-        serviceNames[s.Name] = instance
+    // fill a map with the available service instances
+    for _, serv := range group.ServiceInstances {
+        serviceNames[serv.Name] = serv.ToGRPC()
     }
 
     deviceSecurityRules := make ([]entities.DeviceGroupSecurityRuleInstance, 0)
@@ -327,7 +275,7 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
                 publicSecurityRules = append(publicSecurityRules, *entities.NewPublicSercurityRuleInstance(*service, rule))
             } else if rule.Access == entities.DeviceGroup{
                 sgJwtSecrets := make ([]string, 0)
-                for _, sg := range rule.DeviceGroups {
+                for _, sg := range rule.DeviceGroupIds {
                     secret, err := p.authxClient.GetDeviceGroupSecret(context.Background(), &pbDevice.DeviceGroupId{
                         OrganizationId: rule.OrganizationId,
                         DeviceGroupId:  sg,
@@ -347,7 +295,7 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
     ds := entities.DeploymentStage{
         StageId: uuid.New().String(),
         FragmentId: fragmentUUID,
-        Services: instances,
+        Services: group.ServiceInstances,
         PublicRules:publicSecurityRules,
         DeviceGroupRules:deviceSecurityRules,
     }

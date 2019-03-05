@@ -107,6 +107,10 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
 
 
     log.Debug().Interface("request", request).Msg("monitor received deployment service update")
+
+    // Create a map of service group metadata to avoid duplicated queries
+    groupMetadata := make(map[string]*pbApplication.InstanceMetadata,0)
+
     for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,
@@ -122,7 +126,54 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
             log.Error().Err(err).Interface("request", updateService).Msg("impossible to update service status")
             return err
         }
+
+        // Update the corresponding service group instance
+        // Get the service metadata just in case we don't queried it yet
+        meta, found := groupMetadata[update.ServiceGroupInstanceId]
+        if !found {
+            meta, err = m.AppClient.GetServiceGroupInstanceMetadata(context.Background(), &pbApplication.GetServiceGroupInstanceMetadataRequest{
+                AppInstanceId: update.ApplicationInstanceId,
+                OrganizationId: update.OrganizationId,
+                ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+            })
+            if err != nil {
+                log.Error().Err(err).Interface("request", updateService).Msg("service group instance metadata not found")
+                return err
+            }
+            groupMetadata[update.ServiceGroupInstanceId] = meta
+        }
+
+        // update the status of the service
+        meta.Status[updateService.ServiceInstanceId] = updateService.Status
     }
+
+    for _,v := range groupMetadata {
+        log.Debug().Str("serviceGroupInstanceId", v.MonitoredInstanceId).Msg("update service group instance metadata")
+        _, err := m.AppClient.UpdateServiceGroupInstanceMetadata(context.Background(),v)
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to update serviceGroupInstanceId metadata")
+        }
+    }
+
+    // TODO update the number of replicas
+    /*
+    for k,v := range groupMetadata {
+        // If all the monitored services are ready this group is ready
+        finalStatus := pbApplication.ServiceStatus_SERVICE_ERROR
+        for _, status := range v.Status {
+            if status < finalStatus {
+                finalStatus = status
+            }
+            if status == pbApplication.ServiceStatus_SERVICE_ERROR {
+                break
+            }
+        }
+        // if all the services in this group are up and running, this service group replica is available
+        if finalStatus == pbApplication.ServiceStatus_SERVICE_RUNNING {
+
+        }
+    }
+    */
 
     return nil
 }
