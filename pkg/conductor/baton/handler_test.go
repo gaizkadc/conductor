@@ -69,7 +69,7 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
         OrganizationId: resp.OrganizationId,
         Access: pbApplication.PortAccess_ALL_APP_SERVICES,
         AuthServices: []string{"auth"},
-        DeviceGroups: []string{"devgroup"},
+        DeviceGroupNames: []string{"devgroup"},
         RuleId: "rule001",
         TargetServiceGroupName: "group001",
         TargetServiceName: "service_001",

@@ -72,6 +72,10 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
+        // remove the fragment
+        m.pendingPlans.RemoveFragment(request.FragmentId)
+        // update metadata with successful deployment
+        // TODO
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DEPLOYING {
@@ -86,6 +90,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
         newStatus = m.processFailedFragment(request)
+        // update metadata with unsuccessful deployment
+        // TODO
     }
 
 
@@ -98,6 +104,12 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         log.Debug().Str("instanceId", request.AppInstanceId).Str("status", newStatus.Status.String()).Msg("set instance to new status")
     }
 
+    // Check if the plan has pending fragments and remove if proceeds
+    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
+        log.Debug().Str("plan", request.DeploymentId).Msg("remove plan with no pending fragments")
+        m.pendingPlans.RemovePendingPlan(request.DeploymentId)
+    }
+
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
 
     return nil
@@ -107,6 +119,10 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
 
 
     log.Debug().Interface("request", request).Msg("monitor received deployment service update")
+
+    // Create a map of service group metadata to avoid duplicated queries
+    groupMetadata := make(map[string]*pbApplication.InstanceMetadata,0)
+
     for _, update := range request.List {
         updateService := pbApplication.UpdateServiceStatusRequest{
             OrganizationId: update.OrganizationId,
@@ -122,7 +138,35 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
             log.Error().Err(err).Interface("request", updateService).Msg("impossible to update service status")
             return err
         }
+
+        // Update the corresponding service group instance
+        // Get the service metadata just in case we don't queried it yet
+        meta, found := groupMetadata[update.ServiceGroupInstanceId]
+        if !found {
+            meta, err = m.AppClient.GetServiceGroupInstanceMetadata(context.Background(), &pbApplication.GetServiceGroupInstanceMetadataRequest{
+                AppInstanceId: update.ApplicationInstanceId,
+                OrganizationId: update.OrganizationId,
+                ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+            })
+            if err != nil {
+                log.Error().Err(err).Interface("request", updateService).Msg("service group instance metadata not found")
+                return err
+            }
+            groupMetadata[update.ServiceGroupInstanceId] = meta
+        }
+
+        // update the status of the service
+        meta.Status[updateService.ServiceInstanceId] = updateService.Status
     }
+
+    for _,v := range groupMetadata {
+        log.Debug().Str("serviceGroupInstanceId", v.MonitoredInstanceId).Msg("update service group instance metadata")
+        _, err := m.AppClient.UpdateServiceGroupInstanceMetadata(context.Background(),v)
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to update serviceGroupInstanceId metadata")
+        }
+    }
+
 
     return nil
 }

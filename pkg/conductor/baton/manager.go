@@ -216,7 +216,16 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     appInstance := entities.NewAppInstanceFromGRPC(retrievedAppInstance)
 
     // 1) collect requirements for the application descriptor
-    foundRequirements, err := c.ReqCollector.FindRequirements(retrievedAppInstance)
+    // Get the application descriptor
+    appDescriptor, err := c.AppClient.GetAppDescriptor(context.Background(),
+        &pbApplication.AppDescriptorId{AppDescriptorId: appInstance.AppDescriptorId, OrganizationId: appInstance.OrganizationId})
+    if err != nil {
+        err := derrors.NewNotFoundError("impossible to find application descriptor", err)
+        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+        return err
+    }
+
+    foundRequirements, err := c.ReqCollector.FindRequirements(appDescriptor, appInstance.AppInstanceId)
     if err != nil {
         err := derrors.NewGenericError("impossible to find requirements for application")
         log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)

@@ -20,9 +20,9 @@ func NewSimpleRequirementsCollector() RequirementsCollector {
 }
 
 
-func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplication.AppInstance) (*entities.Requirements, error) {
+func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplication.AppDescriptor, appInstanceId string) (*entities.Requirements, error) {
     // Check if we have any service group to deploy
-    if len(appInstance.Groups) == 0 {
+    if len(appDescriptor.Groups) == 0 {
         return nil, derrors.NewFailedPreconditionError("no groups available for this application")
     }
 
@@ -30,10 +30,10 @@ func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplicatio
     foundRequirements := entities.NewRequirements()
 
     // Generate one set of requirements per service group
-    for _, g := range appInstance.Groups {
+    for _, g := range appDescriptor.Groups {
 
         // Check if there are any services to be analysed
-        if len(g.ServiceInstances) == 0 {
+        if len(g.Services) == 0 {
             return nil, derrors.NewFailedPreconditionError("no services specified for the application")
         }
 
@@ -41,8 +41,7 @@ func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplicatio
         var totalCPU int64
         var totalMemory int64
 
-        for _, serv := range g.ServiceInstances{
-
+        for _, serv := range g.Services{
 
             totalCPU = totalCPU + serv.Specs.Cpu
             totalMemory = totalMemory + serv.Specs.Memory
@@ -52,7 +51,7 @@ func (s *SimpleRequirementsCollector) FindRequirements(appInstance *pbApplicatio
             }
         }
 
-        r := entities.NewRequirement(appInstance.AppInstanceId, g.Name, totalCPU, totalMemory,
+        r := entities.NewRequirement(appInstanceId, g.Name, totalCPU, totalMemory,
             totalStorage, g.Specs.NumReplicas)
         foundRequirements.AddRequirement(r)
     }
