@@ -72,6 +72,10 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
+        // remove the fragment
+        m.pendingPlans.RemoveFragment(request.FragmentId)
+        // update metadata with successful deployment
+        // TODO
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DEPLOYING {
@@ -86,6 +90,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
         newStatus = m.processFailedFragment(request)
+        // update metadata with unsuccessful deployment
+        // TODO
     }
 
 
@@ -96,6 +102,12 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             return err
         }
         log.Debug().Str("instanceId", request.AppInstanceId).Str("status", newStatus.Status.String()).Msg("set instance to new status")
+    }
+
+    // Check if the plan has pending fragments and remove if proceeds
+    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
+        log.Debug().Str("plan", request.DeploymentId).Msg("remove plan with no pending fragments")
+        m.pendingPlans.RemovePendingPlan(request.DeploymentId)
     }
 
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
@@ -155,25 +167,6 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         }
     }
 
-    // TODO update the number of replicas
-    /*
-    for k,v := range groupMetadata {
-        // If all the monitored services are ready this group is ready
-        finalStatus := pbApplication.ServiceStatus_SERVICE_ERROR
-        for _, status := range v.Status {
-            if status < finalStatus {
-                finalStatus = status
-            }
-            if status == pbApplication.ServiceStatus_SERVICE_ERROR {
-                break
-            }
-        }
-        // if all the services in this group are up and running, this service group replica is available
-        if finalStatus == pbApplication.ServiceStatus_SERVICE_RUNNING {
-
-        }
-    }
-    */
 
     return nil
 }
