@@ -327,7 +327,7 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
                 publicSecurityRules = append(publicSecurityRules, *entities.NewPublicSercurityRuleInstance(*service, rule))
             } else if rule.Access == entities.DeviceGroup{
                 sgJwtSecrets := make ([]string, 0)
-                for _, sg := range rule.DeviceGroups {
+                for _, sg := range rule.DeviceGroupIds {
                     secret, err := p.authxClient.GetDeviceGroupSecret(context.Background(), &pbDevice.DeviceGroupId{
                         OrganizationId: rule.OrganizationId,
                         DeviceGroupId:  sg,
@@ -343,7 +343,8 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
             }
         }
     }
-
+    log.Debug().Int("services", len(instances)).Int("public rules", len(publicSecurityRules)).
+        Int("device group rules", len(deviceSecurityRules)).Msg("deployment stage has been defined")
     ds := entities.DeploymentStage{
         StageId: uuid.New().String(),
         FragmentId: fragmentUUID,
