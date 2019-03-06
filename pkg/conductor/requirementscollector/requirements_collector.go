@@ -17,9 +17,10 @@ type RequirementsCollector interface {
 
     // Find the set of requirements demanded by the application in an internally processable format.
     //  params:
-    //   appInstance application to be analyzed
+    //   appDescriptor application to be analyzed
+    //   appInstanceId id of the referenced application instance
     //  return:
     //   requirements or error if any
-    FindRequirements(appInstance *pbApplication.AppInstance) (*entities.Requirements, error)
+    FindRequirements(appDescriptor *pbApplication.AppDescriptor, appInstanceId string) (*entities.Requirements, error)
 
 }

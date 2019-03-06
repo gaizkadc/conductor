@@ -205,7 +205,7 @@ func NewDeviceGroupSecurityRuleInstance(service pbApplication.ServiceInstance, r
 		TargetServiceId: 	service.ServiceId,
 		TargetServiceInstanceId: service.ServiceInstanceId,
 		TargetPort: rule.TargetPort,
-		DeviceGroupIds: rule.DeviceGroups,
+		DeviceGroupIds: rule.DeviceGroupIds,
 		DeviceGroupJwtSecrets: jwtSecrets,
 	}
 }

@@ -64,6 +64,8 @@ type InstanceMetadata struct {
 	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
 	// AppInstanceId with the application instance identifier.
 	AppInstanceId string `json:"app_instance_id,omitempty"`
+	// ServiceGroupId with the id of the group this instance belongs to
+	ServiceGroupId string `json:"service_group_id,omitempty"`
 	// Identifier of the monitored entity
 	MonitoredInstanceId string `json:"monitored_instance_id,omitempty"`
 	// Type of instance this metadata refers to
@@ -91,6 +93,7 @@ func (im *InstanceMetadata) ToGRPC() *grpc_application_go.InstanceMetadata {
 		OrganizationId: im.OrganizationId,
 		AppDescriptorId: im.AppDescriptorId,
 		AppInstanceId: im.AppInstanceId,
+		ServiceGroupId: im.ServiceGroupId,
 		MonitoredInstanceId: im.MonitoredInstanceId,
 		Type: InstanceTypeToGRPC[im.InstanceType],
 		InstancesId: im.InstancesId,
@@ -111,6 +114,7 @@ func NewInstanceMetadataFromGRPC(ins *grpc_application_go.InstanceMetadata) Inst
 		AppDescriptorId: ins.AppDescriptorId,
 		AppInstanceId: ins.AppInstanceId,
 		OrganizationId: ins.OrganizationId,
+		ServiceGroupId: ins.ServiceGroupId,
 		Info: ins.Info,
 		UnavailableReplicas: ins.UnavailableReplicas,
 		AvailableReplicas: ins.AvailableReplicas,
@@ -169,8 +173,10 @@ type SecurityRule struct {
 	AuthServiceGroupName string `json:"auth_service_group_name,omitempty"`
 	// AuthServices defining a list of services that can access the port.
 	AuthServices []string `json:"auth_services,omitempty"`
-	// DeviceGroups defining a list of device groups that can access the port.
-	DeviceGroups []string `json:"device_groups,omitempty"`
+	// DeviceGroupNames defining a list of device groups that can access the port.
+	DeviceGroupNames []string `json:"device_group_names,omitempty"`
+	// DeviceGroupIds defining a list of device group ids that can access the port.
+	DeviceGroupIds []string `json:"device_group_Ids,omitempty"`
 }
 
 func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
@@ -186,7 +192,8 @@ func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
 		TargetServiceName: sr.TargetServiceName,
 		Access:       access,
 		AuthServices: sr.AuthServices,
-		DeviceGroups: sr.DeviceGroups,
+		DeviceGroupNames: sr.DeviceGroupNames,
+		DeviceGroupIds: sr.DeviceGroupIds,
 	}
 }
 
@@ -202,7 +209,8 @@ func NewSecurityRuleFromGRPC (s *grpc_application_go.SecurityRule) SecurityRule 
 		Access: PortAccessFromGRPC[s.Access],
 		AuthServiceGroupName: s.AuthServiceGroupName,
 		AuthServices: s.AuthServices,
-		DeviceGroups: s.DeviceGroups,
+		DeviceGroupIds: s.DeviceGroupIds,
+		DeviceGroupNames: s.DeviceGroupNames,
 	}
 }
 
@@ -345,6 +353,19 @@ func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInst
 		ServiceInstances: serviceInstances,
 		Metadata: metadata,
 	}
+}
+
+// ServiceGroupInstanceList
+type ServiceGroupInstancesList struct {
+	ServiceGroupInstances []ServiceGroupInstance
+}
+
+func NewServiceGroupInstanceListFromGRPC(list *grpc_application_go.ServiceGroupInstancesList) ServiceGroupInstancesList {
+	l := make([]ServiceGroupInstance,len(list.ServiceGroupInstances))
+	for i, g := range list.ServiceGroupInstances {
+		l[i] = NewServiceGroupInstanceFromGRPC(g)
+	}
+	return ServiceGroupInstancesList{ServiceGroupInstances: l}
 }
 
 // ----------
