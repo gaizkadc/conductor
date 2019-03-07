@@ -41,6 +41,8 @@ type ConductorConfig struct {
     SkipCAValidation bool
     // URL where authx client is available
     AuthxURL string
+    //UnifiedLogging client is available
+    UnifiedLoggingURL string
 }
 
 func (conf * ConductorConfig) Print() {
@@ -48,6 +50,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Str("URL", conf.SystemModelURL).Msg("System Model")
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
     log.Info().Str("AuthxURL", conf.AuthxURL).Msg("Authx service URL")
+    log.Info().Str("UnifiedLoggingURL", conf.UnifiedLoggingURL).Msg("UnifiedLogging service URL")
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
 }
@@ -127,6 +130,22 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     _, err = authxPool.AddConnection(authxHost, authxp)
     if err != nil {
         log.Error().Err(err).Msg("error creating connection with authx")
+        return nil, err
+    }
+
+    uLoggingPool := connectionsHelper.GetUnifiedLoggingClients()
+    uLoggingHost, uLogginPort, err := net.SplitHostPort(config.UnifiedLoggingURL)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the unified logging url")
+    }
+    uLogginp, err := strconv.Atoi(uLogginPort)
+    if err != nil {
+        log.Fatal().Err(err).Msg("error getting the unified logging port")
+    }
+
+    _, err = uLoggingPool.AddConnection(uLoggingHost, uLogginp)
+    if err != nil {
+        log.Error().Err(err).Msg("error creating connection with unified logging")
         return nil, err
     }
 
