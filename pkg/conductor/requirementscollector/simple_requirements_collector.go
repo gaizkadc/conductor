@@ -52,7 +52,7 @@ func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplicat
         }
 
         r := entities.NewRequirement(appInstanceId, g.Name, totalCPU, totalMemory,
-            totalStorage, g.Specs.NumReplicas)
+            totalStorage, g.Specs.NumReplicas, g.Specs.DeploymentSelectors)
         foundRequirements.AddRequirement(r)
     }
 

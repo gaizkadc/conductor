@@ -375,12 +375,14 @@ func NewServiceGroupInstanceListFromGRPC(list *grpc_application_go.ServiceGroupI
 type ServiceGroupDeploymentSpecs struct {
 	NumReplicas int32 `json:"num_replicas,omitempty"`
 	MultiClusterReplica bool `json:"multi_cluster_replica,omitempty"`
+	DeploymentSelectors map[string]string `json:"deployment_selectors,omitempty"`
 }
 
 func(sgds *ServiceGroupDeploymentSpecs) ToGRPC() *grpc_application_go.ServiceGroupDeploymentSpecs {
 	return &grpc_application_go.ServiceGroupDeploymentSpecs{
 		NumReplicas: sgds.NumReplicas,
 		MultiClusterReplica: sgds.MultiClusterReplica,
+		DeploymentSelectors: sgds.DeploymentSelectors,
 	}
 }
 
@@ -388,6 +390,7 @@ func NewServiceGroupDeploymentSpecsFromGRPC(s *grpc_application_go.ServiceGroupD
 	return ServiceGroupDeploymentSpecs{
 		NumReplicas: s.NumReplicas,
 		MultiClusterReplica: s.MultiClusterReplica,
+		DeploymentSelectors: s.DeploymentSelectors,
 	}
 }
 

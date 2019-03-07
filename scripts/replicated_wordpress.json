@@ -8,7 +8,7 @@
       "rule_id": "001",
       "name": "allow access to wordpress",
       "target_service_group_name": "g1",
-      "target_service_name": "2",
+      "target_service_name": "simple-wordpress",
       "target_port": 80,
       "access": 2
     }
