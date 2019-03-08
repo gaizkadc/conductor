@@ -166,7 +166,6 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
         fragmentUUID := uuid.New().String()
 
         log.Debug().Str("cluster", cluster).Int("numGroupsToDeploy", len(listGroups)).Msg("design plan for cluster")
-        log.Debug().Interface("groupInstances",groupInstances).Msg("group instances to process")
         for _, g := range listGroups {
             stages := make([]entities.DeploymentStage, 0)
 
@@ -177,9 +176,9 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
             groupInstances[g.Name] = availableGroupInstances[1:]
 
             // create the stages corresponding to this group
-            log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName", g.Name).
-                Str("cluster", cluster).Interface("sequences", groupsOrder).
-                Interface("groupInstanceToDeploy", localGroupInstance).Msg("create stages for deployment sequence")
+            // log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName", g.Name).
+            //    Str("cluster", cluster).Interface("sequences", groupsOrder).
+            //    Interface("groupInstanceToDeploy", localGroupInstance).Msg("create stages for deployment sequence")
 
 
             // this stage must deploy the services following this order

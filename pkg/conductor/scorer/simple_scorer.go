@@ -113,7 +113,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
             c := pbAppClusterApi.NewMusicianClient(conn)
 
-            res := s.queryMusician(c,requirements)
+            res := s.queryMusician(c,requestsToSend)
 
             if err != nil {
                 log.Error().Err(err).Msg("impossible to query musician to obtain requirements score. Ignore it.")
@@ -157,6 +157,9 @@ func (s SimpleScorer) findRequirementsCluster(organizationId string, clusterId s
                     break
                 }
             }
+            log.Debug().Interface("group selectors",req.DeploymentSelectors).
+                Interface("cluster labels", cluster.Labels).Bool("match",allMatch).
+                Msg("comparing cluster labels")
             if allMatch {
                 // add it to the list of requirements
                 filteredRequirements.AddRequirement(req)
