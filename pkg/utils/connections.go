@@ -44,9 +44,13 @@ type ConnectionsHelper struct {
     caCertPath string
     // skip CA validation
     skipCAValidation bool
-    // Singleton instance of connections with the system model
+    // Singleton instance of connections with the Authx
     AuthxClients *tools.ConnectionsMap
     onceAuthx sync.Once
+    // Singleton instance of connections with the UnifiedLogging
+    UnifiedLoggingClients *tools.ConnectionsMap
+    onceUnifiedLogging sync.Once
+
 }
 
 func NewConnectionsHelper(useTLS bool, caCertPath string, skipCAValidation bool) *ConnectionsHelper {
@@ -73,6 +77,14 @@ func(h *ConnectionsHelper) GetAuthxClients() *tools.ConnectionsMap {
         h.AuthxClients = tools.NewConnectionsMap(authxClientFactory)
     })
     return h.AuthxClients
+}
+
+func(h *ConnectionsHelper) GetUnifiedLoggingClients() *tools.ConnectionsMap {
+    h.onceUnifiedLogging.Do(func(){
+        // reuse the conductor factory
+        h.UnifiedLoggingClients = tools.NewConnectionsMap(unifiedLoggingClientFactory)
+    })
+    return h.UnifiedLoggingClients
 }
 
 func(h *ConnectionsHelper) GetClusterClients() *tools.ConnectionsMap {
@@ -185,6 +197,16 @@ func authxClientFactory(hostname string, port int, params...interface{}) (*grpc.
     return basicClientFactory(hostname, port)
 }
 
+// Factory in charge of generating new connections for Conductor->authx.
+//  params:
+//   hostname
+//   port
+//   params
+//  return:
+//   client and error if any
+func unifiedLoggingClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
+    return basicClientFactory(hostname, port)
+}
 
 // Factory in charge of generating new connections for Conductor->cluster communication.
 //  params:

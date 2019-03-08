@@ -22,6 +22,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     pbNetwork "github.com/nalej/grpc-network-go"
+    pbCoordinator "github.com/nalej/grpc-unified-logging-go"
     "github.com/rs/zerolog/log"
     "time"
 )
@@ -56,6 +57,8 @@ type Manager struct {
     NetClient pbNetwork.NetworksClient
     // DNS manager client
     DNSClient pbNetwork.DNSClient
+    // UnifiedLogging client
+    UnifiedLoggingClient pbCoordinator.CoordinatorClient
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
@@ -76,10 +79,20 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
         log.Panic().Msg("networking client was not started")
         return nil
     }
+    // UnifiedLogging client
+    ulPool := connHelper.GetUnifiedLoggingClients()
+    if ulPool != nil && len(ulPool.GetConnections()) == 0 {
+        log.Panic().Msg("unified logging client was not started")
+        return nil
+    }
+
+
     netClient := pbNetwork.NewNetworksClient(netPool.GetConnections()[0])
     dnsClient := pbNetwork.NewDNSClient(netPool.GetConnections()[0])
+    ulClient := pbCoordinator.NewCoordinatorClient(ulPool.GetConnections()[0])
     return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
-        Designer: designer, AppClient:appClient, PendingPlans: pendingPlans, NetClient: netClient, DNSClient: dnsClient}
+        Designer: designer, AppClient:appClient, PendingPlans: pendingPlans, NetClient: netClient,
+        DNSClient: dnsClient, UnifiedLoggingClient:ulClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -448,6 +461,13 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
         return err
     }
+
+    // NP-916 Link unified logging expire with the undeploy operation
+    log.Info().Str("organizationID", request.OrganizationId).Str("instanceID", request.AppInstanceId).Msg("Expire logging")
+    c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
+        OrganizationId: request.OrganizationId,
+        AppInstanceId: request.AppInstanceId,
+    })
 
     return nil
 }

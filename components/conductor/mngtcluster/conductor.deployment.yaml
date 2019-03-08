@@ -35,6 +35,7 @@ spec:
           - "--systemModelAddress=system-model.__NPH_NAMESPACE:8800"
           - "--networkManagerAddress=network-manager.__NPH_NAMESPACE:8000"
           - "--authxAddress=authx.__NPH_NAMESPACE:8810"
+          - "--unifiedLogging=unified-logging-coord.__NPH_NAMESPACE:8323"
         ports:
         - name: api-port
           containerPort: 5000

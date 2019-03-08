@@ -42,6 +42,8 @@ func init() {
     runCmd.Flags().Bool("useTLS", true, "Use TLS to connect to the application cluster API")
     runCmd.Flags().String("caCertPath", "", "Part for the CA certificate")
     runCmd.Flags().Bool("skipCAValidation", true, "Skip CA authentication validation")
+    runCmd.Flags().StringP("unifiedLogging", "u",fmt.Sprintf("localhost:%d",utils.UNIFIED_LOGGING_PORT),
+        "host:port address for unifiedLogging")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -64,6 +66,8 @@ func RunConductor() {
     var skipCAValidation bool
     // Authx url
     var authxService string
+    // Unified Logging url
+    var unifiedLoggingService string
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
@@ -73,6 +77,7 @@ func RunConductor() {
     useTLS = viper.GetBool("useTLS")
     caCertPath = viper.GetString("caCertPath")
     skipCAValidation = viper.GetBool("skipCAValidation")
+    unifiedLoggingService = viper.GetString("unifiedLogging")
 
 
     log.Info().Msg("launching conductor...")
@@ -87,6 +92,7 @@ func RunConductor() {
         CACertPath: caCertPath,
         SkipCAValidation: skipCAValidation,
         AuthxURL:authxService,
+        UnifiedLoggingURL:unifiedLoggingService,
     }
     config.Print()
 

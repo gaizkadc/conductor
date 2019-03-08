@@ -534,6 +534,7 @@
     "github.com/nalej/grpc-infrastructure-go",
     "github.com/nalej/grpc-network-go",
     "github.com/nalej/grpc-organization-go",
+    "github.com/nalej/grpc-unified-logging-go",
     "github.com/nalej/grpc-utils/pkg/conversions",
     "github.com/nalej/grpc-utils/pkg/test",
     "github.com/nalej/grpc-utils/pkg/tools",
