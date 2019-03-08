@@ -173,10 +173,10 @@ type SecurityRule struct {
 	AuthServiceGroupName string `json:"auth_service_group_name,omitempty"`
 	// AuthServices defining a list of services that can access the port.
 	AuthServices []string `json:"auth_services,omitempty"`
-	// DeviceGroupNames defining a list of device groups that can access the port.
-	DeviceGroupNames []string `json:"device_group_names,omitempty"`
-	// DeviceGroupIds defining a list of device group ids that can access the port.
-	DeviceGroupIds []string `json:"device_group_Ids,omitempty"`
+	// DeviceGroups defining a list of device groups that can access the port. This field cannot be set by the user when uploading the descriptor.
+	DeviceGroupIds []string `json:"device_group_ids,omitempty"`
+	// DeviceGroupNames defining a list of device groups names that can access the port.
+	DeviceGroupNames     []string `json:"device_group_names,omitempty"`
 }
 
 func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
@@ -192,8 +192,8 @@ func (sr *SecurityRule) ToGRPC() *grpc_application_go.SecurityRule {
 		TargetServiceName: sr.TargetServiceName,
 		Access:       access,
 		AuthServices: sr.AuthServices,
-		DeviceGroupNames: sr.DeviceGroupNames,
 		DeviceGroupIds: sr.DeviceGroupIds,
+		DeviceGroupNames: sr.DeviceGroupNames,
 	}
 }
 

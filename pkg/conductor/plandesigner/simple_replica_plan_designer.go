@@ -303,7 +303,8 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
             }
         }
     }
-
+    log.Debug().Int("services", len(group.ServiceInstances)).Int("public rules", len(publicSecurityRules)).
+        Int("device group rules", len(deviceSecurityRules)).Msg("deployment stage has been defined")
     ds := entities.DeploymentStage{
         StageId: uuid.New().String(),
         FragmentId: fragmentUUID,
