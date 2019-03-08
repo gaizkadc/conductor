@@ -1,5 +1,5 @@
 {
-  "name": "replicated wordpress",
+  "name": "single wordpress",
   "labels": {
     "app": "simple-app"
   },
@@ -8,7 +8,7 @@
       "rule_id": "001",
       "name": "allow access to wordpress",
       "target_service_group_name": "g1",
-      "target_service_name": "2",
+      "target_service_name": "simple-wordpress",
       "target_port": 80,
       "access": 2
     }
@@ -21,7 +21,7 @@
           "name": "simple-wordpress",
           "image": "wordpress:5.0.0",
           "specs": {
-            "replicas": 2
+            "replicas": 1
           },
           "storage": [
             {
@@ -50,15 +50,7 @@
             "app": "simple-wordpress",
             "component": "simple-app"
           }
-        }
-      ],
-      "specs": {
-        "num_replicas": 1
-      }
-    },
-    {
-      "name": "g2",
-      "services": [
+        },
         {
           "name": "simple-mysql",
           "image": "mysql:5.6",
@@ -82,13 +74,16 @@
             "MYSQL_ROOT_PASSWORD": "root"
           },
           "labels": {
-            "app": "simple-mysql",
-            "component": "simple-app"
+            "app": "simple-mysql"
           }
         }
       ],
       "specs": {
-        "num_replicas": 1
+        "num_replicas": 1,
+        "deployment_selectors": {
+          "type": "edge",
+          "performance": "excellent"
+        }
       }
     }
   ]

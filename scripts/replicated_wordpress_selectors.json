@@ -46,7 +46,11 @@
         }
       ],
       "specs": {
-        "multi_cluster_replica": true
+        "multi_cluster_replica": true,
+        "deployment_selectors": {
+          "type": "edge",
+          "performance": "excellent"
+        }
       }
     },
     {
