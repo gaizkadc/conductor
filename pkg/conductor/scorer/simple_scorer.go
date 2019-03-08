@@ -15,6 +15,7 @@ import (
     "github.com/nalej/conductor/pkg/utils"
     pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/rs/zerolog/log"
     "time"
@@ -25,10 +26,22 @@ const MusicianQueryTimeout = time.Minute
 type SimpleScorer struct {
     connHelper *utils.ConnectionsHelper
     musicians *tools.ConnectionsMap
+    // Infrastructure client
+    clusterClient pbInfrastructure.ClustersClient
 }
 
 func NewSimpleScorer(connHelper *utils.ConnectionsHelper) Scorer {
-    return SimpleScorer{musicians: connHelper.GetClusterClients(), connHelper: connHelper}
+    // initialize clients
+    pool := connHelper.GetSystemModelClients()
+    if pool!=nil && len(pool.GetConnections())==0{
+        log.Panic().Msg("system model clients were not started")
+        return nil
+    }
+    conn := pool.GetConnections()[0]
+    // Create associated clients
+    clusterClient := pbInfrastructure.NewClustersClient(conn)
+
+    return SimpleScorer{musicians: connHelper.GetClusterClients(), connHelper: connHelper, clusterClient: clusterClient}
 }
 
 // For a existing set of deployment requirements score potential candidates.
@@ -86,23 +99,29 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     for clusterId, clusterHost := range s.connHelper.ClusterReference {
 
-        log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
+        // Check what requests can be sent to this cluster
+        requestsToSend := s.findRequirementsCluster(organizationId, clusterId, requirements)
+        if requestsToSend != nil {
+            // there is something to send
 
-        conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT))
-        if err != nil {
-            log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
-        }
+            log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
 
-        c := pbAppClusterApi.NewMusicianClient(conn)
+            conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT))
+            if err != nil {
+                log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
+            }
 
-        res := s.queryMusician(c,requirements)
+            c := pbAppClusterApi.NewMusicianClient(conn)
 
-        if res != nil {
-            log.Info().Interface("response",res).Msg("musician responded with score")
-            collectedScores = append(collectedScores,res)
-            found_scores = found_scores + 1
-        } else {
-            log.Warn().Msgf("querying musician %s failed, ignore it",c)
+            res := s.queryMusician(c,requestsToSend)
+
+            if err != nil {
+                log.Error().Err(err).Msg("impossible to query musician to obtain requirements score. Ignore it.")
+            } else {
+                log.Info().Interface("response",res).Msg("musician responded with score")
+                collectedScores = append(collectedScores,res)
+                found_scores = found_scores + 1
+            }
         }
     }
 
@@ -113,6 +132,48 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     log.Debug().Msgf("returned score %v", collectedScores)
     return collectedScores
+}
+
+// Private function to decide what requirements can be sent to a cluster in order to ask the musician. This decision is
+// done based on the cluster deployment selector tags. The function returns a requirements entry or nil if nothing to send.
+func (s SimpleScorer) findRequirementsCluster(organizationId string, clusterId string,requirements *entities.Requirements) *entities.Requirements {
+    cluster, err := s.clusterClient.GetCluster(context.Background(),&pbInfrastructure.ClusterId{OrganizationId: organizationId,ClusterId: clusterId})
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to return cluster information when checking requirements")
+        return nil
+    }
+    filteredRequirements := entities.NewRequirements()
+    for _, req := range requirements.List {
+        if req.DeploymentSelectors == nil {
+            // no specs, add it
+            filteredRequirements.AddRequirement(req)
+        } else if cluster.Labels != nil {
+            // there as specs, and the cluster has labels. Check it
+            allMatch := true
+            for k,v := range req.DeploymentSelectors {
+                clusterValue, found := cluster.Labels[k]
+                if !found || clusterValue != v {
+                    allMatch = false
+                    break
+                }
+            }
+            log.Debug().Interface("group selectors",req.DeploymentSelectors).
+                Interface("cluster labels", cluster.Labels).Bool("match",allMatch).
+                Msg("comparing cluster labels")
+            if allMatch {
+                // add it to the list of requirements
+                filteredRequirements.AddRequirement(req)
+            }
+        }
+    }
+
+    if len(filteredRequirements.List) == 0 {
+        // no requirements for this cluster
+        log.Debug().Str("clusterId",cluster.ClusterId).Msg("no requirements matching the cluster")
+        return nil
+    }
+
+    return &filteredRequirements
 }
 
 // Private function to query a target musician about the score of a given set of requirements.

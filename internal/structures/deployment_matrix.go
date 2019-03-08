@@ -91,14 +91,23 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
         if roundCandidate != "" {
             targetClusters[roundCandidate] = candidateScore
         } else {
-            // It was impossible to allocate a remaining replica...
-            msg := fmt.Sprintf("only %d replicas could be allocated out of the %d desired",len(targetClusters), desiredReplicas)
-            return nil, derrors.NewUnavailableError(msg)
+            // if a multicluster replica set was chosen we made our best effort. If not we cannot allocate
+            // the number of expected replicas.
+            if !group.Specs.MultiClusterReplica {
+                // It was impossible to allocate a remaining replica...
+                msg := fmt.Sprintf("only %d replicas could be allocated out of the %d desired",len(targetClusters), desiredReplicas)
+                return nil, derrors.NewUnavailableError(msg)
+            }
         }
     }
 
-    // Allocate all the replicas
-    toReturn := make([]string,desiredReplicas)
+    if len(targetClusters) == 0 {
+        // no replicas were set
+        return nil, derrors.NewUnavailableError("no replicas could be allocated")
+    }
+
+    // Allocate all the replicas we could find
+    toReturn := make([]string,len(targetClusters))
     i := 0
     for clusterId, _ := range targetClusters {
         dm.allocateGroups(clusterId, group.Name,[]entities.ServiceGroup{group})

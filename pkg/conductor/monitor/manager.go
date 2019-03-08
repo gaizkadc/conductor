@@ -96,6 +96,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
 
     if newStatus != nil {
+        log.Debug().Msg("update app status")
         _, err := m.AppClient.UpdateAppStatus(context.Background(), newStatus)
         if err != nil {
             log.Error().Err(err).Interface("request", newStatus).Msg("impossible to update app status")
@@ -166,7 +167,6 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
             log.Error().Err(err).Msg("impossible to update serviceGroupInstanceId metadata")
         }
     }
-
 
     return nil
 }

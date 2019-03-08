@@ -54,10 +54,12 @@ type Requirement struct {
     Storage int64 `json:"storage, omitempty"`
     // Number of replicas
     Replicas int32 `json:"replicas, omitempty"`
+    // Cluster selection labels
+    DeploymentSelectors map[string]string `json:"deployment_selectors, omitempty"`
 }
 
 func NewRequirement(appInstanceId string, groupServiceId string, cpu int64, memory int64, storage int64,
-    replicas int32) Requirement {
+    replicas int32, deploymentSelectors map[string]string) Requirement {
     return Requirement{AppInstanceId: appInstanceId, GroupServiceId: groupServiceId, CPU: cpu, Memory: memory,
-        Storage: storage, Replicas: replicas}
+        Storage: storage, Replicas: replicas, DeploymentSelectors: deploymentSelectors}
 }
