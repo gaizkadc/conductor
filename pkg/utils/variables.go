@@ -33,3 +33,5 @@ var DEPLOYMENT_MANAGER_PORT uint32 = 443
 var NETWORKING_SERVICE_PORT uint32 = 8000
 // Standard authx port
 var AUTHX_PORT uint32 = 8010
+// Standard unifiedLogging port
+var UNIFIED_LOGGING_PORT = 8323
