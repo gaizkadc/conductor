@@ -49,7 +49,6 @@ func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConduc
             totalCPU = totalCPU + (float32(r.Cpu) * float32(r.Replicas))
             totalMem = totalMem + (float32(r.Memory) * float32(r.Replicas))
             totalStorage = totalStorage + (float32(r.Storage) * float32(r.Replicas))
-
         }
 
         // compute score based on requested and available

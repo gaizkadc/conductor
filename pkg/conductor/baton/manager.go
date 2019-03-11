@@ -141,27 +141,43 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
     if err != nil {
         // Update this deployment request
         req.NumRetries = req.NumRetries + 1
+
+        // Prepare connections to update status information
+        smConn := c.ConnHelper.SMClients.GetConnections()[0]
+        client := pbApplication.NewApplicationsClient(smConn)
+
+        var updateRequest pbApplication.UpdateAppStatusRequest
+
         if req.NumRetries >= ConductorMaxDeploymentRetries {
             log.Error().Str("requestId", req.RequestId).Msg("exceeded number of retries")
             // Consider this deployment to be failed
             // Update instance value to ERROR
-            smConn := c.ConnHelper.SMClients.GetConnections()[0]
-            client := pbApplication.NewApplicationsClient(smConn)
-            updateRequest := pbApplication.UpdateAppStatusRequest{
+            updateRequest = pbApplication.UpdateAppStatusRequest{
                 AppInstanceId: req.InstanceId,
                 OrganizationId: req.OrganizationId,
                 Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
+                Info: "Exceeded number of retries",
             }
-            _, errUpdate := client.UpdateAppStatus(context.Background(), &updateRequest)
-            if errUpdate != nil {
-                log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
-            }
-
         } else {
             log.Error().Err(err).Str("requestId", req.RequestId).Msg("enqueue again after errors")
             currentTime := time.Now()
             req.TimeRetry = &currentTime
             c.Queue.PushRequest(req)
+
+            updateRequest = pbApplication.UpdateAppStatusRequest{
+                AppInstanceId:  req.InstanceId,
+                OrganizationId: req.OrganizationId,
+                Status:         pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
+                Info:           err.Error(),
+            }
+
+            // TODO remove any instances for this group
+
+        }
+
+        _, errUpdate := client.UpdateAppStatus(context.Background(), &updateRequest)
+        if errUpdate != nil {
+            log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
         }
     }
 }
@@ -369,21 +385,29 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
+
+    // Remove any related pending plan
+    log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("remove pending plans for the app")
+    err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
+    if err != nil {
+        log.Error().Str("app_instance_id", request.AppInstanceId).Msg("impossible to delete plans for application instance")
+    }
+
+    // Remove any DNS entry
     log.Debug().Str("app_instance_id", request.AppInstanceId).Str("organization_id", request.OrganizationId).Msg("remove DNS entries")
     deleteReq := pbNetwork.DeleteDNSEntryRequest{
         OrganizationId: request.OrganizationId,
         AppInstanceId: request.AppInstanceId,
     }
 
-    _, err := c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
+    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
     if err != nil {
         log.Error().Err(err).Str("appInstanceId",deleteReq.AppInstanceId).Msg("error removing dns entries for appInstance")
     }
 
-    // Remove any pending plan
-    // --->
 
 
+    // Send undeploy requests to application clusters
     log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("undeploy app instance with id")
 
     err = c.ConnHelper.UpdateClusterConnections(request.OrganizationId)
@@ -409,9 +433,9 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     clusterIds := make(map[string]bool, 0)
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
-        if svc.DeployedOnClusterId != "" {
-            clusterIds[svc.DeployedOnClusterId] = true
-        }
+            if svc.DeployedOnClusterId != "" {
+                clusterIds[svc.DeployedOnClusterId] = true
+            }
         }
     }
 
@@ -450,6 +474,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         cancel()
     }
 
+    // Remove any entry from the system model
     smConn := c.ConnHelper.SMClients.GetConnections()[0]
     client := pbApplication.NewApplicationsClient(smConn)
     instID := &pbApplication.AppInstanceId{
@@ -474,6 +499,10 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
 // Return the system to the status before instantiating the given deployment plan and zt network id.
 func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
+    // Remove any related pending plan
+    log.Debug().Str("deployment plan",plan.DeploymentId).Msg("remove pending plan")
+    c.PendingPlans.RemovePendingPlan(plan.DeploymentId)
+
     st := derrors.NewInternalError("rollback invoked")
     log.Error().Str("trace", st.DebugReport()).Str("instanceId", plan.AppInstanceId).Msg("rollback has been called")
     // Delete zt network
@@ -497,7 +526,10 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
         log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
     }
 
+
+    // This is done by upper callers
     // Update instance value to ERROR
+    /*
     log.Debug().Str("instanceId", plan.AppInstanceId).Msg("set instance to error")
     smConn := c.ConnHelper.SMClients.GetConnections()[0]
     client := pbApplication.NewApplicationsClient(smConn)
@@ -511,6 +543,7 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
         log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
         return err
     }
+    */
 
     return nil
 }

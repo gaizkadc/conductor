@@ -6,6 +6,8 @@
 package structures
 
 import (
+    "errors"
+    "fmt"
     "github.com/nalej/conductor/internal/entities"
     "sync"
     "github.com/rs/zerolog/log"
@@ -60,6 +62,27 @@ func (p *PendingPlans) AddPendingPlan(plan *entities.DeploymentPlan) {
 }
 
 
+// Look for the plan pointing to an application instance and delete it
+func (p *PendingPlans) RemovePendingPlanByApp(appInstanceId string) error {
+    p.mu.Lock()
+    targetPlanId := ""
+    for planId, p := range p.Pending {
+        if p.AppInstanceId == appInstanceId {
+            targetPlanId = planId
+            break
+        }
+    }
+    p.mu.Unlock()
+
+    if targetPlanId == "" {
+        log.Error().Str("app_instance_id",appInstanceId).Msg("deployment plan was not found for the given app instance id")
+        return errors.New(fmt.Sprintf("deployment plan was not found for the given app instance id %s", appInstanceId))
+    }
+
+    p.RemovePendingPlan(targetPlanId)
+    return nil
+}
+
 
 func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
     log.Debug().Msgf("remove plan of deployment %s from Pending checks",deploymentId)
@@ -100,6 +123,15 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     }
     // we iterated through the fragments and they are not Pending
     return false
+}
+
+func (p *PendingPlans) SetFragmentDone(fragmentId string) {
+    log.Debug().Msgf("set fragment %s from Pending as done", fragmentId)
+    p.mu.Lock()
+    p.mu.Unlock()
+    // get services Id by checking the corresponding plan
+    p.PendingFragments[fragmentId].IsPending = false
+    p.printStatus()
 }
 
 func (p *PendingPlans) RemoveFragment(fragmentId string){

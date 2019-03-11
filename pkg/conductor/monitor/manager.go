@@ -73,7 +73,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
         // remove the fragment
-        m.pendingPlans.RemoveFragment(request.FragmentId)
+        //m.pendingPlans.RemoveFragment(request.FragmentId)
+        m.pendingPlans.SetFragmentDone(request.FragmentId)
         // update metadata with successful deployment
         // TODO
     }
@@ -84,14 +85,19 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             OrganizationId: request.OrganizationId,
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_DEPLOYING,
+            Info: request.Info,
         }
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
+        newStatus = &pbApplication.UpdateAppStatusRequest{
+            OrganizationId: request.OrganizationId,
+            AppInstanceId: request.AppInstanceId,
+            Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
+            Info: request.Info,
+        }
         newStatus = m.processFailedFragment(request)
-        // update metadata with unsuccessful deployment
-        // TODO
     }
 
 
@@ -189,6 +195,7 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
         OrganizationId: request.OrganizationId,
         AppInstanceId: request.AppInstanceId,
     }
+
     // How many times have we tried to deploy this?
     if plan.DeploymentRequest.NumRetries < baton.ConductorMaxDeploymentRetries -1{
         // there is room for one more attempt
@@ -221,7 +228,7 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
     }
 
     // Remove references to this pending plan
-    m.pendingPlans.RemovePendingPlan(request.DeploymentId)
+    m.pendingPlans.RemovePendingPlan(plan.DeploymentId)
 
     return toReturn
 }
