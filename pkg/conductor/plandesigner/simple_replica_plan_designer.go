@@ -69,7 +69,6 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     // Get a local representation of the object
     toDeploy := entities.NewAppDescriptorFromGRPC(retrievedDesc)
 
-
     planId := uuid.New().String()
     log.Info().Str("planId",planId).Msg("start building the plan")
 
@@ -122,6 +121,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     }
 
     fragments, err := p.buildFragmentsPerCluster(toDeploy,clustersMap, app, groupsOrder, groupInstances, planId, org)
+
 
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment fragments")
@@ -226,11 +226,13 @@ func (p* SimpleReplicaPlanDesigner) findTargetClusters(
     resultReplicas := make(map[string]int,0)
 
     for _, g := range desc.Groups {
+        log.Debug().Str("groupName", g.Name).Msg("find target cluster for this group")
         targets, err := deploymentMatrix.FindBestTargetsForReplication(g)
         if err != nil {
             log.Error().Err(err).Msg("impossible to find best targets for replication")
             return nil, nil, err
         }
+        log.Debug().Str("groupName", g.Name).Interface("targets",targets).Msg("targets to be deployed on")
         // Add the number of replicas we need for this group
         resultReplicas[g.ServiceGroupId] = len(targets)
 
@@ -263,15 +265,15 @@ func (p*SimpleReplicaPlanDesigner) existsService (sequence []entities.Service, s
 func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescriptor, fragmentUUID string, group entities.ServiceGroupInstance,
     sequence []entities.Service) (*entities.DeploymentStage, error) {
 
-    serviceNames := make(map[string]*pbApplication.ServiceInstance, len(sequence))    // variable to store the service names
-    serviceInstances := make([]entities.ServiceInstance,len(group.ServiceInstances))
+    serviceNames := make(map[string]*pbApplication.ServiceInstance, 0)    // variable to store the service names
+    serviceInstances := make([]entities.ServiceInstance,0)
     // fill a map with the available service instances indicated by the sequence
     // follow the sequence and add instances following this dependency order
-    for numServ, serv := range sequence {
+    for _, serv := range sequence {
         for _,instance := range group.ServiceInstances {
             if instance.Name == serv.Name {
                 serviceNames[serv.Name] = instance.ToGRPC()
-                serviceInstances[numServ] = instance
+                serviceInstances = append(serviceInstances, instance)
             }
         }
     }
@@ -303,7 +305,7 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
             }
         }
     }
-    log.Debug().Int("services", len(group.ServiceInstances)).Int("public rules", len(publicSecurityRules)).
+    log.Debug().Int("services", len(serviceInstances)).Int("public rules", len(publicSecurityRules)).
         Int("device group rules", len(deviceSecurityRules)).Msg("deployment stage has been defined")
     ds := entities.DeploymentStage{
         StageId: uuid.New().String(),
