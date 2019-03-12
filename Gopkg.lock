@@ -114,12 +114,12 @@
   version = "v0.0.13"
 
 [[projects]]
-  digest = "1:0c0cfa282d99b03ba534ccbebaad2e7386058269c062348b22792849ab5adcb8"
+  digest = "1:0e27e6441c49745881710b61a48f481e1b66f7f9cbebd3850bd50053108adbf1"
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
   pruneopts = ""
-  revision = "79040c9131d9c20a205311bf565bc05b87e03a12"
-  version = "v0.0.58"
+  revision = "40f9143b49015d976f28c8eca34e69f9218a8214"
+  version = "v0.0.59"
 
 [[projects]]
   digest = "1:04ab94c90e7bce3f0ccf049c17c4c784da6819bca629e6ea98dcfe1f9b3a7f7a"
@@ -298,11 +298,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8de16e75113251800e9d578f3b183172e15831842e3b2448e51c728c28a50a75"
+  digest = "1:03e82ec61ecf7b8b54e5ef2d3528296c9951b6e178317f163759cc17df8cabfe"
   name = "github.com/prometheus/common"
   packages = ["model"]
   pruneopts = ""
-  revision = "bf857faf208676b0294bd49959aa34c8d98163ed"
+  revision = "e6686eb715ab541212ad73063f1e4b92b8a554e9"
 
 [[projects]]
   digest = "1:36de4f001b7f3fca448ba85270a4de8854f5abcb97d02d57be7fd6fc4a39d259"
