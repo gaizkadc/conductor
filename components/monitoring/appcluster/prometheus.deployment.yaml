@@ -30,7 +30,7 @@ spec:
         prometheus.io/port: "9090"
     spec:
       containers:
-      - image: quay.io/prometheus/prometheus:v2.3.0
+      - image: quay.io/prometheus/prometheus:v2.8.0
         imagePullPolicy: IfNotPresent
         name: prometheus
         ports:
