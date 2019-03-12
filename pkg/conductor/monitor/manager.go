@@ -72,11 +72,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             AppInstanceId: request.AppInstanceId,
             Status: pbApplication.ApplicationStatus_RUNNING,
         }
-        // remove the fragment
-        //m.pendingPlans.RemoveFragment(request.FragmentId)
-        m.pendingPlans.SetFragmentDone(request.FragmentId)
-        // update metadata with successful deployment
-        // TODO
+        // This fragment is no longer pending
+        m.pendingPlans.SetFragmentNoPending(request.FragmentId)
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DEPLOYING {
@@ -87,6 +84,8 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             Status: pbApplication.ApplicationStatus_DEPLOYING,
             Info: request.Info,
         }
+        // This fragment is pending
+        m.pendingPlans.SetFragmentPending(request.FragmentId)
     }
 
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
@@ -97,6 +96,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
             Info: request.Info,
         }
+        // This fragment is pending
         newStatus = m.processFailedFragment(request)
     }
 
@@ -109,12 +109,6 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
             return err
         }
         log.Debug().Str("instanceId", request.AppInstanceId).Str("status", newStatus.Status.String()).Msg("set instance to new status")
-    }
-
-    // Check if the plan has pending fragments and remove if proceeds
-    if !m.pendingPlans.PlanHasPendingFragments(request.DeploymentId) {
-        log.Debug().Str("plan", request.DeploymentId).Msg("remove plan with no pending fragments")
-        m.pendingPlans.RemovePendingPlan(request.DeploymentId)
     }
 
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
@@ -174,6 +168,7 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         }
     }
 
+
     return nil
 }
 
@@ -219,6 +214,8 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
         toReturn.Status = pbApplication.ApplicationStatus_ERROR
     }
 
+
+
     // Undeploy the application
     undeployRequest := &entities.UndeployRequest{AppInstanceId: request.AppInstanceId,
         OrganizationId: request.OrganizationId}
@@ -226,9 +223,6 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
     if err != nil {
         log.Error().Err(err).Interface("fragmentUpdate",request).Msg("error undeploying failed application")
     }
-
-    // Remove references to this pending plan
-    m.pendingPlans.RemovePendingPlan(plan.DeploymentId)
 
     return toReturn
 }

@@ -88,6 +88,13 @@ func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
     log.Debug().Msgf("remove plan of deployment %s from Pending checks",deploymentId)
     p.mu.Lock()
     defer p.mu.Unlock()
+
+    _, found := p.Pending[deploymentId]
+    if !found {
+        log.Debug().Str("deploymentId", deploymentId).Msg("the plan was already removed")
+        return
+    }
+
     for _, f := range p.Pending[deploymentId].Fragments {
         // remove the services we find across stages
         for _, stage := range f.Stages {
@@ -111,7 +118,6 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     defer p.mu.Unlock()
     plan, found := p.Pending[deploymentId]
     if !found {
-
         return false
     }
     for _, fragment := range plan.Fragments {
@@ -125,14 +131,24 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     return false
 }
 
-func (p *PendingPlans) SetFragmentDone(fragmentId string) {
-    log.Debug().Msgf("set fragment %s from Pending as done", fragmentId)
+func (p *PendingPlans) SetFragmentNoPending(fragmentId string) {
+    log.Debug().Msgf("set fragment %s to non pending", fragmentId)
     p.mu.Lock()
     p.mu.Unlock()
     // get services Id by checking the corresponding plan
     p.PendingFragments[fragmentId].IsPending = false
     p.printStatus()
 }
+
+func (p *PendingPlans) SetFragmentPending(fragmentId string) {
+    log.Debug().Msgf("set fragment %s to pending", fragmentId)
+    p.mu.Lock()
+    p.mu.Unlock()
+    // get services Id by checking the corresponding plan
+    p.PendingFragments[fragmentId].IsPending = true
+    p.printStatus()
+}
+
 
 func (p *PendingPlans) RemoveFragment(fragmentId string){
     log.Debug().Msgf("remove fragment %s from Pending", fragmentId)
