@@ -462,6 +462,16 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         return err
     }
 
+    // remove App entry points
+    _, err = client.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
+        OrganizationId:request.OrganizationId,
+        AppInstanceId: request.AppInstanceId,
+    })
+    if err != nil{
+        log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove app endpoint  from system model")
+        return err
+    }
+
     // NP-916 Link unified logging expire with the undeploy operation
     log.Info().Str("organizationID", request.OrganizationId).Str("instanceID", request.AppInstanceId).Msg("Expire logging")
     c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
