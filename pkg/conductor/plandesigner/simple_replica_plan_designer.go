@@ -137,6 +137,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
         DeploymentId: planId,
         OrganizationId: app.OrganizationId,
         Fragments: finalFragments,
+        DeploymentRequest: &request,
     }
 
     log.Info().Str("appDescriptorId",app.AppDescriptorId).Str("planId",newPlan.DeploymentId).
