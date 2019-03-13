@@ -140,6 +140,24 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
             return err
         }
 
+        // TODO: Improve the update. Reduce the number of calls.
+        // udpate application endpoints
+        for _, endpoint := range update.Endpoints{
+            _, err := m.AppClient.AddAppEndpoint(context.Background(), &pbApplication.AppEndpoint{
+                OrganizationId:         update.OrganizationId,
+                AppInstanceId:          update.ApplicationInstanceId,
+                ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+                ServiceInstanceId:      update.ServiceInstanceId,
+                //Port:
+                //Protocol:
+                EndpointInstance: endpoint,
+            })
+            if err != nil {
+                log.Error().Err(err).Interface("endpoint", endpoint).Msg("impossible to add application endpoint")
+                return err
+            }
+        }
+
         // Update the corresponding service group instance
         // Get the service metadata just in case we don't queried it yet
         meta, found := groupMetadata[update.ServiceGroupInstanceId]

@@ -468,7 +468,6 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         log.Error().Err(err).Str("app_instance_id", request.AppInstanceId).Msg("could not remove instance from system model")
         return err
     }
-
     return nil
 }
 
@@ -511,53 +510,15 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, ztNetwor
     _, err = c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
+      
+    // 5) Remove app entry points  
+    _, err = client.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
     })
-    if err != nil {
-        log.Error().Err(err).Str("appInstanceId",appInstanceId).Msg("error when expiring unified logging")
+    if err != nil{
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove app endpoint  from system model")
     }
 
     return nil
 }
-
-
-
-
-/*
-// Return the system to the status before instantiating the given deployment plan and zt network id.
-func (c *Manager) Rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
-    // Remove any related pending plan
-    log.Debug().Str("deployment plan",plan.DeploymentId).Msg("remove pending plan")
-    c.PendingPlans.RemovePendingPlan(plan.DeploymentId)
-
-    st := derrors.NewInternalError("Rollback invoked")
-    log.Error().Str("trace", st.DebugReport()).Str("instanceId", plan.AppInstanceId).Msg("Rollback has been called")
-    // Delete zt network
-    req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: plan.OrganizationId}
-    _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
-    if err != nil {
-        // TODO decide what to do here
-        log.Error().Msgf("impossible to delete zerotier network %s", ztNetworkId)
-    }
-
-    // Remove associated DNS entries if any
-    log.Debug().Msgf("remove DNS entries for %s in %s",plan.AppInstanceId,plan.OrganizationId)
-    deleteReq := pbNetwork.DeleteDNSEntryRequest{
-        OrganizationId: plan.OrganizationId,
-        AppInstanceId: plan.AppInstanceId,
-    }
-
-    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
-    if err != nil {
-        // TODO decide what to do here
-        log.Error().Err(err).Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
-    }
-
-
-    return nil
-}
-*/
-
-
-
-
-
