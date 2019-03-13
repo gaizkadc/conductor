@@ -189,6 +189,9 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
     toReturn := &pbApplication.UpdateAppStatusRequest{
         OrganizationId: request.OrganizationId,
         AppInstanceId: request.AppInstanceId,
+        // Fill it below
+        // Info:
+        // Status:
     }
 
     // How many times have we tried to deploy this?
@@ -204,17 +207,23 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
             log.Error().Err(err).Interface("deploymentRequest",plan.DeploymentRequest).Msg("impossible to" +
                 "enqueue the deployment request")
             toReturn.Status = pbApplication.ApplicationStatus_ERROR
+            toReturn.Info = "impossible to queue application after failed deployment"
+
         } else {
             toReturn.Status = pbApplication.ApplicationStatus_QUEUED
+            toReturn.Info = "app queued after failed deployment"
         }
     } else {
         // no more retries for this request
         log.Info().Interface("fragmentUpdate",request).Int32("numRetries",plan.DeploymentRequest.NumRetries).
             Msg("exceeded number of retries")
         toReturn.Status = pbApplication.ApplicationStatus_ERROR
+        toReturn.Info = "exceeded number of retries"
     }
 
-
+    // rollback
+    // TODO check how to proceed with remaining zt networks
+    m.manager.Rollback(request.OrganizationId, request.AppInstanceId, "")
 
     // Undeploy the application
     undeployRequest := &entities.UndeployRequest{AppInstanceId: request.AppInstanceId,

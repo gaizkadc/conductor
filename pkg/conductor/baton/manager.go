@@ -139,9 +139,6 @@ func (c *Manager) Run() {
 func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
     err := c.ProcessDeploymentRequest(req)
     if err != nil {
-        // Delete the plan
-        log.Info().Str("appInstanceId", req.ApplicationId).Msg("remove plan after fail")
-        c.PendingPlans.RemovePendingPlanByApp(req.InstanceId)
 
         // Update this deployment request
         req.NumRetries = req.NumRetries + 1
@@ -182,6 +179,9 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
         if errUpdate != nil {
             log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
         }
+        // call the Rollback
+        // TODO review how to proceed with zt network id
+        c.Rollback(req.OrganizationId, req.ApplicationId, "")
     }
 }
 
@@ -282,7 +282,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
 
     if err != nil{
-        err := derrors.NewGenericError("error designing plan for request")
+        err := derrors.NewGenericError("error designing plan for request",err)
         log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
@@ -301,8 +301,6 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     if err_deploy != nil {
         err := derrors.NewGenericError("error deploying plan request", err_deploy)
         log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
-        // Run a rollback
-        c.rollback(plan, ztNetworkId)
         return err
     }
     return nil
@@ -388,27 +386,16 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
-
-    // Remove any related pending plan
-    log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("remove pending plans for the app")
-    err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
+    // find application instance
+    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: request.OrganizationId, AppInstanceId: request.AppInstanceId})
     if err != nil {
-        log.Error().Str("app_instance_id", request.AppInstanceId).Msg("impossible to delete plans for application instance")
+        log.Error().Err(err).Str("appInstanceID",request.AppInstanceId).Msgf("impossible to obtain application descriptor")
+        return err
     }
-
-    // Remove any DNS entry
-    log.Debug().Str("app_instance_id", request.AppInstanceId).Str("organization_id", request.OrganizationId).Msg("remove DNS entries")
-    deleteReq := pbNetwork.DeleteDNSEntryRequest{
-        OrganizationId: request.OrganizationId,
-        AppInstanceId: request.AppInstanceId,
-    }
-
-    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
-    if err != nil {
-        log.Error().Err(err).Str("appInstanceId",deleteReq.AppInstanceId).Msg("error removing dns entries for appInstance")
-    }
-
-
+    // call Rollback
+    // TODO the management of ztnetwork ids must be reconsidered at this point
+    c.Rollback(request.OrganizationId, request.AppInstanceId,"")
 
     // Send undeploy requests to application clusters
     log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("undeploy app instance with id")
@@ -424,14 +411,6 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     }
 
     log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
-
-
-    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
-        &pbApplication.AppInstanceId{OrganizationId: request.OrganizationId, AppInstanceId: request.AppInstanceId})
-    if err != nil {
-        log.Error().Err(err).Str("appInstanceID",request.AppInstanceId).Msgf("impossible to obtain application descriptor")
-        return err
-    }
 
     clusterIds := make(map[string]bool, 0)
     for _, g := range appInstance.Groups {
@@ -490,24 +469,68 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         return err
     }
 
-    // NP-916 Link unified logging expire with the undeploy operation
-    log.Info().Str("organizationID", request.OrganizationId).Str("instanceID", request.AppInstanceId).Msg("Expire logging")
-    c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
-        OrganizationId: request.OrganizationId,
-        AppInstanceId: request.AppInstanceId,
+    return nil
+}
+
+
+// Run operations to remove additional information generated in the system after instantiating an application.
+func (c *Manager) Rollback(organizationId string, appInstanceId string, ztNetworkId string) error {
+    // Remove any related pending plan
+    log.Debug().Str("appInstanceId",appInstanceId).Msg("Rollback app instance")
+
+    // 1) Remove from the list of pendings plans
+    c.PendingPlans.RemovePendingPlanByApp(appInstanceId)
+
+
+    // 2) Delete zt network
+    req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: organizationId}
+    _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
+    if err != nil {
+        // TODO decide what to do here
+        log.Error().Str("appInstanceId",appInstanceId).Str("ztNetworkId", ztNetworkId).
+            Msgf("impossible to delete zerotier network %s", ztNetworkId)
+    }
+
+    // 3) Remove associated DNS entries if any
+    log.Debug().Msgf("remove DNS entries for %s in %s",appInstanceId, organizationId)
+    deleteReq := pbNetwork.DeleteDNSEntryRequest{
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
+    }
+
+    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
+    if err != nil {
+        // TODO decide what to do here
+        log.Error().Str("appInstanceId",appInstanceId).Err(err).
+            Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
+    }
+
+    // 4) NP-916 Link unified logging expire with the undeploy operation
+    log.Info().Str("organizationID", organizationId).Str("instanceID", appInstanceId).
+        Msg("Expire logging")
+    _, err = c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
     })
+    if err != nil {
+        log.Error().Err(err).Str("appInstanceId",appInstanceId).Msg("error when expiring unified logging")
+    }
 
     return nil
 }
 
+
+
+
+/*
 // Return the system to the status before instantiating the given deployment plan and zt network id.
-func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
+func (c *Manager) Rollback (plan *entities.DeploymentPlan, ztNetworkId string) error {
     // Remove any related pending plan
     log.Debug().Str("deployment plan",plan.DeploymentId).Msg("remove pending plan")
     c.PendingPlans.RemovePendingPlan(plan.DeploymentId)
 
-    st := derrors.NewInternalError("rollback invoked")
-    log.Error().Str("trace", st.DebugReport()).Str("instanceId", plan.AppInstanceId).Msg("rollback has been called")
+    st := derrors.NewInternalError("Rollback invoked")
+    log.Error().Str("trace", st.DebugReport()).Str("instanceId", plan.AppInstanceId).Msg("Rollback has been called")
     // Delete zt network
     req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: plan.OrganizationId}
     _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
@@ -532,7 +555,7 @@ func (c *Manager) rollback (plan *entities.DeploymentPlan, ztNetworkId string) e
 
     return nil
 }
-
+*/
 
 
 

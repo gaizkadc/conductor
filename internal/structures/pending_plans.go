@@ -134,7 +134,7 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
 func (p *PendingPlans) SetFragmentNoPending(fragmentId string) {
     log.Debug().Msgf("set fragment %s to non pending", fragmentId)
     p.mu.Lock()
-    p.mu.Unlock()
+    defer p.mu.Unlock()
     // get services Id by checking the corresponding plan
     p.PendingFragments[fragmentId].IsPending = false
     p.printStatus()
@@ -143,7 +143,7 @@ func (p *PendingPlans) SetFragmentNoPending(fragmentId string) {
 func (p *PendingPlans) SetFragmentPending(fragmentId string) {
     log.Debug().Msgf("set fragment %s to pending", fragmentId)
     p.mu.Lock()
-    p.mu.Unlock()
+    defer p.mu.Unlock()
     // get services Id by checking the corresponding plan
     p.PendingFragments[fragmentId].IsPending = true
     p.printStatus()
@@ -153,7 +153,7 @@ func (p *PendingPlans) SetFragmentPending(fragmentId string) {
 func (p *PendingPlans) RemoveFragment(fragmentId string){
     log.Debug().Msgf("remove fragment %s from Pending", fragmentId)
     p.mu.Lock()
-    p.mu.Unlock()
+    defer p.mu.Unlock()
     // get services Id by checking the corresponding plan
     pendingPlan,_ := p.PendingFragments[fragmentId]
     plan,_ := p.Pending[pendingPlan.DeploymentPlanID]
