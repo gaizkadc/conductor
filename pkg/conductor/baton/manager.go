@@ -509,10 +509,11 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, ztNetwor
         Msg("Expire logging")
     _, err = c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
         OrganizationId: organizationId,
-        AppInstanceId: appInstanceId,
+        AppInstanceId:  appInstanceId,
+    })
       
     // 5) Remove app entry points  
-    _, err = client.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
+    _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
     })
