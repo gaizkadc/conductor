@@ -241,7 +241,7 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
 
     // rollback
     // TODO check how to proceed with remaining zt networks
-    m.manager.Rollback(request.OrganizationId, request.AppInstanceId, "")
+    m.manager.Rollback(request.OrganizationId, request.AppInstanceId)
 
     // Undeploy the application
     undeployRequest := &entities.UndeployRequest{AppInstanceId: request.AppInstanceId,
