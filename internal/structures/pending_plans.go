@@ -6,6 +6,8 @@
 package structures
 
 import (
+    "errors"
+    "fmt"
     "github.com/nalej/conductor/internal/entities"
     "sync"
     "github.com/rs/zerolog/log"
@@ -60,11 +62,39 @@ func (p *PendingPlans) AddPendingPlan(plan *entities.DeploymentPlan) {
 }
 
 
+// Look for the plan pointing to an application instance and delete it
+func (p *PendingPlans) RemovePendingPlanByApp(appInstanceId string) error {
+    p.mu.Lock()
+    targetPlanId := ""
+    for planId, p := range p.Pending {
+        if p.AppInstanceId == appInstanceId {
+            targetPlanId = planId
+            break
+        }
+    }
+    p.mu.Unlock()
+
+    if targetPlanId == "" {
+        log.Error().Str("app_instance_id",appInstanceId).Msg("deployment plan was not found for the given app instance id")
+        return errors.New(fmt.Sprintf("deployment plan was not found for the given app instance id %s", appInstanceId))
+    }
+
+    p.RemovePendingPlan(targetPlanId)
+    return nil
+}
+
 
 func (p *PendingPlans) RemovePendingPlan(deploymentId string) {
     log.Debug().Msgf("remove plan of deployment %s from Pending checks",deploymentId)
     p.mu.Lock()
     defer p.mu.Unlock()
+
+    _, found := p.Pending[deploymentId]
+    if !found {
+        log.Debug().Str("deploymentId", deploymentId).Msg("the plan was already removed")
+        return
+    }
+
     for _, f := range p.Pending[deploymentId].Fragments {
         // remove the services we find across stages
         for _, stage := range f.Stages {
@@ -88,7 +118,6 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     defer p.mu.Unlock()
     plan, found := p.Pending[deploymentId]
     if !found {
-
         return false
     }
     for _, fragment := range plan.Fragments {
@@ -102,10 +131,29 @@ func (p *PendingPlans) PlanHasPendingFragments(deploymentId string) bool{
     return false
 }
 
+func (p *PendingPlans) SetFragmentNoPending(fragmentId string) {
+    log.Debug().Msgf("set fragment %s to non pending", fragmentId)
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    // get services Id by checking the corresponding plan
+    p.PendingFragments[fragmentId].IsPending = false
+    p.printStatus()
+}
+
+func (p *PendingPlans) SetFragmentPending(fragmentId string) {
+    log.Debug().Msgf("set fragment %s to pending", fragmentId)
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    // get services Id by checking the corresponding plan
+    p.PendingFragments[fragmentId].IsPending = true
+    p.printStatus()
+}
+
+
 func (p *PendingPlans) RemoveFragment(fragmentId string){
     log.Debug().Msgf("remove fragment %s from Pending", fragmentId)
     p.mu.Lock()
-    p.mu.Unlock()
+    defer p.mu.Unlock()
     // get services Id by checking the corresponding plan
     pendingPlan,_ := p.PendingFragments[fragmentId]
     plan,_ := p.Pending[pendingPlan.DeploymentPlanID]
