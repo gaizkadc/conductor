@@ -31,3 +31,8 @@ data:
         regex: 'node-exporter;(.*)'
         action: replace
         target_label: nodename
+    - job_name: "platform-monitor"
+      scrape_interval: 60s
+      static_configs:
+        - targets:
+            - "infrastructure-monitor-slave:8424"
