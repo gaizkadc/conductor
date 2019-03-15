@@ -387,7 +387,8 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
-
+    return c.HardUndeploy(request.OrganizationId,request.AppInstanceId)
+    /*
     // find application instance
     appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: request.OrganizationId, AppInstanceId: request.AppInstanceId})
@@ -471,8 +472,114 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
         return err
     }
     return nil
+    */
 }
 
+// Undeploy function that maintains the application instance in the system.
+func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error {
+    // find application instance
+    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: organizationId, AppInstanceId: appInstanceId})
+    if err != nil {
+        log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
+        return err
+    }
+
+    // call Rollback
+    c.Rollback(organizationId, appInstanceId)
+    // terminate execution
+    return c.undeployClustersInstance(appInstance)
+}
+
+// Undeploy function that removes the application instance
+func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error {
+    // find application instance
+    appInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: organizationId, AppInstanceId: appInstanceId})
+    if err != nil {
+        log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
+        return err
+    }
+
+    // call Rollback
+    c.Rollback(organizationId, appInstanceId)
+
+    // Remove any entry from the system model
+    instID := &pbApplication.AppInstanceId{
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
+    }
+    _, err = c.AppClient.RemoveAppInstance(context.Background(), instID)
+    if err != nil{
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
+    }
+
+    // terminate execution
+    return c.undeployClustersInstance(appInstance)
+}
+
+// Private function to communicate the application clusters to remove a running instance.
+func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance) error {
+    // Send undeploy requests to application clusters
+    log.Debug().Str("app_instance_id", appInstance.AppInstanceId).Msg("undeploy app instance with id")
+
+    err := c.ConnHelper.UpdateClusterConnections(appInstance.OrganizationId)
+    if err != nil {
+        log.Error().Err(err).Str("organizationID",appInstance.OrganizationId).Msg("error updating connections for organization")
+        return err
+    }
+    if len(c.ConnHelper.ClusterReference) == 0 {
+        log.Error().Msgf("no clusters found for organization %s", appInstance.OrganizationId)
+        return nil
+    }
+
+    log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
+
+    clusterIds := make(map[string]bool, 0)
+    for _, g := range appInstance.Groups {
+        for _, svc := range g.ServiceInstances {
+            if svc.DeployedOnClusterId != "" {
+                clusterIds[svc.DeployedOnClusterId] = true
+            }
+        }
+    }
+
+
+    for clusterId := range clusterIds{
+
+        clusterHost, found := c.ConnHelper.ClusterReference[clusterId]
+        if !found {
+            log.Error().Str("clusterId",clusterId).Str("clusterHost",clusterHost).Msg("unknown clusterHost for the clusterId")
+            return errors.New(fmt.Sprintf("unknown host for cluster id %s", clusterId))
+        }
+
+        log.Debug().Str("clusterId", clusterId).Str("clusterHost", clusterHost).Msg("conductor query deployment-manager cluster")
+
+
+        clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
+        conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
+        if err != nil {
+            log.Error().Err(err).Str("clusterHost", clusterHost).Msg("impossible to get connection for the host")
+            return err
+        }
+
+        dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
+
+        undeployRequest := pbDeploymentManager.UndeployRequest{
+            OrganizationId: appInstance.OrganizationId,
+            AppInstanceId: appInstance.AppInstanceId,
+        }
+        ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
+        _, err = dmClient.Undeploy(ctx, &undeployRequest)
+
+        if err != nil {
+            log.Error().Str("app_instance_id", appInstance.AppInstanceId).Msg("could not undeploy app")
+            return err
+        }
+        cancel()
+    }
+    return nil
+}
 
 // Run operations to remove additional information generated in the system after instantiating an application.
 func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
@@ -522,6 +629,15 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     })
     if err != nil{
         log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove app endpoint  from system model")
+    }
+
+    // 6) Remove any service group instance
+    _, err = c.AppClient.RemoveServiceGroupInstances(context.Background(), &pbApplication.RemoveServiceGroupInstancesRequest{
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
+    })
+    if err != nil {
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove service group instances")
     }
 
     return nil

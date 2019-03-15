@@ -62,24 +62,43 @@ func (p *PendingPlans) AddPendingPlan(plan *entities.DeploymentPlan) {
 }
 
 
+
+
 // Look for the plan pointing to an application instance and delete it
 func (p *PendingPlans) RemovePendingPlanByApp(appInstanceId string) error {
     p.mu.Lock()
-    targetPlanId := ""
+    defer p.mu.Unlock()
+    deploymentId := ""
     for planId, p := range p.Pending {
         if p.AppInstanceId == appInstanceId {
-            targetPlanId = planId
+            deploymentId = planId
             break
         }
     }
-    p.mu.Unlock()
 
-    if targetPlanId == "" {
+    if deploymentId == "" {
         log.Error().Str("app_instance_id",appInstanceId).Msg("deployment plan was not found for the given app instance id")
         return errors.New(fmt.Sprintf("deployment plan was not found for the given app instance id %s", appInstanceId))
     }
 
-    p.RemovePendingPlan(targetPlanId)
+
+    for _, f := range p.Pending[deploymentId].Fragments {
+        // remove the services we find across stages
+        for _, stage := range f.Stages {
+            for _, serv := range stage.Services {
+                delete(p.PendingService, serv.ServiceId)
+            }
+        }
+        // remove fragments
+        delete(p.PendingFragments, f.FragmentId)
+    }
+    // delete the plan
+    delete(p.Pending, deploymentId)
+    // delete the app
+    delete(p.Apps, deploymentId)
+    p.printStatus()
+
+
     return nil
 }
 
