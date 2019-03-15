@@ -181,7 +181,7 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
         }
         // call the Rollback
         // TODO review how to proceed with zt network id
-        c.Rollback(req.OrganizationId, req.ApplicationId, "")
+        c.Rollback(req.OrganizationId, req.InstanceId)
     }
 }
 
@@ -288,7 +288,8 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     }
 
     // 4) Create ZT-network with Network manager
-    ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId)
+    // we use the app instance id as the network id
+    ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId, retrievedAppInstance.AppInstanceId)
     if zt_err != nil {
         err := derrors.NewGenericError("impossible to create zt network before deployment", zt_err)
         log.Error().Err(zt_err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
@@ -312,9 +313,10 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 //  organizationId for this network
 // returns:
 //  networkId or error otherwise
-func (c *Manager) CreateZTNetwork(name string, organizationId string) (string, error){
-    log.Debug().Msgf("create zt network with name %s in organization %s",name, organizationId)
-    request := pbNetwork.AddNetworkRequest{ Name: name, OrganizationId: organizationId }
+func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanceId string) (string, error){
+    request := pbNetwork.AddNetworkRequest{ Name: name, OrganizationId: organizationId, AppInstanceId: appInstanceId }
+
+    log.Debug().Interface("addNetworkRequest",request).Msgf("create a network request")
 
     ztNetworkId, err := c.NetClient.AddNetwork(context.Background(), &request)
 
@@ -395,7 +397,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
     }
     // call Rollback
     // TODO the management of ztnetwork ids must be reconsidered at this point
-    c.Rollback(request.OrganizationId, request.AppInstanceId,"")
+    c.Rollback(request.OrganizationId, request.AppInstanceId)
 
     // Send undeploy requests to application clusters
     log.Debug().Str("app_instance_id", request.AppInstanceId).Msg("undeploy app instance with id")
@@ -473,7 +475,7 @@ func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
 
 
 // Run operations to remove additional information generated in the system after instantiating an application.
-func (c *Manager) Rollback(organizationId string, appInstanceId string, ztNetworkId string) error {
+func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     // Remove any related pending plan
     log.Debug().Str("appInstanceId",appInstanceId).Msg("Rollback app instance")
 
@@ -482,12 +484,13 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, ztNetwor
 
 
     // 2) Delete zt network
-    req := pbNetwork.DeleteNetworkRequest{NetworkId: ztNetworkId, OrganizationId: organizationId}
+    req := pbNetwork.DeleteNetworkRequest{AppInstanceId: appInstanceId, OrganizationId: organizationId}
+    log.Debug().Interface("deleteNetworkRequest", req).Msg("delete zt network")
     _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
     if err != nil {
         // TODO decide what to do here
-        log.Error().Str("appInstanceId",appInstanceId).Str("ztNetworkId", ztNetworkId).
-            Msgf("impossible to delete zerotier network %s", ztNetworkId)
+        log.Error().Err(err).Str("appInstanceId",appInstanceId).Str("organizationId", organizationId).
+            Msg("impossible to delete zerotier network")
     }
 
     // 3) Remove associated DNS entries if any
