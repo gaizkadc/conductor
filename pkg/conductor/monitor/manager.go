@@ -239,14 +239,8 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
         toReturn.Info = "exceeded number of retries"
     }
 
-    // rollback
-    // TODO check how to proceed with remaining zt networks
-    m.manager.Rollback(request.OrganizationId, request.AppInstanceId)
-
     // Undeploy the application
-    undeployRequest := &entities.UndeployRequest{AppInstanceId: request.AppInstanceId,
-        OrganizationId: request.OrganizationId}
-    err := m.manager.Undeploy(undeployRequest)
+    err := m.manager.SoftUndeploy(request.OrganizationId, request.AppInstanceId)
     if err != nil {
         log.Error().Err(err).Interface("fragmentUpdate",request).Msg("error undeploying failed application")
     }
