@@ -339,6 +339,8 @@ func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInst
 	if group.Metadata != nil {
 		metadata = NewInstanceMetadataFromGRPC(group.Metadata)
 	}
+
+
 	return ServiceGroupInstance{
 		Name: group.Name,
 		Status: ServiceStatusFromGRPC[group.Status],
@@ -387,10 +389,19 @@ func(sgds *ServiceGroupDeploymentSpecs) ToGRPC() *grpc_application_go.ServiceGro
 }
 
 func NewServiceGroupDeploymentSpecsFromGRPC(s *grpc_application_go.ServiceGroupDeploymentSpecs) ServiceGroupDeploymentSpecs {
+	specs := &grpc_application_go.ServiceGroupDeploymentSpecs{
+		NumReplicas: 1,
+		MultiClusterReplica:false,
+		DeploymentSelectors: map[string]string{},
+	}
+	if s != nil {
+		specs = s
+	}
+
 	return ServiceGroupDeploymentSpecs{
-		NumReplicas: s.NumReplicas,
-		MultiClusterReplica: s.MultiClusterReplica,
-		DeploymentSelectors: s.DeploymentSelectors,
+		NumReplicas: specs.NumReplicas,
+		MultiClusterReplica: specs.MultiClusterReplica,
+		DeploymentSelectors: specs.DeploymentSelectors,
 	}
 }
 
