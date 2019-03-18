@@ -94,7 +94,8 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     // we expect as many scores as musicians we have
     log.Debug().Msgf("we have %d known clusters",len(s.connHelper.ClusterReference))
-    collectedScores := make([]*pbConductor.ClusterScoreResponse,0,len(s.connHelper.ClusterReference))
+    collectedScores := make([]*pbConductor.ClusterScoreResponse,0,0)
+
     found_scores := 0
 
     for clusterId, clusterHost := range s.connHelper.ClusterReference {
