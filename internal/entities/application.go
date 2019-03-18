@@ -388,20 +388,21 @@ func(sgds *ServiceGroupDeploymentSpecs) ToGRPC() *grpc_application_go.ServiceGro
 	}
 }
 
+
 func NewServiceGroupDeploymentSpecsFromGRPC(s *grpc_application_go.ServiceGroupDeploymentSpecs) ServiceGroupDeploymentSpecs {
-	specs := &grpc_application_go.ServiceGroupDeploymentSpecs{
+	defaultSpec := &grpc_application_go.ServiceGroupDeploymentSpecs{
 		NumReplicas: 1,
 		MultiClusterReplica:false,
 		DeploymentSelectors: map[string]string{},
 	}
 	if s != nil {
-		specs = s
+		defaultSpec = s
 	}
 
 	return ServiceGroupDeploymentSpecs{
-		NumReplicas: specs.NumReplicas,
-		MultiClusterReplica: specs.MultiClusterReplica,
-		DeploymentSelectors: specs.DeploymentSelectors,
+		NumReplicas: defaultSpec.NumReplicas,
+		MultiClusterReplica: defaultSpec.MultiClusterReplica,
+		DeploymentSelectors: defaultSpec.DeploymentSelectors,
 	}
 }
 
