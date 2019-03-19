@@ -10,6 +10,14 @@ import (
 )
 
 
+var DefaultSpec = &grpc_application_go.ServiceGroupDeploymentSpecs{
+	NumReplicas: 1,
+	MultiClusterReplica:false,
+	DeploymentSelectors: map[string]string{},
+}
+
+
+
 type PortAccess int
 
 const (
@@ -339,6 +347,8 @@ func NewServiceGroupInstanceFromGRPC(group *grpc_application_go.ServiceGroupInst
 	if group.Metadata != nil {
 		metadata = NewInstanceMetadataFromGRPC(group.Metadata)
 	}
+
+
 	return ServiceGroupInstance{
 		Name: group.Name,
 		Status: ServiceStatusFromGRPC[group.Status],
@@ -386,7 +396,13 @@ func(sgds *ServiceGroupDeploymentSpecs) ToGRPC() *grpc_application_go.ServiceGro
 	}
 }
 
+
 func NewServiceGroupDeploymentSpecsFromGRPC(s *grpc_application_go.ServiceGroupDeploymentSpecs) ServiceGroupDeploymentSpecs {
+
+	if s == nil {
+		s = DefaultSpec
+	}
+
 	return ServiceGroupDeploymentSpecs{
 		NumReplicas: s.NumReplicas,
 		MultiClusterReplica: s.MultiClusterReplica,

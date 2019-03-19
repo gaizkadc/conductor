@@ -10,7 +10,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:d3d38150b6d77b2aad42a9e105170538b6563518993d43df78a1add6e31cce62"
+  digest = "1:529d738b7976c3848cae5cf3a8036440166835e389c1f617af701eeb12a0518d"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -21,8 +21,8 @@
     "ptypes/timestamp",
   ]
   pruneopts = ""
-  revision = "c823c79ea1570fb5ff454033735a8e68575d1d0f"
-  version = "v1.3.0"
+  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:ad92aa49f34cbc3546063c7eb2cabb55ee2278b72842eda80e2a20a8a06a8d73"
@@ -305,7 +305,7 @@
   revision = "8b748030788ea01a6ceb5068504cfa01d1b335b1"
 
 [[projects]]
-  digest = "1:36de4f001b7f3fca448ba85270a4de8854f5abcb97d02d57be7fd6fc4a39d259"
+  digest = "1:1999d331dd72c89654e50c51f71f66583094d65ebbe94ba92ab64d47cc0f751e"
   name = "github.com/rs/zerolog"
   packages = [
     ".",
@@ -314,8 +314,8 @@
     "log",
   ]
   pruneopts = ""
-  revision = "6d6350a51143b5c0d0a6a3b736ee2b41315f7269"
-  version = "v1.12.0"
+  revision = "651d361cfeb9d0f5b9f1d14b162c66c82509ef6d"
+  version = "v1.13.0"
 
 [[projects]]
   digest = "1:d9f371ceb44045ca4405b65fed916e4b45396340b9e8674851c3d652f6351cde"
@@ -378,7 +378,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e9152dabd6b276edd0f1d51598e5745dcda9411315d216863bb46b13e523300c"
+  digest = "1:73e6624a8569db94b0d8f9b34052f73ef9598c380edbce36d89dbbc00941e976"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -393,15 +393,15 @@
     "trace",
   ]
   pruneopts = ""
-  revision = "5c2c250b6a70e39b74bb544433a348a892b10530"
+  revision = "9f648a60d9775ef5c977e7669d1673a7a67bef33"
 
 [[projects]]
   branch = "master"
-  digest = "1:9c1e747af61ab955fba74a79e87d5843a5d1d504e3ef86480f76e6a4e3a49136"
+  digest = "1:9f5e388a2e01d646e82dc420469e21a6e0e7a526954ef1638009bc87eacf578e"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
+  revision = "a2f829d7f35f2ed1c3520c553a6226495455cae0"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
