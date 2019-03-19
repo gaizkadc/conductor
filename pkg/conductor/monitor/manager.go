@@ -171,7 +171,7 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
                 log.Error().Err(err).Interface("request", updateService).Msg("service group instance metadata not found")
                 return err
             }
-            groupMetadata[update.ServiceGroupInstanceId] = metaj
+            groupMetadata[update.ServiceGroupInstanceId] = meta
         }
 
         // update the status of the service
