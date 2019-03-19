@@ -116,7 +116,7 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
             res := s.queryMusician(c,requestsToSend)
 
-            if err != nil {
+            if res != nil {
                 log.Error().Err(err).Msg("impossible to query musician to obtain requirements score. Ignore it.")
             } else {
                 log.Info().Interface("response",res).Msg("musician responded with score")
