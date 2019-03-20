@@ -241,7 +241,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
     if err != nil {
         err := derrors.NewGenericError("impossible to obtain application descriptor")
-        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+        log.Error().Err(err).Msg("impossible to retrieve app instance")
         return err
     }
 

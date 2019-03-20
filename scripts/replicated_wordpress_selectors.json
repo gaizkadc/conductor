@@ -1,5 +1,5 @@
 {
-  "name": "replicated wordpress",
+  "name": "WP-selectors",
   "rules": [
     {
       "rule_id": "001",
@@ -48,8 +48,7 @@
       "specs": {
         "multi_cluster_replica": true,
         "deployment_selectors": {
-          "type": "edge",
-          "performance": "excellent"
+          "type": "edge"
         }
       }
     },
@@ -81,7 +80,10 @@
         }
       ],
       "specs": {
-        "num_replicas": 1
+        "num_replicas": 1,
+        "deployment_selectors": {
+          "performance": "excellent"
+        }
       }
     }
   ]
