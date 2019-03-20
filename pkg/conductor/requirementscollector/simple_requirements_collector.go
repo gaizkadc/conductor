@@ -37,22 +37,35 @@ func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplicat
             return nil, derrors.NewFailedPreconditionError("no services specified for the application")
         }
 
-        var totalStorage int64
-        var totalCPU int64
-        var totalMemory int64
+        var totalStorage int64 = 0
+        var totalCPU int64 = 0
+        var totalMemory int64 = 0
 
-        for _, serv := range g.Services{
+        for _, serv := range g.Services {
 
-            totalCPU = totalCPU + serv.Specs.Cpu
-            totalMemory = totalMemory + serv.Specs.Memory
+            numServReplicas := int64(1)
+            if serv.Specs != nil && serv.Specs.Replicas > 0 {
+                numServReplicas = int64(serv.Specs.Replicas)
+            }
+
+            totalCPU = totalCPU + (serv.Specs.Cpu * numServReplicas)
+            totalMemory = totalMemory + (serv.Specs.Memory * numServReplicas)
             // accumulate requested storage
             for _, st := range serv.Storage {
-                totalStorage = totalStorage + st.Size
+                totalStorage = totalStorage + (st.Size * numServReplicas)
             }
         }
 
+        selectors := map[string]string{}
+        if g.Specs != nil {
+            if g.Specs.DeploymentSelectors != nil {
+                selectors = g.Specs.DeploymentSelectors
+            }
+        }
+
+        // TODO: requirements for every fragment only permit one replica per requirement. Requirements are for a single service group
         r := entities.NewRequirement(appInstanceId, g.Name, totalCPU, totalMemory,
-            totalStorage, g.Specs.NumReplicas, g.Specs.DeploymentSelectors)
+            totalStorage, 1, selectors)
         foundRequirements.AddRequirement(r)
     }
 
