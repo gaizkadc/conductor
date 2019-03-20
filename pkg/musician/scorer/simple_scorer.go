@@ -10,6 +10,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
+    "math"
     "os"
     "github.com/nalej/conductor/pkg/utils"
 )
@@ -23,6 +24,72 @@ func NewSimpleScorer(collector statuscollector.StatusCollector) Scorer {
 }
 
 
+func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConductor.ClusterScoreResponse, error){
+    log.Debug().Interface("request",request).Msg("musician simple scorer queried")
+    // check
+    status, err := s.collector.GetStatus()
+
+    if err != nil {
+        log.Error().Err(err)
+        return nil, err
+    }
+
+    foundScores := make([]*pbConductor.DeploymentScore,0)
+
+    // Compute the combinations of requirements
+    sets := s.getCombinations(request.Requirements)
+
+    for _, s := range sets {
+        var totalCPU float32 = 0
+        var totalMem float32 = 0
+        var totalStorage float32 = 0
+        // store here the concatenation of service names
+        listOfServices := make([]string,0)
+        // compute the score for this combination of services
+        for _, r := range s {
+            listOfServices = append(listOfServices,r.GroupServiceInstanceId)
+            totalCPU = totalCPU + (float32(r.Cpu) * float32(r.Replicas))
+            totalMem = totalMem + (float32(r.Memory) * float32(r.Replicas))
+            totalStorage = totalStorage + (float32(r.Storage) * float32(r.Replicas))
+        }
+
+        // compute score based on requested and available
+        dCPU := float32(status.CPU) - totalCPU
+        dMem := float32(status.Mem) - totalMem
+        dDisk := float32(status.Disk) - totalStorage
+
+        log.Debug().Float32("dCPU", dCPU).Float32("dMem",dMem).Float32("dDisk", dDisk).
+            Msg("computed values")
+
+        var score float64
+        if dCPU * dMem * dDisk < 0 {
+            score = -1
+        }
+
+        // The score for this requirement is the module of the vector with the individual components
+        score = math.Sqrt(float64(dCPU*dCPU + dMem*dMem + dDisk*dDisk))
+        scoreForGroup := &pbConductor.DeploymentScore{
+            Score:                 float32(score),
+            AppInstanceId:         s[0].AppInstanceId,
+            GroupServiceInstances: listOfServices,
+        }
+
+        foundScores = append(foundScores, scoreForGroup)
+    }
+
+    response := &pbConductor.ClusterScoreResponse{
+        ClusterId: os.Getenv(utils.MUSICIAN_CLUSTER_ID),
+        RequestId: request.RequestId,
+        Score: foundScores,
+    }
+
+    log.Debug().Interface("score request",request).Interface("score", foundScores).Msg("returned scores")
+
+    // TODO recover cluster id from a cluster environment variable
+    return response, nil
+}
+
+/*
 func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConductor.ClusterScoreResponse, error){
     log.Debug().Interface("request",request).Msg("musician simple scorer queried")
     // check
@@ -83,6 +150,7 @@ func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConduc
     // TODO recover cluster id from a cluster environment variable
     return response, nil
 }
+*/
 
 // Local function to return all the combinations of requirements to check.
 // params:

@@ -21,9 +21,13 @@ import (
 
 const (
     // describe the set of queries we use for Prometheus to collecto monitor stats
-    PROM_MEM_QUERY="avg(avg_over_time(node_memory_MemFree[5m]))"
-    PROM_CPU_QUERY="avg(node_load5)"
-    PROM_DISK_QUERY="avg(node_filesystem_free{mountpoint=\"/\"})"
+    // accumulated free memory for all the nodes in the cluster
+    PROM_MEM_QUERY="sum(node_memory_MemFree)"
+    // accumulated idle time for all the cpus in the cluster
+    // PROM_CPU_QUERY="sum(node_cpu{mode=~\"idle\"})"
+    PROM_CPU_QUERY="count(count by (nodename,cpu) (node_cpu))"
+    // the available disk space is the one of the node with the largest available space
+    PROM_DISK_QUERY="max(node_filesystem_free{mountpoint=\"/\"})"
 )
 
 // Simple client to query Prometheus HTTP API.
@@ -142,33 +146,37 @@ func NewPrometheusStatusCollector(address string, sleepTime uint32) StatusCollec
 //  Error if any
 func(coll *PrometheusStatusCollector) Run() error {
     log.Info().Msg("starting Prometheus status collector...")
+
+    sleep := time.Tick(coll.sleepDuration)
     for {
-        mem, err := coll.client.GetMemory()
-        if err != nil {
-            log.Error().Msgf("error requesting memory %s",err)
-        } else {
-            log.Debug().Msgf("memory: %f", mem)
-            coll.cached.Put("memory", mem)
-        }
+        select {
+        case <-sleep:
+            mem, err := coll.client.GetMemory()
+            if err != nil {
+                log.Error().Msgf("error requesting memory %s",err)
+            } else {
+                log.Debug().Msgf("memory: %f", mem)
+                coll.cached.Put("memory", mem)
+            }
 
-        cpu, err := coll.client.GetCPU()
-        if err != nil {
-            log.Error().Msgf("error requesting cpu %s",err)
-        } else {
-            log.Debug().Msgf("cpu: %f", cpu)
-            coll.cached.Put("cpu", cpu)
-        }
+            cpu, err := coll.client.GetCPU()
+            if err != nil {
+                log.Error().Msgf("error requesting cpu %s",err)
+            } else {
+                log.Debug().Msgf("cpu: %f", cpu)
+                coll.cached.Put("cpu", cpu)
+            }
 
-        disk, err := coll.client.GetDisk()
-        if err != nil {
-            log.Error().Msgf("error requesting disk %s",err)
-        } else {
-            log.Debug().Msgf("disk: %f", disk)
-            coll.cached.Put("disk", disk)
+            disk, err := coll.client.GetDisk()
+            if err != nil {
+                log.Error().Msgf("error requesting disk %s",err)
+            } else {
+                log.Debug().Msgf("disk: %f", disk)
+                coll.cached.Put("disk", disk)
+            }
         }
-
-        time.Sleep(coll.sleepDuration)
     }
+
     return nil
 }
 
@@ -181,10 +189,8 @@ func(coll *PrometheusStatusCollector) Finalize(killSignal bool) error {
 }
 
 // Get the current status.
-// TODO check thread safe access
 func(coll *PrometheusStatusCollector) GetStatus() (*entities.Status, error) {
     // Build the status and return it
-    // TODO check potential error and outdated values
 
     mem, err := coll.cached.Get("memory")
     if err != nil {
