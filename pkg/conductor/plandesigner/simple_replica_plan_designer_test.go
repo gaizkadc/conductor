@@ -142,7 +142,7 @@ func createCombinedReplicaApp(appClient pbApplication.ApplicationsClient, orgCli
             },
         },
         Specs: entities.ServiceGroupDeploymentSpecs{
-            NumReplicas: 1,
+            Replicas: 1,
         },
     }
 

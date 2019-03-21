@@ -145,7 +145,7 @@ func (s SimpleScorer) findRequirementsCluster(organizationId string, clusterId s
     }
     filteredRequirements := entities.NewRequirements()
     for _, req := range requirements.List {
-        if req.DeploymentSelectors == nil {
+        if req.DeploymentSelectors == nil || len(req.DeploymentSelectors)==0 {
             // no specs, add it
             filteredRequirements.AddRequirement(req)
         } else if cluster.Labels != nil {
