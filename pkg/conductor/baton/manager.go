@@ -23,6 +23,7 @@ import (
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     pbNetwork "github.com/nalej/grpc-network-go"
     pbCoordinator "github.com/nalej/grpc-unified-logging-go"
+    "github.com/nalej/grpc-utils/pkg/conversions"
     "github.com/rs/zerolog/log"
     "time"
 )
@@ -581,6 +582,23 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
     return nil
 }
 
+func (c *Manager) expireUnifiedLogging(organizationId string, appInstanceId string) {
+
+    // 4) NP-916 Link unified logging expire with the undeploy operation
+    log.Info().Str("organizationID", organizationId).Str("instanceID", appInstanceId).
+        Msg("Expire logging")
+    _, err := c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
+        OrganizationId: organizationId,
+        AppInstanceId:  appInstanceId,
+    })
+    if err != nil {
+        log.Warn().Str("error", conversions.ToDerror(err).DebugReport()).Msg("Error expiring unified Logging")
+    }
+    log.Info().Str("organizationID", organizationId).Str("instanceID", appInstanceId).
+        Msg("Expire logging finish")
+
+}
+
 // Run operations to remove additional information generated in the system after instantiating an application.
 func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     // Remove any related pending plan
@@ -614,13 +632,8 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
             Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
     }
 
-    // 4) NP-916 Link unified logging expire with the undeploy operation
-    log.Info().Str("organizationID", organizationId).Str("instanceID", appInstanceId).
-        Msg("Expire logging")
-    _, err = c.UnifiedLoggingClient.Expire(context.Background(), &pbCoordinator.ExpirationRequest{
-        OrganizationId: organizationId,
-        AppInstanceId:  appInstanceId,
-    })
+    // NP-1031. Improve undeploy performance
+    go c.expireUnifiedLogging(organizationId, appInstanceId)
       
     // 5) Remove app entry points  
     _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
