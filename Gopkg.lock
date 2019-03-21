@@ -114,12 +114,12 @@
   version = "v0.0.13"
 
 [[projects]]
-  digest = "1:fbbc4cb8843fd8a49052a2aef050d46f3b23e8fca32017728d0070ba5cdb3334"
+  digest = "1:58465c89e95b4d983bd41bee6bbf80902c00f602f7c6a710fd862ee0b68276ad"
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
   pruneopts = ""
-  revision = "79100d71604e66deab80afc2aa312521f6e5dd18"
-  version = "v0.0.64"
+  revision = "2a20afb26eeb8e20c912b4affacae4218557a737"
+  version = "v0.0.65"
 
 [[projects]]
   digest = "1:04ab94c90e7bce3f0ccf049c17c4c784da6819bca629e6ea98dcfe1f9b3a7f7a"
@@ -138,12 +138,12 @@
   version = "v0.0.30"
 
 [[projects]]
-  digest = "1:fc00ad606e86b3ef82ed233808936d0138a84c4f11d17e55c9ee0e0613343b98"
+  digest = "1:086ca56e420640f6b8c6f89bed7caf9520db3827ccd30216a15de73a5d2c7e62"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "8b67c6639581af49477ef01a8a8959a305c72d68"
-  version = "v0.0.86"
+  revision = "6bb6df7368e93f111c79dab99811366dd3598354"
+  version = "v0.0.87"
 
 [[projects]]
   digest = "1:a024155847c1b3c1cac3c9295c840eefb71f6bdcc0943fdd92cca102ef443af4"
@@ -298,11 +298,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1d64fac33ba712f999e45233e9987db12c134f7c57ca31f4965afdb713badd0e"
+  digest = "1:3ebcbfc791828b7064075ea39f0d48ff21794532f57ceca435c1b3dd21e5b1e8"
   name = "github.com/prometheus/common"
   packages = ["model"]
   pruneopts = ""
-  revision = "8b748030788ea01a6ceb5068504cfa01d1b335b1"
+  revision = "1ab4d74fc89940cfbc3c2b3a89821336cdefa119"
 
 [[projects]]
   digest = "1:1999d331dd72c89654e50c51f71f66583094d65ebbe94ba92ab64d47cc0f751e"
@@ -397,11 +397,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ff0bd364800b7ec504f142151d0c2fbe68841cd1dc1a506fae10eeddcae42e60"
+  digest = "1:ba9161ae486a23244987306b85436483df7b276c2364d61a033ad3aebeeec8d0"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "6c81ef8f67ca3f42fc9cd71dfbd5f35b0c4b5771"
+  revision = "f7bb7a8bee54210937e93ec56d007d892c1f0580"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
@@ -450,7 +450,7 @@
   revision = "5fe7a883aa19554f42890211544aa549836af7b7"
 
 [[projects]]
-  digest = "1:b6c17b0c657f047118ae59b358950b28515914512cf3de02388cc42e33a92520"
+  digest = "1:9e9c6b3804858b1a058ef81027270d307b74f4ddd727d2edff0ca002dd304adb"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -489,8 +489,8 @@
     "test/bufconn",
   ]
   pruneopts = ""
-  revision = "2fdaae294f38ed9a121193c51ec99fecd3b13eb7"
-  version = "v1.19.0"
+  revision = "3507fb8e1a5ad030303c106fef3a47c9fdad16ad"
+  version = "v1.19.1"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"

@@ -143,11 +143,12 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         // TODO: Improve the update. Reduce the number of calls.
         // udpate application endpoints
         for _, endpoint := range update.Endpoints{
-            _, err := m.AppClient.AddAppEndpoint(context.Background(), &pbApplication.AppEndpoint{
+            _, err := m.AppClient.AddAppEndpoint(context.Background(), &pbApplication.AddAppEndpointRequest{
                 OrganizationId:         update.OrganizationId,
                 AppInstanceId:          update.ApplicationInstanceId,
                 ServiceGroupInstanceId: update.ServiceGroupInstanceId,
                 ServiceInstanceId:      update.ServiceInstanceId,
+                ServiceName:            update.ServiceName,
                 //Port:
                 //Protocol:
                 EndpointInstance: endpoint,
