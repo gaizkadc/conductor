@@ -5,7 +5,6 @@
   },
   "rules": [
     {
-      "rule_id": "001",
       "name": "allow access to wordpress",
       "target_service_group_name": "g1",
       "target_service_name": "simple-wordpress",
@@ -20,9 +19,6 @@
         {
           "name": "simple-wordpress",
           "image": "wordpress:5.0.0",
-          "specs": {
-            "replicas": 1
-          },
           "storage": [
             {
               "size": 104857600,
@@ -54,9 +50,6 @@
         {
           "name": "simple-mysql",
           "image": "mysql:5.6",
-          "specs": {
-            "replicas": 1
-          },
           "storage": [
             {
               "size": 104857600,
@@ -77,14 +70,7 @@
             "app": "simple-mysql"
           }
         }
-      ],
-      "specs": {
-        "num_replicas": 1,
-        "deployment_selectors": {
-          "type": "edge",
-          "performance": "excellent"
-        }
-      }
+      ]
     }
   ]
 }

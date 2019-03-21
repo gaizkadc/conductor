@@ -64,7 +64,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
         desiredReplicas = len(dm.AllocatedScore)
     } else {
         // Deploy as many replicas as mentioned in the deploy specs.
-        desiredReplicas = int(group.Specs.NumReplicas)
+        desiredReplicas = int(group.Specs.Replicas)
     }
 
     targetClusters := make(map[string]float32, 0)
