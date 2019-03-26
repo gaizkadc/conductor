@@ -460,8 +460,13 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
         }
     }
 
+    log.Debug().Int("number of cluster to send undeploy", len(clusterIds)).Msg("send undeploy to clusters")
+    if len(clusterIds) == 0 {
+        log.Error().Msg("no clusters found to send undeploy notification")
+        return derrors.NewInternalError(fmt.Sprintf("no clusters found to send undeploy notification for appInstance %s", appInstance.AppInstanceId))
+    }
 
-    for clusterId := range clusterIds{
+    for clusterId,_ := range clusterIds{
 
         clusterHost, found := c.ConnHelper.ClusterReference[clusterId]
         if !found {
