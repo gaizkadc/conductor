@@ -489,7 +489,7 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
         }
     }
 
-    
+
     log.Debug().Int("number of cluster to send undeploy", len(clusterIds)).Msg("send undeploy to clusters")
     if len(clusterIds) == 0 {
         log.Error().Msg("no clusters found to send undeploy notification")
