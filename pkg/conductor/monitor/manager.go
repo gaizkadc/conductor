@@ -163,6 +163,7 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     for _, status := range targetGroup.Metadata.Status {
         if status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupFinalStatus = pbApplication.ServiceStatus_SERVICE_ERROR
+            break
         }
         if groupFinalStatus > status {
             groupFinalStatus = status
@@ -181,6 +182,7 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     for _, g := range instance.Groups {
         if g.Status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupsSummary = pbApplication.ServiceStatus_SERVICE_ERROR
+            break
         }
         if g.Status < groupsSummary {
             groupsSummary = g.Status
