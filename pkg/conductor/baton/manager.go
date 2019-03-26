@@ -333,6 +333,13 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
     // Add this plan to the list of pending entries
     c.PendingPlans.AddPendingPlan(plan)
 
+    // retrieve the application instance and update the cluster ids
+    appInstance, err := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: plan.OrganizationId, AppInstanceId: plan.AppInstanceId})
+    if err != nil {
+        return derrors.NewInternalError("impossible to find application instance before deployment", err)
+    }
+
     for fragmentIndex, fragment := range plan.Fragments {
         log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
         log.Info().Str("deploymentId",fragment.DeploymentId).
@@ -382,6 +389,27 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
             return err
         }
 
+        // update the corresponding cluster id on the resources
+        for _, stage := range fragment.Stages {
+            for _, serv := range stage.Services {
+                // update the cluster for this service
+                for _, groups := range appInstance.Groups {
+                    for _, instServ := range groups.ServiceInstances {
+                        if instServ.ServiceInstanceId == serv.ServiceInstanceId {
+                            instServ.DeployedOnClusterId = fragment.ClusterId
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // update the instance
+    log.Debug().Str("appInstanceId", appInstance.AppInstanceId).Msg("update app instance after deployment")
+    _, err = c.AppClient.UpdateAppInstance(context.Background(), appInstance)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to update application instance after deployment was done")
+        return err
     }
 
     return nil
