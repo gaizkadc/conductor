@@ -182,7 +182,7 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
         if g.Status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupsSummary = pbApplication.ServiceStatus_SERVICE_ERROR
         }
-        if g.Status > groupsSummary {
+        if g.Status < groupsSummary {
             groupsSummary = g.Status
         }
     }

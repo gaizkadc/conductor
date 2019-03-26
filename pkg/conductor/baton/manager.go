@@ -381,6 +381,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
             log.Error().Err(err).Str("deploymentId",fragment.DeploymentId).Msg("problem deploying fragment")
             return err
         }
+
     }
 
     return nil
