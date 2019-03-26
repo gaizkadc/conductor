@@ -3,7 +3,7 @@
 # 
 
 # Name of the target applications to be built
-APPS=conductor conductor-cli musician monitoring
+APPS=conductor musician monitoring
 
 # Use global Makefile for common targets
 export
