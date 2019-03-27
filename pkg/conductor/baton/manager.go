@@ -173,7 +173,6 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
                 Info:           err.Error(),
             }
 
-            // TODO remove any instances for this group
         }
 
         _, errUpdate := client.UpdateAppStatus(context.Background(), &updateRequest)
@@ -254,7 +253,8 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         &pbApplication.AppDescriptorId{AppDescriptorId: appInstance.AppDescriptorId, OrganizationId: appInstance.OrganizationId})
     if err != nil {
         err := derrors.NewNotFoundError("impossible to find application descriptor", err)
-        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId).
+            Msg("application descriptor not found when processing deployment request")
         return err
     }
 

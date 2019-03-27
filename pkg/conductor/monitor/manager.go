@@ -204,7 +204,7 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     }
 
     if scheduledEntries == len(instance.Groups) {
-        groupFinalStatus = pbApplication.ServiceStatus_SERVICE_SCHEDULED
+        groupsSummary = pbApplication.ServiceStatus_SERVICE_SCHEDULED
     }
 
     var finalAppStatus pbApplication.ApplicationStatus
