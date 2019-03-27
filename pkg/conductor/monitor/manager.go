@@ -159,34 +159,52 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     groupFinalStatus := pbApplication.ServiceStatus_SERVICE_RUNNING
     targetGroup.Metadata.Status[update.ServiceInstanceId] = targetService.Status
     targetGroup.Metadata.Info[update.ServiceInstanceId] = targetService.Info
+    scheduledEntries := 0
     // decide the final status for this group
     for _, status := range targetGroup.Metadata.Status {
         if status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupFinalStatus = pbApplication.ServiceStatus_SERVICE_ERROR
             break
         }
-        if groupFinalStatus > status {
-            groupFinalStatus = status
+        if status != pbApplication.ServiceStatus_SERVICE_SCHEDULED {
+            if groupFinalStatus > status {
+                groupFinalStatus = status
+            }
+        } else {
+            scheduledEntries++
         }
     }
+
+    // if all the services are scheduled
+    if scheduledEntries == len(targetGroup.Metadata.Status) {
+        groupFinalStatus = pbApplication.ServiceStatus_SERVICE_SCHEDULED
+    }
+
     if targetGroup.Status != groupFinalStatus {
         log.Debug().Str("groupInstance", targetGroup.ServiceGroupInstanceId).
             Msg(fmt.Sprintf("update service group status from %s ---> %s", targetGroup.Status, groupFinalStatus))
         targetGroup.Status = groupFinalStatus
     }
 
-
-
     // decide the final status for this instance
     groupsSummary := pbApplication.ServiceStatus_SERVICE_RUNNING
+    scheduledEntries = 0
     for _, g := range instance.Groups {
         if g.Status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupsSummary = pbApplication.ServiceStatus_SERVICE_ERROR
             break
         }
-        if g.Status < groupsSummary {
-            groupsSummary = g.Status
+        if g.Status != pbApplication.ServiceStatus_SERVICE_SCHEDULED {
+            if g.Status < groupsSummary {
+                groupsSummary = g.Status
+            }
+        } else {
+            scheduledEntries++
         }
+    }
+
+    if scheduledEntries == len(instance.Groups) {
+        groupFinalStatus = pbApplication.ServiceStatus_SERVICE_SCHEDULED
     }
 
     var finalAppStatus pbApplication.ApplicationStatus
@@ -240,9 +258,6 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
         }
     }
 }
-
-
-
 
 // Execute the corresponding operations for a failed fragment.
 //  params:

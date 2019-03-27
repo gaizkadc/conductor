@@ -299,7 +299,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 
     // 5) deploy fragments
     // Tell deployment managers to execute plans
-    err_deploy := c.DeployPlan(plan, ztNetworkId)
+    err_deploy := c.DeployPlan(plan, ztNetworkId, req.NumRetries)
     if err_deploy != nil {
         err := derrors.NewGenericError("error deploying plan request", err_deploy)
         log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
@@ -329,7 +329,13 @@ func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanc
 }
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
-func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) error {
+// params:
+//  plan to be deployed
+//  ztNetworkId identifier for the zt network to be created
+//  numRetry number of retry of this plan
+// returns:
+//  error if any
+func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, numRetry int32) error {
     // Add this plan to the list of pending entries
     c.PendingPlans.AddPendingPlan(plan)
 
@@ -368,6 +374,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string) 
             Fragment:       fragment.ToGRPC(),
             ZtNetworkId:    ztNetworkId,
             RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE,
+            NumRetry:       numRetry,
         }
 
         client := pbAppClusterApi.NewDeploymentManagerClient(conn)
