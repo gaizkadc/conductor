@@ -176,12 +176,6 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
             // remove one entry
             groupInstances[g.Name] = availableGroupInstances[1:]
 
-            // create the stages corresponding to this group
-            // log.Debug().Str("appDescriptor", app.AppDescriptorId).Str("groupName", g.Name).
-            //    Str("cluster", cluster).Interface("sequences", groupsOrder).
-            //    Interface("groupInstanceToDeploy", localGroupInstance).Msg("create stages for deployment sequence")
-
-
             // this stage must deploy the services following this order
             for _, sequence := range groupsOrder[g.Name] {
                 stage, err := p.buildDeploymentStage(desc, fragmentUUID, localGroupInstance, sequence)

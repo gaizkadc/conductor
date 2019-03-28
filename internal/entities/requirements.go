@@ -46,7 +46,7 @@ type Requirement struct {
     AppInstanceId string `json: "app_instance_id, omitempty"`
     //Groupo service id
     GroupServiceId string `json:"service_id, omitempty"`
-    // Amount of CPU
+    // Amount of CPUNum
     CPU int64 `json:"cpu, omitempty"`
     // Amount of memory
     Memory int64 `json:"memory, omitempty"`

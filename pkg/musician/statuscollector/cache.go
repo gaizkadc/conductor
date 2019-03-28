@@ -29,4 +29,9 @@ type Cache interface {
     //  return:
     //   cache entry
     Get (key string) (*CacheEntry, error)
+
+    // Get all the cached entries
+    // return:
+    //  map with the cached entries
+    GetAll () map[string]CacheEntry
 }

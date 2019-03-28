@@ -161,10 +161,10 @@ var _ = ginkgo.Describe ("Simple scorer functionality with two musicians", func(
             }}
 
             // collector 0 says overload
-            overloaded_status := entities.Status{CPU: 0.87, Mem: 32000, Disk:100}
+            overloaded_status := entities.Status{CPUNum: 0.87, MemFree: 32000, DiskFree:100}
             collectors[0].(*statuscollector.FakeCollector).SetStatus(overloaded_status)
             // collector 1 says free
-            free_status := entities.Status{CPU: 0.10, Mem: 5000, Disk: 200}
+            free_status := entities.Status{CPUNum: 0.10, MemFree: 5000, DiskFree: 200}
             collectors[1].(*statuscollector.FakeCollector).SetStatus(free_status)
 
         })
