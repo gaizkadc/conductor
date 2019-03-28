@@ -12,6 +12,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/baton"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
+    "github.com/nalej/grpc-utils/pkg/conversions"
     "github.com/rs/zerolog/log"
     "errors"
     "fmt"
@@ -111,6 +112,8 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         if found {
             // update the status of this application instance according to this service
             m.updateAppInstanceServiceStatus(instance, update)
+            // update appEndpoint in the system model
+            m.updateAppEndpointInstances(update)
         }
     }
 
@@ -124,6 +127,28 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
 
     return nil
 
+}
+
+// updateAppEndpointInstances calls system-model to update global_fqdn
+func (m *Manager) updateAppEndpointInstances(update *pbConductor.ServiceUpdate) {
+    if update.Endpoints != nil && len(update.Endpoints) > 0 {
+        for _, endpoint := range update.Endpoints {
+            _, err := m.AppClient.AddAppEndpoint(context.Background(), &pbApplication.AddAppEndpointRequest{
+                OrganizationId: update.OrganizationId,
+                AppInstanceId: update.ApplicationInstanceId,
+                ServiceGroupInstanceId: update.ServiceGroupInstanceId,
+                ServiceInstanceId: update.ServiceInstanceId,
+                ServiceName: update.ServiceName,
+                EndpointInstance: endpoint,
+            } )
+            if err != nil {
+                log.Error().Str("error", conversions.ToDerror(err).DebugReport()).Str("serviceInstanceId", update.ServiceInstanceId).
+                    Str("endpointInstanceId", endpoint.EndpointInstanceId).
+                    Msg("impossible to update appEndpointInstance")
+            }
+        }
+
+    }
 }
 
 func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInstance, update *pbConductor.ServiceUpdate) {
