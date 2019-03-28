@@ -47,5 +47,18 @@ func(c *SimpleCache) Get (key string) (*CacheEntry, error) {
         return nil, nil
     }
     return &res, nil
+}
 
+
+// Get all the cached entries
+// return:
+//  map with the cached entries
+func(c *SimpleCache) GetAll () map[string]CacheEntry {
+    c.mux.Lock()
+    defer c.mux.Unlock()
+
+    if len(c.pool) == 0 {
+        return nil
+    }
+    return c.pool
 }

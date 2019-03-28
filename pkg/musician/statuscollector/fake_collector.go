@@ -32,7 +32,7 @@ func (c *FakeCollector) Finalize(killSignal bool) error {
 func (c *FakeCollector) GetStatus() (*entities.Status, error) {
     if c.Status == nil {
         // No status was set, return the basic one.
-        return &entities.Status{CPU:0.1, Mem: 0.2, Disk: 0.3}, nil
+        return &entities.Status{CPUNum: 0.1, MemFree: 0.2, DiskFree: 0.3}, nil
     }
 
     return c.Status,nil

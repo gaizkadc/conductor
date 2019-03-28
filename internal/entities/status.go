@@ -10,7 +10,8 @@ import "time"
 // System Status representation.
 type Status struct {
     Timestamp time.Time `json:"timestamp,omitempty"`
-    Mem float64 `json: "mem,omitempty"`
-    CPU float64 `json: "cpu,omitempty"`
-    Disk float64 `json: "disk,omitempty"`
+    MemFree   float64   `json: "mem_free,omitempty"`
+    CPUNum    float64   `json: "cpu_num,omitempty"`
+    CPUIdle   float64   `json: "cpu_idle,omitempty"`
+    DiskFree  float64   `json: "disk_free,omitempty"`
 }
