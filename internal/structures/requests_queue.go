@@ -6,7 +6,6 @@
 package structures
 
 import (
-    "github.com/phf/go-queue/queue"
     "sync"
     "github.com/nalej/conductor/internal/entities"
 )
@@ -29,6 +28,13 @@ type RequestsQueue interface {
     //   error if any
     PushRequest(req *entities.DeploymentRequest) error
 
+    // Remove the entry with the indicated appInstanceId.
+    // params:
+    //  appInstanceId identifier of the instance to be removed
+    // returns:
+    //  true if removed
+    Remove(appInstanceId string) bool
+
     // Clear the queue
     Clear()
 
@@ -39,14 +45,13 @@ type RequestsQueue interface {
 // Basic queue in memory solution.
 type MemoryRequestQueue struct {
     // queue for incoming messages
-    queue *queue.Queue
+    queue []*entities.DeploymentRequest
     // Mutex for queue operations
     mux sync.RWMutex
 }
 
 func NewMemoryRequestQueue () RequestsQueue {
-    toReturn := MemoryRequestQueue{queue: queue.New()}
-    toReturn.queue.Init()
+    toReturn := MemoryRequestQueue{queue: make([]*entities.DeploymentRequest,0)}
     return &toReturn
 }
 
@@ -54,7 +59,17 @@ func NewMemoryRequestQueue () RequestsQueue {
 func(q *MemoryRequestQueue) NextRequest() *entities.DeploymentRequest {
     q.mux.Lock()
     defer q.mux.Unlock()
-    toReturn := q.queue.PopFront().(*entities.DeploymentRequest)
+    if len(q.queue) == 0 {
+        return nil
+    }
+
+    toReturn := q.queue[0]
+    if len(q.queue)==1 {
+        q.queue=nil
+    } else {
+        q.queue = q.queue[1:]
+    }
+
     return toReturn
 }
 
@@ -62,7 +77,7 @@ func(q *MemoryRequestQueue) NextRequest() *entities.DeploymentRequest {
 func(q *MemoryRequestQueue) AvailableRequests() bool {
     q.mux.RLock()
     defer q.mux.RUnlock()
-    available := q.queue.Len()!=0
+    available := len(q.queue)!=0
     return available
 }
 
@@ -72,18 +87,42 @@ func(q *MemoryRequestQueue) AvailableRequests() bool {
 func (q *MemoryRequestQueue) PushRequest(req *entities.DeploymentRequest) error {
     q.mux.Lock()
     defer q.mux.Unlock()
-    q.queue.PushBack(req)
+    q.queue = append(q.queue,req)
     return nil
 }
 
 func (q *MemoryRequestQueue) Clear() {
     q.mux.Lock()
     defer q.mux.Unlock()
-    q.queue.Init()
+    q.queue = nil
 }
 
 func (q *MemoryRequestQueue) Len() int{
+    q.mux.RLock()
+    defer q.mux.RUnlock()
+    return len(q.queue)
+}
+
+// Remove the entry with the indicated appInstanceId.
+// params:
+//  appInstanceId identifier of the instance to be removed
+// returns:
+//  true if removed
+func (q *MemoryRequestQueue) Remove(appInstanceId string) bool {
     q.mux.Lock()
     defer q.mux.Unlock()
-    return q.queue.Len()
+    targetIndex := -1
+    for i, r := range q.queue {
+        if r.AppInstanceId == appInstanceId {
+            targetIndex = i
+            break
+        }
+    }
+
+    if targetIndex == -1 {
+        return false
+    }
+
+    q.queue = append(q.queue[:targetIndex], q.queue[targetIndex+1:]...)
+    return true
 }

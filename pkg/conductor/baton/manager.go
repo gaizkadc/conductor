@@ -213,6 +213,7 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
         ApplicationId:  req.AppId.AppDescriptorId,
         NumRetries:     0,
         TimeRetry:      nil,
+        AppInstanceId:  instance.AppInstanceId,
     }
     err = c.Queue.PushRequest(&toEnqueue)
     if err != nil {
@@ -464,6 +465,12 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     _, err = c.AppClient.RemoveAppInstance(context.Background(), instID)
     if err != nil{
         log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
+    }
+
+    // Remove from the associated request from the queue
+    removed := c.Queue.Remove(appInstanceId)
+    if !removed {
+        log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
     }
 
     // terminate execution

@@ -77,8 +77,13 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
     if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
         // This fragment is pending
-        m.processFailedFragment(request)
+        newStatus := m.processFailedFragment(request)
+        _, err := m.AppClient.UpdateAppStatus(context.Background(), newStatus)
+        if err != nil {
+           log.Error().Err(err).Msg("problem found when update app status after failed fragment")
+        }
     }
+
 
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
 
@@ -88,7 +93,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
 func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpdateRequest) error {
 
-    log.Debug().Interface("request", request).Msg("monitor received deployment service update")
+    log.Debug().Interface("updateRequest", request).Msg("monitor received deployment service update")
 
     instancesToUpdate := make(map[string]*pbApplication.AppInstance, 0)
 

@@ -68,9 +68,5 @@
    name = "gopkg.in/fsnotify.v1"
 
  [[constraint]]
-    name = "github.com/phf/go-queue"
-    branch = "master"
-
- [[constraint]]
     name = "github.com/google/uuid"
     version = "v1.0.0"
