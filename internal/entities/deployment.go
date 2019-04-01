@@ -67,12 +67,14 @@ func(cds *ClusterDeploymentScore) AddScore(serviceGroupIds []string, score float
 // Objects describing received deployment requests. These objects are designed to be stored into
 // a storage structure such as a queue.
 type DeploymentRequest struct {
-	RequestId      string
-	OrganizationId string
-	ApplicationId  string
-	InstanceId     string
-	NumRetries     int32
-	TimeRetry      *time.Time
+	RequestId      string `json:"request_id,omitempty"`
+	OrganizationId string `json:"organization_id,omitempty"`
+	ApplicationId  string `json:"application_id,omitempty"`
+	InstanceId     string `json:"instance_id,omitempty"`
+	NumRetries     int32  `json:"num_retries,omitempty"`
+	TimeRetry      *time.Time `json:"time_retry,omitempty"`
+	// The AppInstanceId is internally used to link this request with a certain instance
+	AppInstanceId string `json:"app_instance_id,omitempty"`
 }
 
 // Fragment deployment Status definition

@@ -278,14 +278,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:584219e6e873752f446a81bd0b6fb21b897c120a6bddc30b1482c11ca6ee0492"
-  name = "github.com/phf/go-queue"
-  packages = ["queue"]
-  pruneopts = ""
-  revision = "9abe38d0371deb4049011737cbd30e4ba80c673b"
-
-[[projects]]
   digest = "1:6f218995d6a74636cfcab45ce03005371e682b4b9bee0e5eb0ccfd83ef85364f"
   name = "github.com/prometheus/client_golang"
   packages = [
@@ -378,7 +370,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1b519e44bd757fb43766a6150cb488a0bcbf1144ffb1dc33c7f2f7cafac9ad4a"
+  digest = "1:adcb9e84ce154ef1d45851b57c40f8a211db3e36373a65b7c4f10c79b7428718"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -393,15 +385,15 @@
     "trace",
   ]
   pruneopts = ""
-  revision = "63eda1eb0650888965ead1296efd04d0b2b61128"
+  revision = "74de082e2cca95839e88aa0aeee5aadf6ce7710f"
 
 [[projects]]
   branch = "master"
-  digest = "1:919aaa36fe27d6fba3bea8067d0dea806269c45c8e5f329713eef4e2637dc2f4"
+  digest = "1:1b0de777d8ddd63356d5a4d76799ea8f47e811aa9dda85ddc72b2a061c799cc9"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "f49334f85ddcf0f08d7fb6dd7363e9e6d6b777eb"
+  revision = "9eb1bfa1ce65ae8a6ff3114b0aaf9a41a6cf3560"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
@@ -541,7 +533,6 @@
     "github.com/nalej/service",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
-    "github.com/phf/go-queue/queue",
     "github.com/prometheus/client_golang/api",
     "github.com/prometheus/client_golang/api/prometheus/v1",
     "github.com/prometheus/common/model",

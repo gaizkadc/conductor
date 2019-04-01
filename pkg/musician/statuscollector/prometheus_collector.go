@@ -135,8 +135,8 @@ func(coll *PrometheusStatusCollector) Run() error {
             for queryName, query := range coll.prometheusQueries {
                 value, err := coll.client.execQuery(query)
                 if err == nil {
-                    log.Debug().Str("query",queryName).Float64("value", value).
-                        Msgf("%s -> %f",queryName, value)
+                    // log.Debug().Str("query",queryName).Float64("value", value).
+                    //    Msgf("%s -> %f",queryName, value)
                     coll.cached.Put(queryName, float64(value))
                 } else {
                     log.Error().Err(err).Msgf("error when querying %s", queryName)
