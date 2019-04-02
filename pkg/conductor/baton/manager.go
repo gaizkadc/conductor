@@ -158,7 +158,7 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
                 AppInstanceId: req.InstanceId,
                 OrganizationId: req.OrganizationId,
                 Status: pbApplication.ApplicationStatus_DEPLOYMENT_ERROR,
-                Info: "Exceeded number of retries",
+                Info: fmt.Sprintf("Exceeded number of retries. Latest known error: [%v]", err.Error()),
             }
         } else {
             log.Error().Err(err).Str("requestId", req.RequestId).Msg("enqueue again after errors")
@@ -284,9 +284,8 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
 
     if err != nil{
-        err := derrors.NewGenericError("error designing plan for request",err)
         log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
-        return err
+        return derrors.AsError(err,fmt.Sprintf("plan design failed for descriptor %s",err.Error()))
     }
 
     // 4) Create ZT-network with Network manager
