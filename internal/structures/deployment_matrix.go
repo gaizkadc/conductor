@@ -103,7 +103,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
     if len(targetClusters) == 0 {
         // no replicas were set
-        return nil, derrors.NewUnavailableError("no replicas could be allocated")
+        return nil, derrors.NewUnavailableError(fmt.Sprintf("no replicas could be allocated for group %s", group.Name))
     }
 
     // Allocate all the replicas we could find

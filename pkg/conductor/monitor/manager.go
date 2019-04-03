@@ -324,11 +324,17 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
             log.Error().Err(err).Interface("deploymentRequest",plan.DeploymentRequest).Msg("impossible to" +
                 "enqueue the deployment request")
             toReturn.Status = pbApplication.ApplicationStatus_ERROR
-            toReturn.Info = "impossible to queue application after failed deployment"
+            toReturn.Info = "impossible to queue application after failed deployment."
+            if request.Info != "" {
+                toReturn.Info = toReturn.Info + " ["+ request.Info + "]"
+            }
 
         } else {
             toReturn.Status = pbApplication.ApplicationStatus_QUEUED
             toReturn.Info = "app queued after failed deployment"
+            if request.Info != "" {
+                toReturn.Info = toReturn.Info + " ["+ request.Info + "]"
+            }
         }
     } else {
         // no more retries for this request
@@ -336,6 +342,9 @@ func(m *Manager) processFailedFragment(request *pbConductor.DeploymentFragmentUp
             Msg("exceeded number of retries")
         toReturn.Status = pbApplication.ApplicationStatus_ERROR
         toReturn.Info = "exceeded number of retries"
+        if request.Info != "" {
+            toReturn.Info = toReturn.Info + " ["+ request.Info + "]"
+        }
     }
 
     // Undeploy the application
