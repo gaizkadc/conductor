@@ -187,7 +187,7 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
 
 // Push a request into the queue.
 func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
-    log.Debug().Msgf("push request %s", req.RequestId)
+    log.Debug().Interface("request",req).Msg("received deployment request")
     desc, err := c.AppClient.GetAppDescriptor(context.Background(), req.AppId)
     if err!= nil {
         log.Error().Err(err).Msg("error getting application descriptor")
@@ -209,8 +209,8 @@ func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.Depl
     toEnqueue := entities.DeploymentRequest{
         RequestId:      req.RequestId,
         InstanceId:     instance.AppInstanceId,
-        OrganizationId: req.AppId.OrganizationId,
-        ApplicationId:  req.AppId.AppDescriptorId,
+        OrganizationId: instance.OrganizationId,
+        ApplicationId:  instance.AppDescriptorId,
         NumRetries:     0,
         TimeRetry:      nil,
         AppInstanceId:  instance.AppInstanceId,
