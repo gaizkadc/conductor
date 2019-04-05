@@ -329,6 +329,9 @@ func ValidDeploymentRequest(request *pbConductor.DeploymentRequest) derrors.Erro
 	if request.AppId.OrganizationId == "" {
 		return derrors.NewInvalidArgumentError(emptyOrganizationID)
 	}
+	if request.AppId.AppDescriptorId == "" {
+		return derrors.NewInvalidArgumentError(emptyOrganizationID)
+	}
 	return nil
 }
 
