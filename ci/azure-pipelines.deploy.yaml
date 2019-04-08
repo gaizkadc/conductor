@@ -69,7 +69,7 @@ jobs:
   - template: k8s/resources/create.yaml@ci_templates
     parameters:
       kubeconfig: $(kubeconfig)
-      platform: mgntcluster
+      platform: mngtcluster
       dockerRegistry: $(stagingDockerRegistry)
   
   - template: templates/verify_deploy.mngtcluster.yaml
