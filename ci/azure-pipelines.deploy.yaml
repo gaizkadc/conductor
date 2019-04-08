@@ -90,8 +90,9 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceMngt)
 
-  - template: templates/download_artifact.yaml
-    parameters:
+  - task: DownloadPipelineArtifact@1
+    inputs:
+      buildType: 'current'
       downloadPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)
   
   - template: k8s/yaml/namespace.yaml@ci_templates
