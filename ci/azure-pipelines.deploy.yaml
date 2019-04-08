@@ -114,7 +114,7 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceApp)
 
-  - template: templates/delete_resource.appcluster.yaml
+  - template: templates/delete_resources.appcluster.yaml
     parameters:
       kubeconfig: $(kubeconfig)
 
