@@ -114,6 +114,10 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceApp)
 
+  - template: templates/delete_resource.appcluster.yaml
+    parameters:
+      kubeconfig: $(kubeconfig)
+
   - template: k8s/yaml/render.yaml@ci_templates
     parameters:
       namespace: nalej

@@ -1,0 +1,14 @@
+parameters:
+  kubeconfig: "$HOME/.kube/config"
+
+steps:
+  - script: |
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterroles kube-state-metrics
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterroles prometheus
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterroles node-exporter
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterrolebindings kube-state-metrics
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterrolebindings prometheus
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete clusterrolebindings node-exporter
+      kubectl --kubeconfig ${{ parameters.kubeconfig }} delete podsecuritypolicies node-exporter
+    displayName: "Clean up non namespaced resources"
+    condition: always()
