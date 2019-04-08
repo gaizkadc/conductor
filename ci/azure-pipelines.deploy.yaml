@@ -8,7 +8,7 @@ variables:
   - name: componentList
     value: "conductor musician monitoring"
   - name: namespaceMngt
-    value: nngt-$(Build.SourceVersion)-$(Build.BuildId)
+    value: mngt-$(Build.SourceVersion)-$(Build.BuildId)
   - name: namespaceApp
     value: app-$(Build.SourceVersion)-$(Build.BuildId)
   - name: kubeconfig
@@ -90,10 +90,15 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceMngt)
 
+  - script: "rm -rf appcluster mngtcluster"
+    workingDirectory: dist/yaml/$(stagingDockerRegistry)
+    displayName: Clean management cluster YAML files
+
   - task: DownloadPipelineArtifact@1
     inputs:
       buildType: 'current'
       downloadPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)
+    displayName: Download rendered application cluster YAML files
   
   - template: k8s/yaml/namespace.yaml@ci_templates
     parameters:
