@@ -8,9 +8,9 @@ variables:
   - name: componentList
     value: "conductor musician monitoring"
   - name: namespaceMngt
-    value: Mngt-$(Build.SourceVersion)-$(Build.BuildId)
+    value: nngt-$(Build.SourceVersion)-$(Build.BuildId)
   - name: namespaceApp
-    value: App-$(Build.SourceVersion)-$(Build.BuildId)
+    value: app-$(Build.SourceVersion)-$(Build.BuildId)
   - name: kubeconfig
     value: $(Agent.TempDirectory)/ci_kubeconfig.yaml
   - name: authorName
