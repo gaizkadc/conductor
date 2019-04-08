@@ -90,11 +90,9 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceMngt)
 
-  - template: k8s/yaml/render.yaml@ci_templates
+  - template: templates/download_artifact.yaml
     parameters:
-      namespace: "__NPH_NAMESPACE"
-      componentList: $(componentList)
-      dockerRegistry: $(stagingDockerRegistry)
+      downloadPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)
   
   - template: k8s/yaml/namespace.yaml@ci_templates
     parameters:
