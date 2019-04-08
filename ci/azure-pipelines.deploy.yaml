@@ -46,6 +46,14 @@ jobs:
       componentList: $(componentList)
       dockerRegistry: $(stagingDockerRegistry)
 
+  - template: k8s/configmaps/create.yaml@ci_templates
+    parameters:
+      name: cluster-config
+      namespace: "__NPH_NAMESPACE"
+      yamlPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)/appcluster
+      yamlFile: musician.configmap.yaml
+      contents: "{'cluster_id': 'test'}"
+
   - template: k8s/yaml/publish.yaml@ci_templates
     parameters:
       yamlIdentifier: testing
