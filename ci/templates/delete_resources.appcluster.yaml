@@ -12,3 +12,4 @@ steps:
       kubectl --kubeconfig ${{ parameters.kubeconfig }} delete podsecuritypolicies node-exporter
     displayName: "Clean up non namespaced resources"
     condition: always()
+    continueOnError: true

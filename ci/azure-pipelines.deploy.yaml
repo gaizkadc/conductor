@@ -98,6 +98,7 @@ jobs:
     inputs:
       buildType: 'current'
       downloadPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)
+      artifactName: testing-k8sYAMLfiles
     displayName: Download rendered application cluster YAML files
   
   - template: k8s/yaml/namespace.yaml@ci_templates
