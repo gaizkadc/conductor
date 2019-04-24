@@ -186,46 +186,35 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
 }
 
 // Push a request into the queue.
-func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest) (*entities.DeploymentRequest, error){
+func(c *Manager) PushRequest(req *pbConductor.DeploymentRequest)  error{
     log.Debug().Interface("request",req).Msg("received deployment request")
-    desc, err := c.AppClient.GetAppDescriptor(context.Background(), req.AppId)
+    // Get ParameterizedDescriptor
+    desc, err := c.AppClient.GetParametrizedDescriptor(context.Background(), req.AppInstanceId)
     if err!= nil {
         log.Error().Err(err).Msg("error getting application descriptor")
-        return nil,err
-    }
-    // Create new application instance
-    addReq := pbConductor.AddAppInstanceRequest{
-        OrganizationId: desc.OrganizationId,
-        AppDescriptorId: desc.AppDescriptorId,
-        Name: req.Name,
-    }
-    // Add instance, by default this is created with queue status
-    instance,err := c.AppClient.AddAppInstance(context.Background(),&addReq)
-    if err != nil {
-        log.Error().Err(err).Msg("error adding application instance")
-        return nil,err
+        return err
     }
 
     toEnqueue := entities.DeploymentRequest{
         RequestId:      req.RequestId,
-        InstanceId:     instance.AppInstanceId,
-        OrganizationId: instance.OrganizationId,
-        ApplicationId:  instance.AppDescriptorId,
+        InstanceId:     req.AppInstanceId.AppInstanceId,
+        OrganizationId: req.AppInstanceId.OrganizationId,
+        ApplicationId:  desc.AppDescriptorId,
         NumRetries:     0,
         TimeRetry:      nil,
-        AppInstanceId:  instance.AppInstanceId,
+        AppInstanceId:  req.AppInstanceId.AppInstanceId,
     }
     err = c.Queue.PushRequest(&toEnqueue)
     if err != nil {
-        return &toEnqueue,err
+        return err
     }
 
     if err != nil {
-        log.Error().Err(err).Msgf("problems updating application %s",req.AppId)
-        return &toEnqueue, err
+        log.Error().Err(err).Msgf("problems updating application %s",req.AppInstanceId.AppInstanceId)
+        return  err
     }
 
-    return &toEnqueue, nil
+    return nil
 }
 
 func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derrors.Error{
@@ -249,9 +238,9 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     appInstance := entities.NewAppInstanceFromGRPC(retrievedAppInstance)
 
     // 1) collect requirements for the application descriptor
-    // Get the application descriptor
-    appDescriptor, err := c.AppClient.GetAppDescriptor(context.Background(),
-        &pbApplication.AppDescriptorId{AppDescriptorId: appInstance.AppDescriptorId, OrganizationId: appInstance.OrganizationId})
+    // Get the application descriptor (parametrized)
+    appDescriptor, err := c.AppClient.GetParametrizedDescriptor(context.Background(),
+        &pbApplication.AppInstanceId{AppInstanceId: appInstance.AppInstanceId, OrganizationId: appInstance.OrganizationId})
     if err != nil {
         err := derrors.NewNotFoundError("impossible to find application descriptor", err)
         log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId).
@@ -598,7 +587,7 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     go c.expireUnifiedLogging(organizationId, appInstanceId)
       
     // 5) Remove app entry points  
-    _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveEndpointRequest{
+    _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveAppEndpointRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
     })

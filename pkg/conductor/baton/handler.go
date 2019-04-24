@@ -28,7 +28,7 @@ func NewHandler(c *Manager) *Handler {
 }
 
 //Deploy validates and queues a deployment request
-func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentRequest) (*pbConductor.DeploymentResponse, error) {
+func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentRequest) (*pbCommon.Success, error) {
 	log.Debug().Interface("deploymentRequest", request).Msg("Deploy")
 	if err := entities.ValidDeploymentRequest(request); err != nil {
 		return nil, conversions.ToGRPCError(err)
@@ -36,17 +36,12 @@ func (h *Handler) Deploy(ctx context.Context, request *pbConductor.DeploymentReq
 
 	// Enqueue request for later processing
 	log.Debug().Msgf("enqueue request %s", request.RequestId)
-	instance, err := h.c.PushRequest(request)
+	err := h.c.PushRequest(request)
 	if err != nil {
 		return nil, err
 	}
 
-	toReturn := pbConductor.DeploymentResponse{
-		RequestId:     request.RequestId,
-		AppInstanceId: instance.InstanceId,
-		Status:        pbConductor.ApplicationStatus_QUEUED}
-	log.Debug().Interface("deploymentResponse", toReturn).Msg("Response")
-	return &toReturn, nil
+	return  &pbCommon.Success{}, nil
 }
 
 func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployRequest) (*pbCommon.Success, error) {

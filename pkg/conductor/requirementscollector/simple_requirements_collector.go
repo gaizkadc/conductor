@@ -10,7 +10,6 @@ import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/derrors"
     pbApplication "github.com/nalej/grpc-application-go"
-
 )
 
 type SimpleRequirementsCollector struct {}
@@ -20,7 +19,7 @@ func NewSimpleRequirementsCollector() RequirementsCollector {
 }
 
 
-func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplication.AppDescriptor, appInstanceId string) (*entities.Requirements, error) {
+func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplication.ParametrizedDescriptor, appInstanceId string) (*entities.Requirements, error) {
     // Check if we have any service group to deploy
     if len(appDescriptor.Groups) == 0 {
         return nil, derrors.NewFailedPreconditionError("no groups available for this application")

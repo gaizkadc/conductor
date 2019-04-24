@@ -21,6 +21,6 @@ type RequirementsCollector interface {
     //   appInstanceId id of the referenced application instance
     //  return:
     //   requirements or error if any
-    FindRequirements(appDescriptor *pbApplication.AppDescriptor, appInstanceId string) (*entities.Requirements, error)
+    FindRequirements(appDescriptor *pbApplication.ParametrizedDescriptor, appInstanceId string) (*entities.Requirements, error)
 
 }
