@@ -323,14 +323,14 @@ func ValidDeploymentRequest(request *pbConductor.DeploymentRequest) derrors.Erro
 	if request.Name == "" {
 		return derrors.NewInvalidArgumentError(emptyName)
 	}
-	if request.AppId == nil {
+	if request.AppInstanceId == nil {
 		return derrors.NewInvalidArgumentError(emptyAppID)
 	}
-	if request.AppId.OrganizationId == "" {
+	if request.AppInstanceId.OrganizationId == "" {
 		return derrors.NewInvalidArgumentError(emptyOrganizationID)
 	}
-	if request.AppId.AppDescriptorId == "" {
-		return derrors.NewInvalidArgumentError(emptyOrganizationID)
+	if request.AppInstanceId.AppInstanceId == "" {
+		return derrors.NewInvalidArgumentError(emptyAppInstanceID)
 	}
 	return nil
 }

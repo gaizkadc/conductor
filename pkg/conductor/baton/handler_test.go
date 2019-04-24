@@ -7,26 +7,27 @@
 package baton
 
 import (
-    "github.com/nalej/conductor/internal/structures"
-    "github.com/nalej/conductor/pkg/utils"
-    "github.com/onsi/ginkgo"
-    "github.com/onsi/gomega"
-    pbConductor "github.com/nalej/grpc-conductor-go"
-    pbApplication "github.com/nalej/grpc-application-go"
-    pbOrganization "github.com/nalej/grpc-organization-go"
-    "google.golang.org/grpc/test/bufconn"
-    "google.golang.org/grpc"
     "context"
-    "github.com/nalej/grpc-utils/pkg/test"
-    "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/google/uuid"
+    "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
+    "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/nalej/conductor/pkg/utils"
+    pbApplication "github.com/nalej/grpc-application-go"
+    pbConductor "github.com/nalej/grpc-conductor-go"
+    pbOrganization "github.com/nalej/grpc-organization-go"
+    "github.com/nalej/grpc-utils/pkg/test"
+    "github.com/onsi/ginkgo"
+    "github.com/onsi/gomega"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/test/bufconn"
 
     "os"
 )
 
 
-func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient) *pbApplication.AppDescriptor{
+func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient pbApplication.ApplicationsClient) *pbApplication.ParametrizedDescriptor{
     // add an organization
     orgRequest := pbOrganization.AddOrganizationRequest{Name: "org001"}
     resp, err := orgClient.AddOrganization(context.Background(),&orgRequest)
@@ -78,19 +79,22 @@ func InitializeEntries(orgClient pbOrganization.OrganizationsClient, appClient p
     }
 
     // add a desriptor
-    appDescriptor := pbApplication.AddAppDescriptorRequest{
-        RequestId: "req001",
+    appDescriptor := pbApplication.ParametrizedDescriptor{
         Name:"app_descriptor_test",
         OrganizationId: resp.OrganizationId,
+        AppDescriptorId: uuid.New().String(),
+        AppInstanceId: uuid.New().String(),
         EnvironmentVariables: map[string]string{"var1":"var1_value", "var2":"var2_value"},
         Labels: map[string]string{"label1":"label1_value", "label2":"label2_value"},
         ConfigurationOptions: map[string]string{"conf1":"valueconf1", "conf2":"valueconf2"},
         Groups: []*pbApplication.ServiceGroup{&servGroup},
         Rules: []*pbApplication.SecurityRule{&secRule},
     }
-    desc, err := appClient.AddAppDescriptor(context.Background(),&appDescriptor)
+    _, err = appClient.AddParametrizedDescriptor(context.Background(),&appDescriptor)
     gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-    return desc
+
+
+    return &appDescriptor
 
 }
 
@@ -120,7 +124,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
     // Conductor client
     var client pbConductor.ConductorClient
     // Used application descriptor
-    var appDescriptor *pbApplication.AppDescriptor
+    var appDescriptor *pbApplication.ParametrizedDescriptor
 
 
     ginkgo.BeforeSuite(func(){
@@ -185,7 +189,6 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 
     ginkgo.Context("The queue is empty and a new request arrives", func() {
         var request pbConductor.DeploymentRequest
-        var response pbConductor.DeploymentResponse
 
         ginkgo.BeforeEach(func() {
             if !isReady {
@@ -193,13 +196,9 @@ var _ = ginkgo.Describe("Deployment server API", func() {
             }
             request = pbConductor.DeploymentRequest{
                 RequestId: "myrequestId",
-                AppId: &pbApplication.AppDescriptorId{OrganizationId:appDescriptor.OrganizationId,AppDescriptorId: appDescriptor.AppDescriptorId},
-                Description: "A single description",
+                AppInstanceId: &pbApplication.AppInstanceId{OrganizationId:appDescriptor.OrganizationId,AppInstanceId: appDescriptor.AppInstanceId},
                 Name: "A testing application",
             }
-            response = pbConductor.DeploymentResponse{
-                RequestId: "myrequestId",
-                Status: pbApplication.ApplicationStatus_QUEUED}
         })
 
 
@@ -208,9 +207,9 @@ var _ = ginkgo.Describe("Deployment server API", func() {
                 ginkgo.Skip("Integration environment was not set")
             }
 
-            resp, err := client.Deploy(context.Background(), &request)
+            success, err := client.Deploy(context.Background(), &request)
             //gomega.Expect(resp.String()).To(gomega.Equal(response.String()))
-            gomega.Expect(resp.RequestId).To(gomega.Equal(response.RequestId))
+            gomega.Expect(success).NotTo(gomega.BeNil())
             gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
         })
     })
