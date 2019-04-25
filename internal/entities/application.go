@@ -1015,6 +1015,26 @@ type AppDescriptor struct {
 	Groups []ServiceGroup `json:"groups,omitempty"`
 }
 
+type ParametrizedDescriptor struct {
+	// OrganizationId with the organization identifier.
+	OrganizationId string `json:"organization_id,omitempty"`
+	// AppDescriptorId with the application descriptor identifier.
+	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
+	// Name of the application.
+	Name string `json:"name,omitempty"`
+	// ConfigurationOptions defines a key-value map of configuration options.
+	ConfigurationOptions map[string]string `json:"configuration_options,omitempty"`
+	// EnvironmentVariables defines a key-value map of environment variables and values that will be passed to all
+	// running services.
+	EnvironmentVariables map[string]string `json:"environment_variables,omitempty"`
+	// Labels defined by the user.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Rules that define the connectivity between the elements of an application.
+	Rules []SecurityRule `json:"rules,omitempty"`
+	// Groups with the Service collocation strategies.
+	Groups []ServiceGroup `json:"groups,omitempty"`
+}
+
 func NewAppDescriptor(organizationID string, appDescriptorID string, name string,
 	configOptions map[string]string, envVars map[string]string,
 	labels map[string]string, rules []SecurityRule, groups []ServiceGroup) *AppDescriptor {
@@ -1054,6 +1074,27 @@ func (d *AppDescriptor) ToGRPC() *grpc_application_go.AppDescriptor {
 }
 
 func NewAppDescriptorFromGRPC(app *grpc_application_go.AppDescriptor) AppDescriptor {
+	groups := make([]ServiceGroup,0)
+	for _, g := range app.Groups {
+		groups = append(groups, NewServiceGroupFromGRPC(g))
+	}
+	rules := make([]SecurityRule,0)
+	for _, r := range app.Rules {
+		rules = append(rules, NewSecurityRuleFromGRPC(r))
+	}
+	return AppDescriptor{
+		OrganizationId: app.OrganizationId,
+		AppDescriptorId: app.AppDescriptorId,
+		Labels: app.Labels,
+		EnvironmentVariables: app.EnvironmentVariables,
+		ConfigurationOptions: app.ConfigurationOptions,
+		Name: app.Name,
+		Groups: groups,
+		Rules: rules,
+	}
+}
+
+func NewParametrizedDescriptorFromGRPC(app *grpc_application_go.ParametrizedDescriptor) AppDescriptor {
 	groups := make([]ServiceGroup,0)
 	for _, g := range app.Groups {
 		groups = append(groups, NewServiceGroupFromGRPC(g))

@@ -49,8 +49,8 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
 score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
 
     // Build deployment stages for the application
-    retrievedDesc,err :=p.appClient.GetAppDescriptor(context.Background(),
-        &pbApplication.AppDescriptorId{OrganizationId: app.OrganizationId, AppDescriptorId: app.AppDescriptorId})
+    retrievedDesc,err :=p.appClient.GetParametrizedDescriptor(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: app.OrganizationId, AppInstanceId: app.AppInstanceId})
     if err!=nil{
         theErr := derrors.NewGenericError("error recovering application instance", err)
         log.Error().Err(theErr).Msg("error recovering application instance")
@@ -67,7 +67,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     }
 
     // Get a local representation of the object
-    toDeploy := entities.NewAppDescriptorFromGRPC(retrievedDesc)
+    toDeploy := entities.NewParametrizedDescriptorFromGRPC(retrievedDesc)
 
     planId := uuid.New().String()
     log.Info().Str("planId",planId).Msg("start building the plan")
@@ -121,7 +121,6 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     }
 
     fragments, err := p.buildFragmentsPerCluster(toDeploy,clustersMap, app, groupsOrder, groupInstances, planId, org)
-
 
     if err != nil {
         log.Error().Err(err).Msg("impossible to build deployment fragments")
