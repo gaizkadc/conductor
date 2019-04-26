@@ -455,6 +455,12 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
     }
 
+    // TODO: see if this method could be moved to application manager ( app-manager is responsible for creating it)
+    _, err = c.AppClient.RemoveParametrizedDescriptor(context.Background(), instID)
+    if err != nil{
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove paretrized descriptor from system model")
+    }
+
     // Remove from the associated request from the queue
     removed := c.Queue.Remove(appInstanceId)
     if !removed {
