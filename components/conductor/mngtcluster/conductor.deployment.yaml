@@ -36,6 +36,7 @@ spec:
           - "--networkManagerAddress=network-manager.__NPH_NAMESPACE:8000"
           - "--authxAddress=authx.__NPH_NAMESPACE:8810"
           - "--unifiedLogging=unified-logging-coord.__NPH_NAMESPACE:8323"
+          - "--queueAddress=broker.__NPH_NAMESPACE:6650"
         ports:
         - name: api-port
           containerPort: 5000

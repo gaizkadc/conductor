@@ -35,3 +35,5 @@ var NETWORKING_SERVICE_PORT uint32 = 8000
 var AUTHX_PORT uint32 = 8010
 // Standard unifiedLogging port
 var UNIFIED_LOGGING_PORT = 8323
+// Standard port for the message queue solution
+var QUEUE_PORT = 6650
