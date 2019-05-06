@@ -17,8 +17,8 @@ import (
 type ApplicationOpsHandler struct {
     // reference baton
     baton *baton.Manager
-    // configuration for this queue
-    conf *ops.ConfigApplicationOpsConsumer
+    // consumer for this queue
+    cons *ops.ApplicationOpsConsumer
 
 }
 
@@ -28,8 +28,8 @@ type ApplicationOpsHandler struct {
 //  consumer to get entries from the queue
 // return:
 //  instance of an application ops queue
-func NewApplicationOpsHandler(baton *baton.Manager, conf *ops.ConfigApplicationOpsConsumer) ApplicationOpsHandler {
-    return ApplicationOpsHandler{baton: baton, conf: conf}
+func NewApplicationOpsHandler(baton *baton.Manager, cons *ops.ApplicationOpsConsumer) ApplicationOpsHandler {
+    return ApplicationOpsHandler{baton: baton, cons: cons}
 }
 
 
@@ -37,12 +37,25 @@ func NewApplicationOpsHandler(baton *baton.Manager, conf *ops.ConfigApplicationO
 func(h ApplicationOpsHandler) Run() {
     go h.consumeDeploymentRequest()
     go h.consumeUndeployRequest()
+    go h.waitRequests()
+}
+
+// Endless loop waiting for requests
+func (h ApplicationOpsHandler) waitRequests() {
+    for {
+        // in every iteration this loop consumes data and sends it to the corresponding channels
+        log.Debug().Msg("wait for requests to be received by the application ops queue")
+        err := h.cons.Consume()
+        if err != nil {
+            log.Error().Err(err).Msg("error consuming data from application ops")
+        }
+    }
 }
 
 func(h ApplicationOpsHandler) consumeDeploymentRequest () {
     log.Debug().Msg("waiting for deployment requests...")
     for {
-        received := <- h.conf.ChDeploymentRequest
+        received := <- h.cons.Config.ChDeploymentRequest
         log.Debug().Interface("deploymentRequest", received).Msg("<- incoming deployment request")
         err := h.baton.PushRequest(received)
         if err != nil {
@@ -54,7 +67,7 @@ func(h ApplicationOpsHandler) consumeDeploymentRequest () {
 func(h ApplicationOpsHandler) consumeUndeployRequest () {
     log.Debug().Msg("waiting for undeploy requests...")
     for {
-        received := <- h.conf.ChUndeployRequest
+        received := <- h.cons.Config.ChUndeployRequest
         log.Debug().Interface("undeployRequest", received).Msg("<- incoming undeploy request")
         aux := entities.UndeployRequest{OrganizationId: received.OrganizationId, AppInstanceId: received.AppInstanceId}
         err := h.baton.Undeploy(&aux)

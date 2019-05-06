@@ -248,7 +248,7 @@ func(c *ConductorService) Run() {
     reflection.Register(c.server.Server)
 
     log.Info().Msg("run application ops handler...")
-    appOpsQueue := queue.NewApplicationOpsHandler(c.conductor, &c.appOpsConsumer.Config)
+    appOpsQueue := queue.NewApplicationOpsHandler(c.conductor, c.appOpsConsumer)
     appOpsQueue.Run()
     log.Info().Msg("done")
 
