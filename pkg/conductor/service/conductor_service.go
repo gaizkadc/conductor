@@ -169,17 +169,15 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
 
     // Instantiate pulsar client
-    log.Info().Str("address", config.QueueURL).Msg("instantiate pulsar comcast client...")
-
-    log.Info().Msg("done")
-
+    log.Info().Str("address", config.QueueURL).Msg("instantiate pulsar comcast client")
     // Instantiate message queue clients
     log.Info().Msg("initialize message queue client...")
     pulsarClient := pulsar_comcast.NewClient(config.QueueURL)
     log.Info().Msg("done")
 
     log.Info().Msg("initialize application ops client...")
-    appOpsConfig := queueAppOps.NewConfigApplicationOpsConsumer(1)
+    appOpsConfig := queueAppOps.NewConfigApplicationOpsConsumer(1,
+        queueAppOps.ConsumableStructsApplicationOpsConsumer{true, true})
     appsOps,err := queueAppOps.NewApplicationOpsConsumer(pulsarClient, "conductor-app-ops", true, appOpsConfig)
     if err != nil {
         log.Panic().Err(err).Msg("impossible to initialize application ops queue client")
