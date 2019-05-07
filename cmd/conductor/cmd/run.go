@@ -44,6 +44,8 @@ func init() {
     runCmd.Flags().Bool("skipCAValidation", true, "Skip CA authentication validation")
     runCmd.Flags().StringP("unifiedLogging", "u",fmt.Sprintf("localhost:%d",utils.UNIFIED_LOGGING_PORT),
         "host:port address for unifiedLogging")
+    runCmd.Flags().StringP("queueAddress", "q", fmt.Sprintf("localhost:%d", utils.QUEUE_PORT),
+        "host:port address for the Nalej management queue")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -68,6 +70,8 @@ func RunConductor() {
     var authxService string
     // Unified Logging url
     var unifiedLoggingService string
+    // Queue url
+    var queueAddress string
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
@@ -78,6 +82,7 @@ func RunConductor() {
     caCertPath = viper.GetString("caCertPath")
     skipCAValidation = viper.GetBool("skipCAValidation")
     unifiedLoggingService = viper.GetString("unifiedLogging")
+    queueAddress = viper.GetString("queueAddress")
 
 
     log.Info().Msg("launching conductor...")
@@ -93,6 +98,7 @@ func RunConductor() {
         SkipCAValidation: skipCAValidation,
         AuthxURL:authxService,
         UnifiedLoggingURL:unifiedLoggingService,
+        QueueURL: queueAddress,
     }
     config.Print()
 

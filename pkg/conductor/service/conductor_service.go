@@ -13,11 +13,15 @@ import (
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
+
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/monitor"
+    "github.com/nalej/conductor/pkg/conductor/queue"
+    "github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast"
+    queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
     "net"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
@@ -41,8 +45,10 @@ type ConductorConfig struct {
     SkipCAValidation bool
     // URL where authx client is available
     AuthxURL string
-    //UnifiedLogging client is available
+    // UnifiedLogging client is available
     UnifiedLoggingURL string
+    // Queue service
+    QueueURL string
 }
 
 func (conf * ConductorConfig) Print() {
@@ -51,6 +57,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Str("NetworkingServiceURL", conf.NetworkingServiceURL).Msg("Networking service URL")
     log.Info().Str("AuthxURL", conf.AuthxURL).Msg("Authx service URL")
     log.Info().Str("UnifiedLoggingURL", conf.UnifiedLoggingURL).Msg("UnifiedLogging service URL")
+    log.Info().Str("QueueURL", conf.QueueURL).Msg("Queue service URL")
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
 }
@@ -67,6 +74,8 @@ type ConductorService struct {
     connections *tools.ConnectionsMap
     // Configuration object
     configuration *ConductorConfig
+    // Application ops consumer
+    appOpsConsumer *queueAppOps.ApplicationOpsConsumer
 }
 
 
@@ -79,6 +88,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipCAValidation)
 
     // Initialize connections pool with system model
+    log.Info().Msg("initialize system model client...")
     smPool := connectionsHelper.GetSystemModelClients()
     host, port, err := net.SplitHostPort(config.SystemModelURL)
     if err != nil {
@@ -95,8 +105,10 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         log.Error().Err(err).Msg("error creating connection with system model")
         return nil, err
     }
+    log.Info().Msg("done")
 
     // Initialize connections pool with networking client
+    log.Info().Msg("initialize network client...")
     cnPool := connectionsHelper.GetNetworkingClients()
 
     netHost, netPort, err := net.SplitHostPort(config.NetworkingServiceURL)
@@ -114,8 +126,10 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         log.Error().Err(err).Msg("error creating connection with system model")
         return nil, err
     }
+    log.Info().Msg("done")
 
     // Initialize connections pool with authx client
+    log.Info().Msg("initialize authx client...")
     authxPool := connectionsHelper.GetAuthxClients()
     authxHost, authxPort, err := net.SplitHostPort(config.AuthxURL)
     if err != nil {
@@ -132,7 +146,10 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         log.Error().Err(err).Msg("error creating connection with authx")
         return nil, err
     }
+    log.Info().Msg("done")
 
+    // Initialize unified logging service
+    log.Info().Msg("initialize unified logging client...")
     uLoggingPool := connectionsHelper.GetUnifiedLoggingClients()
     uLoggingHost, uLogginPort, err := net.SplitHostPort(config.UnifiedLoggingURL)
     if err != nil {
@@ -148,8 +165,27 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
         log.Error().Err(err).Msg("error creating connection with unified logging")
         return nil, err
     }
+    log.Info().Msg("done")
 
 
+    // Instantiate pulsar client
+    log.Info().Str("address", config.QueueURL).Msg("instantiate pulsar comcast client")
+    // Instantiate message queue clients
+    log.Info().Msg("initialize message queue client...")
+    pulsarClient := pulsar_comcast.NewClient(config.QueueURL)
+    log.Info().Msg("done")
+
+    log.Info().Msg("initialize application ops client...")
+    appOpsConfig := queueAppOps.NewConfigApplicationOpsConsumer(1,
+        queueAppOps.ConsumableStructsApplicationOpsConsumer{true, true})
+    appsOps,err := queueAppOps.NewApplicationOpsConsumer(pulsarClient, "conductor-app-ops", true, appOpsConfig)
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to initialize application ops queue client")
+    }
+    log.Info().Msg("done")
+
+
+    // TODO replace this memory queue by the system queue solution
     log.Info().Msg("instantiate local queue in memory...")
     q := structures.NewMemoryRequestQueue()
     log.Info().Msg("done")
@@ -159,7 +195,6 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     scr := scorer.NewSimpleScorer(connectionsHelper)
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
 
-    //designer := plandesigner.NewSimplePlanDesigner(connectionsHelper)
     designer := plandesigner.NewSimpleReplicaPlanDesigner(connectionsHelper)
 
     batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans)
@@ -180,7 +215,8 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
                                 monitor: monitorMgr,
                                 server: conductorServer,
                                 connections: connectionsHelper.GetClusterClients(),
-                                configuration: config}
+                                configuration: config,
+                                appOpsConsumer: appsOps}
 
 
 
@@ -208,6 +244,12 @@ func(c *ConductorService) Run() {
 
     // Register reflection service on gRPC server.
     reflection.Register(c.server.Server)
+
+    log.Info().Msg("run application ops handler...")
+    appOpsQueue := queue.NewApplicationOpsHandler(c.conductor, c.appOpsConsumer)
+    appOpsQueue.Run()
+    log.Info().Msg("done")
+
 
     // Launch the main deployment manager in a separate routine
     go c.conductor.Run()
