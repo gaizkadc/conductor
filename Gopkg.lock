@@ -259,7 +259,7 @@
 
 [[projects]]
   branch = "feature/NP-1264_application_ops_wrapper"
-  digest = "1:bde4712e29009d1024578b9aad0861351fab981d3ee7429775969b60114f7660"
+  digest = "1:a49db2654df363ac3b9d2e5f1f78a20ae39ee1d30f53ef5996f0231706c9a703"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -268,7 +268,7 @@
     "pkg/queue/application/ops",
   ]
   pruneopts = ""
-  revision = "3880ec251d5a03e1bf3f71012c15470df7489340"
+  revision = "4ee6bdc15178634de0e83e2cea3d68259d76ad56"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -446,11 +446,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:67a6e61e60283fd7dce50eba228080bff8805d9d69b2f121d7ec2260d120c4a8"
+  digest = "1:c83d1e034ab1f1cc75a5475bd2475da6cbc193b30fd617b77b63eadcba65d379"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "ca7f33d4116e3a1f9425755d6a44e7ed9b4c97df"
+  revision = "2953c62de483abe29031e197e72d3b7061f65f91"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"

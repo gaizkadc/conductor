@@ -6,11 +6,16 @@
 package queue
 
 import (
+    "context"
     "github.com/nalej/conductor/pkg/conductor/baton"
     "github.com/nalej/nalej-bus/pkg/queue/application/ops"
     "github.com/nalej/conductor/internal/entities"
     "github.com/rs/zerolog/log"
+    "time"
 )
+
+// Timeout between incoming messages
+const ApplicationOpsTimeout = time.Minute * 15
 
 // Control incoming requests for the application ops topic
 
@@ -42,12 +47,22 @@ func(h ApplicationOpsHandler) Run() {
 
 // Endless loop waiting for requests
 func (h ApplicationOpsHandler) waitRequests() {
+    log.Debug().Msg("wait for requests to be received by the application ops queue")
     for {
+        ctx, cancel := context.WithTimeout(context.Background(), ApplicationOpsTimeout)
         // in every iteration this loop consumes data and sends it to the corresponding channels
-        log.Debug().Msg("wait for requests to be received by the application ops queue")
-        err := h.cons.Consume()
-        if err != nil {
-            log.Error().Err(err).Msg("error consuming data from application ops")
+        currentTime := time.Now()
+        err := h.cons.Consume(ctx)
+        cancel()
+        select {
+        case <- ctx.Done():
+            // the timeout was reached
+            log.Debug().Msgf("no message received since %s",currentTime.Format(time.RFC3339))
+        default:
+            // we received something or an error
+            if err != nil {
+                log.Error().Err(err).Msg("error consuming data from application ops")
+            }
         }
     }
 }
