@@ -335,12 +335,30 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
         return derrors.NewInternalError("impossible to find application instance before deployment", err)
     }
 
+    // before sending the deployment plan we check that all the involved clusters are ready
+    for _, fragment := range plan.Fragments{
+        targetCluster, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
+        if !found {
+            msg := fmt.Sprintf("unknown target address for cluster with id %s", fragment.ClusterId)
+            err := errors.New(msg)
+            log.Error().Msgf(msg)
+            return err
+        }
+        if targetCluster.Cordon {
+            msg := fmt.Sprintf("the cluster %s with address %s is cordoned", fragment.ClusterId, targetCluster.Hostname)
+            err := errors.New(msg)
+            log.Error().Str("clusterId", fragment.ClusterId).Msg(msg)
+            return err
+        }
+    }
+
+    // time to deploy
     for fragmentIndex, fragment := range plan.Fragments {
         log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
         log.Info().Str("deploymentId",fragment.DeploymentId).
             Msgf("start fragment %s deployment with %d out of %d fragments", fragment.DeploymentId, fragmentIndex+1, len(plan.Fragments))
 
-        targetHostname, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
+        targetCluster, found := c.ConnHelper.ClusterReference[fragment.ClusterId]
         if !found {
             msg := fmt.Sprintf("unknown target address for cluster with id %s", fragment.ClusterId)
             err := errors.New(msg)
@@ -348,7 +366,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
             return err
         }
 
-        clusterAddress := fmt.Sprintf("%s:%d", targetHostname, utils.APP_CLUSTER_API_PORT)
+        clusterAddress := fmt.Sprintf("%s:%d", targetCluster.Hostname, utils.APP_CLUSTER_API_PORT)
         log.Debug().Str("clusterAddress", clusterAddress).Msg("Deploying plan")
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
 
@@ -505,19 +523,19 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
 
     for clusterId,_ := range clusterIds{
 
-        clusterHost, found := c.ConnHelper.ClusterReference[clusterId]
+        clusterEntry, found := c.ConnHelper.ClusterReference[clusterId]
         if !found {
-            log.Error().Str("clusterId",clusterId).Str("clusterHost",clusterHost).Msg("unknown clusterHost for the clusterId")
+            log.Error().Str("clusterId",clusterId).Str("clusterHost",clusterEntry.Hostname).Msg("unknown clusterHost for the clusterId")
             return errors.New(fmt.Sprintf("unknown host for cluster id %s", clusterId))
         }
 
-        log.Debug().Str("clusterId", clusterId).Str("clusterHost", clusterHost).Msg("conductor query deployment-manager cluster")
+        log.Debug().Str("clusterId", clusterId).Str("clusterHost", clusterEntry.Hostname).Msg("conductor query deployment-manager cluster")
 
 
-        clusterAddress := fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT)
+        clusterAddress := fmt.Sprintf("%s:%d",clusterEntry.Hostname,utils.APP_CLUSTER_API_PORT)
         conn, err := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
         if err != nil {
-            log.Error().Err(err).Str("clusterHost", clusterHost).Msg("impossible to get connection for the host")
+            log.Error().Err(err).Str("clusterHost", clusterEntry.Hostname).Msg("impossible to get connection for the host")
             return err
         }
 

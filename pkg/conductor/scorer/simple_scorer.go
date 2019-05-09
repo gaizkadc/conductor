@@ -98,18 +98,22 @@ func (s SimpleScorer) collectScores(organizationId string, requirements *entitie
 
     found_scores := 0
 
-    for clusterId, clusterHost := range s.connHelper.ClusterReference {
+    for clusterId, clusterEntry := range s.connHelper.ClusterReference {
+        if clusterEntry.Cordon {
+            log.Debug().Str("clusterId", clusterId).Msg("skip scoring this cluster because it is cordoned")
+            continue
+        }
 
         // Check what requests can be sent to this cluster
         requestsToSend := s.findRequirementsCluster(organizationId, clusterId, requirements)
         if requestsToSend != nil {
             // there is something to send
 
-            log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterHost)
+            log.Debug().Msgf("conductor query musician cluster %s at %s", clusterId, clusterEntry.Hostname)
 
-            conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d",clusterHost,utils.APP_CLUSTER_API_PORT))
+            conn, err := s.musicians.GetConnection(fmt.Sprintf("%s:%d", clusterEntry.Hostname,utils.APP_CLUSTER_API_PORT))
             if err != nil {
-                log.Error().Err(err).Msgf("impossible to get connection for %s",clusterHost)
+                log.Error().Err(err).Msgf("impossible to get connection for %s", clusterEntry.Hostname)
             }
 
             c := pbAppClusterApi.NewMusicianClient(conn)
