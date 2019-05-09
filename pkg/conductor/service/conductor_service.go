@@ -22,6 +22,7 @@ import (
     "github.com/nalej/conductor/pkg/conductor/queue"
     "github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast"
     queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
+    queueInfrOps "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops"
     "net"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
@@ -76,6 +77,8 @@ type ConductorService struct {
     configuration *ConductorConfig
     // Application ops consumer
     appOpsConsumer *queueAppOps.ApplicationOpsConsumer
+    // infrastructure ops consumer
+    infOpsConsumer *queueInfrOps.InfrastructureOpsConsumer
 }
 
 
@@ -184,6 +187,15 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     }
     log.Info().Msg("done")
 
+    log.Info().Msg("initialize infrastructure ops client...")
+    infrOpsConfig := queueInfrOps.NewConfigInfrastructureOpsConsumer(1,
+        queueInfrOps.ConsumableStructsInfrastructureOpsConsumer{DrainRequest: true})
+    infrOps, err := queueInfrOps.NewInfrastructureOpsConsumer(pulsarClient, "conductor-infr-ops", true, infrOpsConfig)
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to initialize infrastructure ops queue client")
+    }
+    log.Info().Msg("done")
+
 
     // TODO replace this memory queue by the system queue solution
     log.Info().Msg("instantiate local queue in memory...")
@@ -216,8 +228,9 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
                                 server: conductorServer,
                                 connections: connectionsHelper.GetClusterClients(),
                                 configuration: config,
-                                appOpsConsumer: appsOps}
-
+                                appOpsConsumer: appsOps,
+                                infOpsConsumer: infrOps,
+    }
 
 
     return &instance, nil
@@ -248,6 +261,11 @@ func(c *ConductorService) Run() {
     log.Info().Msg("run application ops handler...")
     appOpsQueue := queue.NewApplicationOpsHandler(c.conductor, c.appOpsConsumer)
     appOpsQueue.Run()
+    log.Info().Msg("done")
+
+    log.Info().Msg("run infrastructure ops handler...")
+    infrOpsQueue := queue.NewInfrastructureOpsHandler(c.conductor, c.infOpsConsumer)
+    infrOpsQueue.Run()
     log.Info().Msg("done")
 
 
