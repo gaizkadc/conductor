@@ -274,7 +274,8 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
     clusters := h.GetClusterClients()
 
     for _, cluster := range clusterList.Clusters {
-        if cluster.Status == pbInfrastructure.InfraStatus_RUNNING {
+        // The cluster is running and is not in cordon status
+        if cluster.Status == pbInfrastructure.InfraStatus_RUNNING && !cluster.Cordon {
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
             log.Debug().Str("clusterId", cluster.ClusterId).Str("hostname", cluster.Hostname).Str("targetHostname", targetHostname).Msg("add connection to cluster")
             h.ClusterReference[cluster.ClusterId] = targetHostname
