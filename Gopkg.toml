@@ -21,6 +21,7 @@
 
 [[constraint]]
     name="github.com/nalej/nalej-bus"
+    branch="master"
 
 [[constraint]]
     name="github.com/nalej/grpc-utils"
