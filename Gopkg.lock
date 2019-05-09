@@ -126,12 +126,12 @@
   version = "v0.0.15"
 
 [[projects]]
-  digest = "1:9066555014995d4d3e0550d8ed2a5fa72861316b37faebc2d4ab0fa2e04de78a"
+  digest = "1:8d852fd57bffaebb0f72410c671b4b2ee45736f92aaa0f9fc0f8ceb1b52dcbb7"
   name = "github.com/nalej/grpc-application-go"
   packages = ["."]
   pruneopts = ""
-  revision = "4a2436533e5eff49040c92ae682bfb1a9548c257"
-  version = "v0.0.71"
+  revision = "8a562f11b2e73e5e20b4ba984fff9d1fd5af777c"
+  version = "v0.0.76"
 
 [[projects]]
   digest = "1:f1933a3cd0406660bf6833f534b581777c83ef6724729bcec681c6c8552dd4ed"
@@ -142,12 +142,12 @@
   version = "v0.0.44"
 
 [[projects]]
-  digest = "1:c64e8299f942d00785d7129c4a2b65d319924d0e4b323bcc1e7be0a151c296bb"
+  digest = "1:9667308b8468dcecd6c4637c14e8f3838b6237995bb32f9d41ddc2b3a031767f"
   name = "github.com/nalej/grpc-bus-go"
   packages = ["."]
   pruneopts = ""
-  revision = "49a94e06cf3a2e091dddd7b1f12d06b58953a927"
-  version = "v0.0.1"
+  revision = "ee822b3ffb37a9e72c80656e51d77698d67f93f6"
+  version = "v0.0.3"
 
 [[projects]]
   digest = "1:44f7426538411ea9f774f96e3b102decc9f549b188e55e29ecc15be69542a96b"
@@ -158,12 +158,12 @@
   version = "v0.0.30"
 
 [[projects]]
-  digest = "1:1c4e0c8d913747fefcff6c15151bbb30cad22a122b9cf723a04621b20ac3753b"
+  digest = "1:15fe5524a80d9c12c94880bdee65138a41e46bef0ddc16af5d1045b916fc835f"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "78140c187266b77930cde36206fd5098bd894284"
-  version = "v0.0.89"
+  revision = "4ca36f8c4967094d15e2f30f7b4b3c9df7aa0f9a"
+  version = "v0.0.90"
 
 [[projects]]
   digest = "1:5f5bea40cacea90b0ac53d2eb19516d45c321aca19a78b23cb8f189094773de5"
@@ -182,12 +182,12 @@
   version = "v0.0.34"
 
 [[projects]]
-  digest = "1:3a46d87ce92d975820994f1bc3e3c47cbd948e8af376e7966b49901a125bf081"
+  digest = "1:45793a945f1c3fadb8ac997ce0056a790fe626c221792f849ca71b86aa1a96f2"
   name = "github.com/nalej/grpc-infrastructure-go"
   packages = ["."]
   pruneopts = ""
-  revision = "3e7e897e7f99ec685967a0b2fd731f71586e2d1f"
-  version = "v0.0.34"
+  revision = "670c43c3cba1eceadd539001c57a23b0e3791637"
+  version = "v0.0.37"
 
 [[projects]]
   digest = "1:6bbca7d893e45448d94e677f49b6dddd710afc2866408f8109a7313f36ed221d"
@@ -206,12 +206,12 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:c7de415441ba97ec2dd8a2545db64a8162c3fc0a13d54d4d79a112ffa80e8acf"
+  digest = "1:4df7812b3e684f3ddaa3c829611f4ad64a40c867fecfe08791a4acd8bcbe18bf"
   name = "github.com/nalej/grpc-inventory-manager-go"
   packages = ["."]
   pruneopts = ""
-  revision = "d2f1b6d39febd7db926a82fe6475455bd67945b9"
-  version = "v0.0.8"
+  revision = "c7e08087ed8b249965674ca8872643a5d85035a1"
+  version = "v0.0.9"
 
 [[projects]]
   digest = "1:031b9144b9c2321b929d898bd6b335c93288d3fa4f4ea85f1a00d48d437b2334"
@@ -258,17 +258,18 @@
   version = "v1.3.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:3f5438c72e41cb472d80490c3e4d2b46eabe9e0582b3c31ec75221c8eda654b2"
+  branch = "feature/NP-1312_add_drain_request_message"
+  digest = "1:03d156344ae2e82e7da09292afa755afe96e0067416f10dad998fb3bd1171072"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
     "pkg/bus/pulsar-comcast",
     "pkg/queue",
     "pkg/queue/application/ops",
+    "pkg/queue/infrastructure/ops",
   ]
   pruneopts = ""
-  revision = "80152f7489f35e6e3b33218ad45df353ffac2998"
+  revision = "8a8dcbf07f2a5db3f4afb6b36ff31b3e21f5e968"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -347,11 +348,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5a35af71470494941b8f7394999d6983e1700dce8750e014e5ef74a34e11bea2"
+  digest = "1:acd87a73c6a6f2d61ad04822d68b233a5c12f5b72aef3db0985f90680e9ae8f0"
   name = "github.com/prometheus/common"
   packages = ["model"]
   pruneopts = ""
-  revision = "c873fb1f9420b83ee703b4361c61183b4619f74d"
+  revision = "1ba88736f028e37bc17328369e94a537ae9e0234"
 
 [[projects]]
   digest = "1:3b6d6b1b349b7a4e3325572853b9e1f95b7f87950be55ae3317f8c91fb878d00"
@@ -446,11 +447,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c83d1e034ab1f1cc75a5475bd2475da6cbc193b30fd617b77b63eadcba65d379"
+  digest = "1:d8dd58f3046f91d025e601bfd3ebecf3b70f13905106c996791b1ec1abf28428"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "2953c62de483abe29031e197e72d3b7061f65f91"
+  revision = "2d0786266e9cd132da844109aa05016f11f3df28"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"
@@ -491,14 +492,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:55a5e2ce90501a44c6076cd3cbc7a0bb2d147152827dffc38d1da4700c3a150a"
+  digest = "1:8a19759d926bef22018755cf07db0b6d46d6bc87d2abbb8b2c9d50cb67724e97"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/rpc/errdetails",
     "googleapis/rpc/status",
   ]
   pruneopts = ""
-  revision = "54afdca5d873f7b529e2ce3def1a99df16feda90"
+  revision = "b515fa19cec88c32f305a962f34ae60068947aea"
 
 [[projects]]
   digest = "1:afc1b03a6d5ba3cbb2e0a12133e734d472e4df3b65f06e600a3d57a4b82f26cc"
@@ -592,6 +593,7 @@
     "github.com/nalej/grpc-utils/pkg/tools",
     "github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast",
     "github.com/nalej/nalej-bus/pkg/queue/application/ops",
+    "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops",
     "github.com/nalej/service",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",

@@ -62,3 +62,8 @@ func (h *Handler) Undeploy(ctx context.Context, request *pbConductor.UndeployReq
 	log.Debug().Msgf("Application %s undeployed", request.AppInstanceId)
 	return &pbCommon.Success{}, nil
 }
+
+func (h *Handler) DrainCluster(ctx context.Context, request *pbConductor.DrainClusterRequest) (*pbCommon.Success, error) {
+    log.Info().Msg("drain cluster was invoked through the GRPC api but it is not implemented!!!!")
+    return &pbCommon.Success{}, nil
+}

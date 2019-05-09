@@ -630,3 +630,10 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
 
     return nil
 }
+
+
+// Drain a cluster if and only if it is already cordoned, removed all the running applications and schedule the removed
+// fragments.
+func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
+   log.Info().Msg("!!!!!!!Drain cluster was invoked but it has not been implemented yet!!!!!!!!!!")
+}
