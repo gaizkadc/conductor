@@ -26,6 +26,16 @@ import (
     "sync"
 )
 
+// Internal struct to store information about a cluster connection. This struct can be used to query the latest
+// known status of a cluster.
+type ClusterEntry struct {
+    // Hostname for this cluster
+    Hostname string
+    // Cordon true if this cluster is in a cordon status
+    Cordon bool
+}
+
+
 type ConnectionsHelper struct {
     // Singleton instance of connections with cluster clients clients
     ClusterClients *tools.ConnectionsMap
@@ -37,7 +47,7 @@ type ConnectionsHelper struct {
     NetworkingClients *tools.ConnectionsMap
     onceNC sync.Once
     // Translation map between cluster ids and their ip addresses
-    ClusterReference map[string]string
+    ClusterReference map[string]ClusterEntry
     // useTLS connections
     useTLS bool
     // path for the CA
@@ -56,7 +66,7 @@ type ConnectionsHelper struct {
 func NewConnectionsHelper(useTLS bool, caCertPath string, skipCAValidation bool) *ConnectionsHelper {
 
     return &ConnectionsHelper{
-        ClusterReference: make(map[string]string, 0),
+        ClusterReference: make(map[string]ClusterEntry, 0),
         useTLS: useTLS,
         caCertPath: caCertPath,
         skipCAValidation: skipCAValidation,
@@ -91,7 +101,7 @@ func(h *ConnectionsHelper) GetClusterClients() *tools.ConnectionsMap {
     h.onceClusters.Do(func(){
         h.ClusterClients = tools.NewConnectionsMap(clusterClientFactory)
         if h.ClusterReference == nil {
-            h.ClusterReference = make(map[string]string, 0)
+            h.ClusterReference = make(map[string]ClusterEntry, 0)
         }
     })
     return h.ClusterClients
@@ -250,7 +260,7 @@ func networkingClientFactory(hostname string, port int, params...interface{}) (*
 func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error{
     log.Debug().Msg("update cluster connections...")
     // Rebuild the map
-    h.ClusterReference = make(map[string]string,0)
+    h.ClusterReference = make(map[string]ClusterEntry,0)
 
     cmClients := h.GetSystemModelClients()
     // no available system model client
@@ -278,13 +288,13 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
         if h.isClusterAvailable(cluster){
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
             log.Debug().Str("clusterId", cluster.ClusterId).Str("hostname", cluster.Hostname).Str("targetHostname", targetHostname).Msg("add connection to cluster")
-            h.ClusterReference[cluster.ClusterId] = targetHostname
+            h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: cluster.Cordon}
             targetPort := int(APP_CLUSTER_API_PORT)
             params := make([]interface{}, 0)
             params = append(params, h.useTLS)
             params = append(params, h.caCertPath)
             params = append(params, h.skipCAValidation)
-            //clusters.AddConnection(cluster.Hostname, targetPort, h.useTLS, h.caCertPath, h.skipCAValidation)
+
             clusters.AddConnection(targetHostname, targetPort, params ... )
             toReturn = append(toReturn, targetHostname)
         }
@@ -292,15 +302,13 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
     return nil
 }
 
+// Internal function to check if a cluster meets all the conditions to be added to the list of available clusters.
 func (h * ConnectionsHelper) isClusterAvailable(cluster *pbInfrastructure.Cluster) bool {
     if cluster.Status != pbInfrastructure.InfraStatus_RUNNING {
         log.Debug().Str("clusterID", cluster.ClusterId).Msg("cluster ignored because it is not running")
         return false
     }
-    if cluster.Cordon {
-        log.Debug().Str("clusterID", cluster.ClusterId).Msg("cluster ignored because it is in cordon status")
-        return false
-    }
+    // Others...
     return true
 }
 
