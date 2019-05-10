@@ -11,6 +11,7 @@ import (
     "fmt"
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/conductor/internal/persistence/app_cluster"
     "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
@@ -60,11 +61,13 @@ type Manager struct {
     DNSClient pbNetwork.DNSClient
     // UnifiedLogging client
     UnifiedLoggingClient pbCoordinator.CoordinatorClient
+    // Information about applications deployed in clusters
+    AppClusterDB *app_cluster.AppClusterDB
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
     reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner,
-    pendingPlans *structures.PendingPlans) *Manager {
+    pendingPlans *structures.PendingPlans, appClusterDB *app_cluster.AppClusterDB) *Manager {
     // initialize clients
     pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
@@ -93,7 +96,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
     ulClient := pbCoordinator.NewCoordinatorClient(ulPool.GetConnections()[0])
     return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
         Designer: designer, AppClient:appClient, PendingPlans: pendingPlans, NetClient: netClient,
-        DNSClient: dnsClient, UnifiedLoggingClient:ulClient}
+        DNSClient: dnsClient, UnifiedLoggingClient:ulClient, AppClusterDB: appClusterDB}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -403,6 +406,12 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
             return err
         }
 
+        // update the db of fragments deployed on that cluster
+        err = c.AppClusterDB.AddDeploymentFragment(&fragment)
+        if err != nil {
+            log.Error().Err(err).Msg("there was a problem when storing information about a deployment fragment")
+        }
+
         // update the corresponding cluster id on the resources
         for _, stage := range fragment.Stages {
             for _, serv := range stage.Services {
@@ -553,6 +562,13 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
             return err
         }
         cancel()
+
+        // remove the deployment fragments for this app
+        err = c.AppClusterDB.DeleteDeploymentFragment(clusterId, appInstance.AppInstanceId)
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to remove information about undeployed fragment")
+        }
+
     }
     return nil
 }
@@ -635,5 +651,19 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
 // Drain a cluster if and only if it is already cordoned, removed all the running applications and schedule the removed
 // fragments.
 func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
-   log.Info().Msg("!!!!!!!Drain cluster was invoked but it has not been implemented yet!!!!!!!!!!")
+    // get all the apps deployed on that cluster
+    appIds, err := c.AppClusterDB.GetAppsInCluster(drainRequest.ClusterId.ClusterId)
+    if err != nil {
+        log.Error().Err(err).Str("clusterId",drainRequest.ClusterId.ClusterId).
+            Msg("impossible to obtain the applications running in cluster")
+        return
+    }
+
+    // start draining
+    for numApp, appId := range appIds {
+        log.Debug().Str("clusterId",drainRequest.ClusterId.ClusterId).Str("appInstanceId", appId).
+            Msgf("undeploy app %d out of %d",numApp+1,len(appIds))
+        req := entities.UndeployRequest{OrganizationId: drainRequest.ClusterId.OrganizationId, AppInstanceId: appId}
+        c.Undeploy(&req)
+    }
 }

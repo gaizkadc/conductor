@@ -95,3 +95,26 @@ func (ldb * LocalDB) Delete(bucket []byte, key []byte) derrors.Error {
     }
     return nil
 }
+
+
+func (ldb * LocalDB) GetAllPairsInBucket(bucket []byte)([]provider.KVTuple, derrors.Error) {
+    result := make([]provider.KVTuple,0)
+
+    err := ldb.db.View(func(tx *bolt.Tx) error {
+        b := tx.Bucket(bucket)
+        if b==nil{
+            return errors.New(fmt.Sprintf("bucket %s not found", bucket))
+        }
+        b.ForEach(func(k,v[]byte) error {
+            result = append(result,provider.KVTuple{k,v})
+            return nil
+        })
+
+        return nil
+    })
+    if err != nil {
+        e := derrors.NewInternalError(fmt.Sprintf("error getting pairs from bucket %s", bucket))
+        return nil, e
+    }
+    return result, nil
+}

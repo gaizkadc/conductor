@@ -37,8 +37,16 @@ spec:
           - "--authxAddress=authx.__NPH_NAMESPACE:8810"
           - "--unifiedLogging=unified-logging-coord.__NPH_NAMESPACE:8323"
           - "--queueAddress=broker.__NPH_NAMESPACE:6650"
+          - "--dbFolder=/data/"
         ports:
         - name: api-port
           containerPort: 5000
+        volumeMounts:
+        - name: conductor-local-db
+          mountPath: /data
       imagePullSecrets:
       - name: nalej-registry
+      volumes:
+        - name: conductor-local-db
+          persistentVolumeClaim:
+            claimName: conductor-local-db

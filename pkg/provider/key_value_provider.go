@@ -7,6 +7,13 @@ package provider
 
 import "github.com/nalej/derrors"
 
+// Intermediate struct representing a KV tuple with a
+// byte array as key.
+type KVTuple struct {
+    Key []byte
+    Value []byte
+}
+
 type KeyValueProvider interface {
 
     // Close the database
@@ -22,6 +29,13 @@ type KeyValueProvider interface {
     // return:
     //  found item, nil if the key was not found
     Get(bucket []byte, key []byte) ([]byte, derrors.Error)
+
+    // Get all the pairs stored in a bucket.
+    // params:
+    //  bucket
+    // return:
+    //  array of kv tuples or error if any
+    GetAllPairsInBucket(bucket []byte)([]KVTuple, derrors.Error)
 
     // Put a new value for a key
     // params:

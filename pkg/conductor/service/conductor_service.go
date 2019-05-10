@@ -8,9 +8,11 @@ package service
 
 import (
     "errors"
+    "github.com/nalej/conductor/internal/persistence/app_cluster"
     "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/baton"
     "github.com/nalej/conductor/pkg/conductor/scorer"
+    "github.com/nalej/conductor/pkg/provider/kv"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
 
@@ -50,6 +52,9 @@ type ConductorConfig struct {
     UnifiedLoggingURL string
     // Queue service
     QueueURL string
+    // Folder for the local database
+    DBFolder string
+
 }
 
 func (conf * ConductorConfig) Print() {
@@ -61,6 +66,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Str("QueueURL", conf.QueueURL).Msg("Queue service URL")
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
+    log.Info().Str("DBFolder", conf.DBFolder).Msg("Folder for the local database")
 }
 
 
@@ -207,9 +213,20 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     scr := scorer.NewSimpleScorer(connectionsHelper)
     reqColl := requirementscollector.NewSimpleRequirementsCollector()
 
+    log.Info().Msg("instantiate plan designer...")
     designer := plandesigner.NewSimpleReplicaPlanDesigner(connectionsHelper)
+    log.Info().Msg("done")
 
-    batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans)
+    log.Info().Msg("instantiate local app cluster db...")
+    boltProvider, err := kv.NewLocalDB(config.DBFolder+"/appcluster.db")
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to instantiate bolt provider for appcluster")
+        return nil, err
+    }
+    appClusterDB := app_cluster.NewAppClusterDB(boltProvider)
+    log.Info().Msg("done")
+
+    batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans, appClusterDB)
     if batonMgr == nil {
         log.Panic().Msg("impossible to create baton service")
         return nil, errors.New("impossible to create baton service")

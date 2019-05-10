@@ -41,15 +41,69 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
     ginkgo.It("add and retrieve a deployment fragment", func(){
         toAdd := entities.DeploymentFragment{
             ClusterId: "cluster1",
+            DeploymentId: "deployment1",
+            AppInstanceId: "myappinstance1",
             OrganizationId: "someorg",
             AppName: "testApp",
+
         }
         // Add it
         errAdd := db.AddDeploymentFragment(&toAdd)
         gomega.Expect(errAdd).ToNot(gomega.HaveOccurred())
         // Get it
-        retrieved, errGet := db.GetDeploymentFragment(toAdd.ClusterId)
+        retrieved, errGet := db.GetDeploymentFragment(toAdd.ClusterId,toAdd.AppInstanceId)
         gomega.Expect(errGet).ToNot(gomega.HaveOccurred())
         gomega.Expect(retrieved).To(gomega.Equal(retrieved))
+    })
+
+    ginkgo.It("add, delete and try to retrieve a fragment", func(){
+        toAdd := entities.DeploymentFragment{
+            ClusterId: "cluster1",
+            DeploymentId: "deployment1",
+            AppInstanceId: "myappinstance1",
+            OrganizationId: "someorg",
+            AppName: "testApp",
+
+        }
+        // Add it
+        errAdd := db.AddDeploymentFragment(&toAdd)
+        gomega.Expect(errAdd).ToNot(gomega.HaveOccurred())
+        // Delete it
+        errDel := db.DeleteDeploymentFragment(toAdd.ClusterId, toAdd.AppInstanceId)
+        gomega.Expect(errDel).ToNot(gomega.HaveOccurred())
+        // retrieve it and it must not be there
+        retrieved, errGet := db.GetDeploymentFragment(toAdd.ClusterId,toAdd.AppInstanceId)
+        gomega.Expect(errGet).ToNot(gomega.HaveOccurred())
+        gomega.Expect(retrieved).To(gomega.BeNil())
+    })
+
+    ginkgo.It("get all the entries stored for a cluster", func(){
+        toAdd1 := entities.DeploymentFragment{
+            ClusterId: "cluster1",
+            DeploymentId: "deployment1",
+            AppInstanceId: "myappinstance1",
+            OrganizationId: "someorg",
+            AppName: "testApp",
+        }
+        // Add it
+        errAdd := db.AddDeploymentFragment(&toAdd1)
+        gomega.Expect(errAdd).ToNot(gomega.HaveOccurred())
+
+        toAdd2 := entities.DeploymentFragment{
+            ClusterId: "cluster1",
+            DeploymentId: "deployment2",
+            AppInstanceId: "myappinstance2",
+            OrganizationId: "someorg",
+            AppName: "testApp",
+        }
+        // Add it
+        errAdd = db.AddDeploymentFragment(&toAdd2)
+        gomega.Expect(errAdd).ToNot(gomega.HaveOccurred())
+
+        // Get all the bucket data
+        pairs, bErr := db.GetAppsInCluster(toAdd1.ClusterId)
+        gomega.Expect(bErr).ToNot(gomega.HaveOccurred())
+        gomega.Expect(len(pairs)).To(gomega.Equal(2))
+
     })
 })
