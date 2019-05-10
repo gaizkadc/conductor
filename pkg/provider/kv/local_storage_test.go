@@ -6,6 +6,7 @@
 package kv
 
 import (
+    "github.com/nalej/conductor/pkg/provider"
     "github.com/onsi/ginkgo"
     "github.com/onsi/gomega"
     "os"
@@ -15,12 +16,12 @@ var _ = ginkgo.Describe("test local database using bolt", func(){
 
     dbPath := "/tmp/localstorage.db"
 
-    var db *LocalDB
+    var db provider.KeyValueProvider
 
     ginkgo.BeforeEach(func(){
         // Get a file path
-        var err error
-        db, err  = NewLocalDB(dbPath)
+        aux, err := NewLocalDB(dbPath)
+        db = aux
         gomega.Expect(err).NotTo(gomega.HaveOccurred())
     })
 

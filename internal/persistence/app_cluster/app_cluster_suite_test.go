@@ -3,7 +3,7 @@
  *
  */
 
-package kv
+package app_cluster
 
 import (
     "testing"
@@ -12,7 +12,7 @@ import (
     "github.com/onsi/gomega"
 )
 
-func TestLocalStorageTest(t *testing.T) {
+func TestAppClusterTest(t *testing.T) {
     gomega.RegisterFailHandler(ginkgo.Fail)
-    ginkgo.RunSpecs(t, "Conductor local storage suite")
+    ginkgo.RunSpecs(t, "Conductor app cluster storage Suite")
 }
