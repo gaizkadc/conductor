@@ -50,8 +50,8 @@ type Requirement struct {
     CPU int64 `json:"cpu, omitempty"`
     // Amount of memory
     Memory int64 `json:"memory, omitempty"`
-    // Amount of storage
-    Storage int64 `json:"storage, omitempty"`
+    // Amount of provider
+    Storage int64 `json:"provider, omitempty"`
     // Number of replicas
     Replicas int32 `json:"replicas, omitempty"`
     // Cluster selection labels

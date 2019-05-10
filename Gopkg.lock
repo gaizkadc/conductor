@@ -14,6 +14,14 @@
   version = "v0.1.1"
 
 [[projects]]
+  digest = "1:ed112122ed4a920d944cc99b9d00b0441c11685939c28462c719488d36fe29aa"
+  name = "github.com/boltdb/bolt"
+  packages = ["."]
+  pruneopts = ""
+  revision = "2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8"
+  version = "v1.3.1"
+
+[[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -258,8 +266,8 @@
   version = "v1.3.1"
 
 [[projects]]
-  branch = "feature/NP-1312_add_drain_request_message"
-  digest = "1:03d156344ae2e82e7da09292afa755afe96e0067416f10dad998fb3bd1171072"
+  branch = "master"
+  digest = "1:3eb9921a808abd4da237dba9d404d7b7768b0f8386bc0da1f8fade83131b0ce2"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -269,7 +277,7 @@
     "pkg/queue/infrastructure/ops",
   ]
   pruneopts = ""
-  revision = "8a8dcbf07f2a5db3f4afb6b36ff31b3e21f5e968"
+  revision = "ee35ffda0d52d246146d68186e32bbb52006f785"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -574,6 +582,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/boltdb/bolt",
     "github.com/google/uuid",
     "github.com/nalej/derrors",
     "github.com/nalej/golang-template/version",
