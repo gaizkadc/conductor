@@ -168,7 +168,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
         orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
 
-        cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer,plans)
+        cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer,plans,nil)
         test.LaunchServer(server,listener)
 
         // Register the service.

@@ -102,7 +102,7 @@ type  PrometheusStatusCollector struct {
     // Map of queries to be sent to Prometheus
     prometheusQueries map[string]string
     // Cached status
-    // TODO: Evaluate potential ways to have a more efficient storage.
+    // TODO: Evaluate potential ways to have a more efficient provider.
     cached Cache
 }
 

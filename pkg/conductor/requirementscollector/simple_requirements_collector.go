@@ -49,7 +49,7 @@ func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplicat
 
             totalCPU = totalCPU + (serv.Specs.Cpu * numServReplicas)
             totalMemory = totalMemory + (serv.Specs.Memory * numServReplicas)
-            // accumulate requested storage
+            // accumulate requested provider
             for _, st := range serv.Storage {
                 totalStorage = totalStorage + (st.Size * numServReplicas)
             }

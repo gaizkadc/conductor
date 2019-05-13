@@ -46,6 +46,8 @@ func init() {
         "host:port address for unifiedLogging")
     runCmd.Flags().StringP("queueAddress", "q", fmt.Sprintf("localhost:%d", utils.QUEUE_PORT),
         "host:port address for the Nalej management queue")
+    runCmd.Flags().StringP("dbFolder", "f", "/data/",
+        "path for the folder used to store the local database")
 
     viper.BindPFlags(runCmd.Flags())
 }
@@ -72,6 +74,8 @@ func RunConductor() {
     var unifiedLoggingService string
     // Queue url
     var queueAddress string
+    // Database folder path
+    var dbFolder string
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
@@ -83,6 +87,7 @@ func RunConductor() {
     skipCAValidation = viper.GetBool("skipCAValidation")
     unifiedLoggingService = viper.GetString("unifiedLogging")
     queueAddress = viper.GetString("queueAddress")
+    dbFolder = viper.GetString("dbFolder")
 
 
     log.Info().Msg("launching conductor...")
@@ -99,6 +104,7 @@ func RunConductor() {
         AuthxURL:authxService,
         UnifiedLoggingURL:unifiedLoggingService,
         QueueURL: queueAddress,
+        DBFolder: dbFolder,
     }
     config.Print()
 

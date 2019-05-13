@@ -14,7 +14,7 @@ import (
 )
 
 // Timeout between incoming messages
-const InfrastructureOpsTimeout = time.Minute * 15
+const InfrastructureOpsTimeout = time.Minute * 60
 
 // Control incoming requests for the application ops topic
 

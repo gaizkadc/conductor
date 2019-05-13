@@ -65,7 +65,7 @@ func(cds *ClusterDeploymentScore) AddScore(serviceGroupIds []string, score float
 
 
 // Objects describing received deployment requests. These objects are designed to be stored into
-// a storage structure such as a queue.
+// a provider structure such as a queue.
 type DeploymentRequest struct {
 	RequestId      string `json:"request_id,omitempty"`
 	OrganizationId string `json:"organization_id,omitempty"`
