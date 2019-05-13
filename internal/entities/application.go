@@ -678,7 +678,7 @@ type Service struct {
 	// DeploySpecs with the resource specs required by the service.
 	Specs * DeploySpecs `json:"specs,omitempty"`
 	// Storage restrictions
-	Storage []Storage `json:"provider,omitempty"`
+	Storage []Storage `json:"storage,omitempty"`
 	// ExposedPorts contains the list of ports exposed by the current service.
 	ExposedPorts []Port `json:"exposed_ports,omitempty"`
 	// EnvironmentVariables defines a key-value map of environment variables and values that will be passed to all
@@ -846,7 +846,7 @@ type ServiceInstance struct {
 	// DeploySpecs with the resource specs required by the service.
 	Specs * DeploySpecs `json:"specs,omitempty"`
 	// Storage restrictions
-	Storage []Storage `json:"provider,omitempty"`
+	Storage []Storage `json:"storage,omitempty"`
 	// ExposedPorts contains the list of ports exposed by the current service.
 	ExposedPorts []Port `json:"exposed_ports,omitempty"`
 	// EnvironmentVariables defines a key-value map of environment variables and values that will be passed to all
