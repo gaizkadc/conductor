@@ -7,9 +7,11 @@
 package requirementscollector
 
 import (
+    "fmt"
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/derrors"
     pbApplication "github.com/nalej/grpc-application-go"
+    "github.com/rs/zerolog/log"
 )
 
 type SimpleRequirementsCollector struct {}
@@ -25,48 +27,86 @@ func (s *SimpleRequirementsCollector) FindRequirements(appDescriptor *pbApplicat
         return nil, derrors.NewFailedPreconditionError("no groups available for this application")
     }
 
-
     foundRequirements := entities.NewRequirements()
 
     // Generate one set of requirements per service group
     for _, g := range appDescriptor.Groups {
 
-        // Check if there are any services to be analysed
-        if len(g.Services) == 0 {
-            return nil, derrors.NewFailedPreconditionError("no services specified for the application")
+        req, err := s.FindRequirementForGroup(g.ServiceGroupId, appInstanceId, appDescriptor)
+
+        if err != nil {
+            log.Error().Str("appInstanceId",appInstanceId).Str("serviceGroupName",g.Name).
+                Msg("impossible to find requirements for the group")
+            return nil, derrors.NewFailedPreconditionError(fmt.Sprintf("impossible to find requirements for group %s", g.Name))
         }
 
-        var totalStorage int64 = 0
-        var totalCPU int64 = 0
-        var totalMemory int64 = 0
-
-        for _, serv := range g.Services {
-
-            numServReplicas := int64(1)
-            if serv.Specs != nil && serv.Specs.Replicas > 0 {
-                numServReplicas = int64(serv.Specs.Replicas)
-            }
-
-            totalCPU = totalCPU + (serv.Specs.Cpu * numServReplicas)
-            totalMemory = totalMemory + (serv.Specs.Memory * numServReplicas)
-            // accumulate requested provider
-            for _, st := range serv.Storage {
-                totalStorage = totalStorage + (st.Size * numServReplicas)
-            }
-        }
-
-        selectors := map[string]string{}
-        if g.Specs != nil {
-            if g.Specs.DeploymentSelectors != nil {
-                selectors = g.Specs.DeploymentSelectors
-            }
-        }
-
-        // TODO: requirements for every fragment only permit one replica per requirement. Requirements are for a single service group
-        r := entities.NewRequirement(appInstanceId, g.Name, totalCPU, totalMemory,
-            totalStorage, 1, selectors)
-        foundRequirements.AddRequirement(r)
+        foundRequirements.AddRequirement(*req)
     }
 
     return &foundRequirements, nil
+}
+
+func (s * SimpleRequirementsCollector) FindRequirementsForGroups(serviceGroupsIds []string, appInstanceId string, appDescriptor *pbApplication.ParametrizedDescriptor) (*entities.Requirements, error) {
+    foundRequirements := entities.NewRequirements()
+
+    for _, sg := range serviceGroupsIds {
+        req, err := s.FindRequirementForGroup(sg, appInstanceId, appDescriptor)
+        if err != nil {
+            return nil, err
+        }
+        foundRequirements.AddRequirement(*req)
+    }
+
+    return &foundRequirements, nil
+}
+
+func (s * SimpleRequirementsCollector) FindRequirementForGroup(serviceGroupId string, appInstanceId string, appDescriptor *pbApplication.ParametrizedDescriptor) (*entities.Requirement, error) {
+
+    var g *pbApplication.ServiceGroup = nil
+
+    for _, aux := range appDescriptor.Groups {
+        if aux.ServiceGroupId == serviceGroupId {
+            g = aux
+            break
+        }
+    }
+
+    if g == nil {
+        return nil, derrors.NewFailedPreconditionError("service group not found inside descriptor")
+    }
+
+    if len(g.Services) == 0 {
+        return nil, derrors.NewFailedPreconditionError("no services specified for the application")
+    }
+
+    var totalStorage int64 = 0
+    var totalCPU int64 = 0
+    var totalMemory int64 = 0
+
+    for _, serv := range g.Services {
+
+        numServReplicas := int64(1)
+        if serv.Specs != nil && serv.Specs.Replicas > 0 {
+            numServReplicas = int64(serv.Specs.Replicas)
+        }
+
+        totalCPU = totalCPU + (serv.Specs.Cpu * numServReplicas)
+        totalMemory = totalMemory + (serv.Specs.Memory * numServReplicas)
+        // accumulate requested provider
+        for _, st := range serv.Storage {
+            totalStorage = totalStorage + (st.Size * numServReplicas)
+        }
+    }
+
+    selectors := map[string]string{}
+    if g.Specs != nil {
+        if g.Specs.DeploymentSelectors != nil {
+            selectors = g.Specs.DeploymentSelectors
+        }
+    }
+
+    // TODO: requirements for every fragment only permit one replica per requirement. Requirements are for a single service group
+    toReturn := entities.NewRequirement(appInstanceId, g.Name, totalCPU, totalMemory, totalStorage, 1, selectors)
+    return &toReturn, nil
+
 }

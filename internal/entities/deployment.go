@@ -139,6 +139,8 @@ type DeploymentFragment struct {
 	NalejVariables map[string]string `json:"nalej_variables,omitempty"`
 	// Deployment stages belonging to this fragment
 	Stages []DeploymentStage `json:"stages,omitempty"`
+	// Identifier for the ZtNetworkID. This is a value only used by conductor.
+	ZtNetworkID string `json:"stages,omitempty"`
 }
 
 func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {

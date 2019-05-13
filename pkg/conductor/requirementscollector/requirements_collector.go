@@ -23,4 +23,23 @@ type RequirementsCollector interface {
     //   requirements or error if any
     FindRequirements(appDescriptor *pbApplication.ParametrizedDescriptor, appInstanceId string) (*entities.Requirements, error)
 
+    // Find requirements for the service group which id is contained in the application descriptor
+    //  params:
+    //   serviceGroupId service group identifier
+    //   appInstanceId
+    //   appDescriptor
+    //  return:
+    //   requirement for the service group or error if any
+    FindRequirementForGroup(serviceGroupId string, appInstanceId string, appDescriptor *pbApplication.ParametrizedDescriptor) (*entities.Requirement, error)
+
+
+    // Find the set of requirements for a list of service groups
+    //  params:
+    //   serviceGroupId service group identifier
+    //   appInstanceId
+    //   appDescriptor
+    //  return:
+    //   requirement for the service group or error if any
+    FindRequirementsForGroups(serviceGroupsIds []string, appInstanceId string, appDescriptor *pbApplication.ParametrizedDescriptor) (*entities.Requirements, error)
+
 }
