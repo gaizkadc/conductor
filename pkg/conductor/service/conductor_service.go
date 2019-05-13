@@ -15,7 +15,6 @@ import (
     "github.com/nalej/conductor/pkg/provider/kv"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
-    "os/exec"
 
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
