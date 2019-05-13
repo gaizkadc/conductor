@@ -23,6 +23,9 @@ spec:
         cluster: management
         component: conductor
     spec:
+      securityContext:
+        runAsUser: 2000
+        fsGroup: 2000
       containers:
       - name: conductor
         image: __NPH_REGISTRY/__NPH_REGISTRY_NAMESPACE/conductor:__NPH_VERSION
@@ -37,7 +40,7 @@ spec:
           - "--authxAddress=authx.__NPH_NAMESPACE:8810"
           - "--unifiedLogging=unified-logging-coord.__NPH_NAMESPACE:8323"
           - "--queueAddress=broker.__NPH_NAMESPACE:6650"
-          - "--dbFolder=/data/"
+          - "--dbFolder=/data"
         ports:
         - name: api-port
           containerPort: 5000
@@ -47,6 +50,6 @@ spec:
       imagePullSecrets:
       - name: nalej-registry
       volumes:
-        - name: conductor-local-db
-          persistentVolumeClaim:
-            claimName: conductor-local-db
+      - name: conductor-local-db
+        persistentVolumeClaim:
+          claimName: conductor-local-db

@@ -9,7 +9,7 @@ FROM iron/go
 # RUN mkdir /nalej
 # WORKDIR /nalej
 
-# Now just add the binary
 COPY conductor /nalej/
 
+# Now just add the binary
 ENTRYPOINT ["./nalej/conductor"]

@@ -659,6 +659,12 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
         return
     }
 
+    if len(appIds) == 0 {
+        log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).
+            Msg("nothing to do for drain. Target cluster has no running applications")
+        return
+    }
+
     // start draining
     for numApp, appId := range appIds {
         log.Debug().Str("clusterId",drainRequest.ClusterId.ClusterId).Str("appInstanceId", appId).

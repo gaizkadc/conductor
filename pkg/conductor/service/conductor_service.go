@@ -15,6 +15,7 @@ import (
     "github.com/nalej/conductor/pkg/provider/kv"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    "os/exec"
 
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
@@ -218,9 +219,10 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     log.Info().Msg("done")
 
     log.Info().Msg("instantiate local app cluster db...")
+
     boltProvider, err := kv.NewLocalDB(config.DBFolder+"/appcluster.db")
     if err != nil {
-        log.Panic().Err(err).Msg("impossible to instantiate bolt provider for appcluster")
+        log.Panic().Err(err).Msgf("impossible to instantiate bolt provider for appcluster in %s",config.DBFolder)
         return nil, err
     }
     appClusterDB := app_cluster.NewAppClusterDB(boltProvider)

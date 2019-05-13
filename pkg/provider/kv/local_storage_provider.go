@@ -11,6 +11,7 @@ import (
     "github.com/boltdb/bolt"
     "github.com/nalej/derrors"
     "github.com/nalej/conductor/pkg/provider"
+    "github.com/rs/zerolog/log"
     "time"
 )
 
@@ -30,6 +31,7 @@ type LocalDB struct {
 func NewLocalDB(filePath string) (provider.KeyValueProvider, derrors.Error) {
     db, err := bolt.Open(filePath, 0600, &bolt.Options{Timeout: time.Second})
     if err != nil {
+        log.Error().Err(err).Msg("impossible create local database")
         return nil, derrors.NewInternalError("impossible to create local database", err)
     }
     return &LocalDB{db: db}, nil
