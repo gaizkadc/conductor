@@ -67,6 +67,8 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
         desiredReplicas = int(group.Specs.Replicas)
     }
 
+    log.Debug().Interface("deploymentMatrix", dm).Msg("deployment matrix during cluster search")
+
     targetClusters := make(map[string]float32, 0)
     // Allocate a replica in the cluster with the largest score
     // Greedy approach to find the best cluster with no allocated replica

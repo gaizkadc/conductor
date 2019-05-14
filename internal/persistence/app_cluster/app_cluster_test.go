@@ -104,6 +104,35 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
         pairs, bErr := db.GetAppsInCluster(toAdd1.ClusterId)
         gomega.Expect(bErr).ToNot(gomega.HaveOccurred())
         gomega.Expect(len(pairs)).To(gomega.Equal(2))
+    })
 
+    ginkgo.It("find the clusters where an app is running", func(){
+        toAdd1 := entities.DeploymentFragment{
+            ClusterId: "cluster1",
+            DeploymentId: "deployment1",
+            AppInstanceId: "myappinstance1",
+            OrganizationId: "someorg",
+            AppName: "testApp",
+
+        }
+        // Add it
+        errAdd1 := db.AddDeploymentFragment(&toAdd1)
+        gomega.Expect(errAdd1).ToNot(gomega.HaveOccurred())
+
+        toAdd2 := entities.DeploymentFragment{
+            ClusterId: "cluster2",
+            DeploymentId: "deployment1",
+            AppInstanceId: "myappinstance1",
+            OrganizationId: "someorg",
+            AppName: "testApp",
+
+        }
+        // Add it
+        errAdd2 := db.AddDeploymentFragment(&toAdd2)
+        gomega.Expect(errAdd2).ToNot(gomega.HaveOccurred())
+
+        clusters, err := db.FindClustersApp(toAdd1.AppInstanceId)
+        gomega.Expect(err).ToNot(gomega.HaveOccurred())
+        gomega.Expect(len(clusters)).To(gomega.Equal(2))
     })
 })

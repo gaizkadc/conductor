@@ -82,3 +82,26 @@ func (a *AppClusterDB) GetAppsInCluster(clusterId string) ([]string, derrors.Err
     }
     return result, nil
 }
+
+// Find the clusters where an app is running.
+func (a *AppClusterDB) FindClustersApp(appInstanceId string) ([]string, derrors.Error) {
+    foundClusters := make([]string, 0)
+    // get all the clusters we know
+    buckets := a.db.GetBuckets()
+    if buckets == nil || len(buckets) == 0 {
+        return nil, nil
+    }
+    // return the array of clusters where the application is running
+    for _, clusterId := range buckets {
+        appsInCluster, err := a.GetAppsInCluster(string(clusterId))
+        if err != nil {
+            return nil, err
+        }
+        for _, app := range appsInCluster {
+            if app == appInstanceId {
+                foundClusters = append(foundClusters, string(clusterId))
+            }
+        }
+    }
+    return foundClusters, nil
+}

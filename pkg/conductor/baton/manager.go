@@ -551,8 +551,16 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
 
     // call Rollback
     c.Rollback(organizationId, appInstanceId)
+
+    // find in what clusters this app is running
+    targetClusters, err := c.AppClusterDB.FindClustersApp(appInstanceId)
+    if err != nil {
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("impossible to find clusters where this app was deployed")
+        return err
+    }
+
     // terminate execution
-    return c.undeployClustersInstance(appInstance)
+    return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,targetClusters)
 }
 
 // Undeploy function that removes the application instance
@@ -590,43 +598,45 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
     }
 
+    // find in what clusters this app is running
+    targetClusters, err := c.AppClusterDB.FindClustersApp(appInstanceId)
+    if err != nil {
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("impossible to find clusters where this app was deployed")
+        return err
+    }
+
     // terminate execution
-    return c.undeployClustersInstance(appInstance)
+    return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,targetClusters)
 }
 
 // Private function to communicate the application clusters to remove a running instance.
-func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance) error {
+// params:
+//  organizationId
+//  appInstanceId
+//  targetClusters list with the cluster ids where this function must run. If no list is set, then all clusters are informed.
+// return:
+//  error if any
+func(c *Manager) undeployClustersInstance(organizationId string, appInstanceId string, targetClusters []string) error {
     // Send undeploy requests to application clusters
-    log.Debug().Str("app_instance_id", appInstance.AppInstanceId).Msg("undeploy app instance with id")
+    log.Debug().Str("app_instance_id", appInstanceId).Msg("undeploy app instance with id")
 
-    err := c.ConnHelper.UpdateClusterConnections(appInstance.OrganizationId)
+    err := c.ConnHelper.UpdateClusterConnections(organizationId)
     if err != nil {
-        log.Error().Err(err).Str("organizationID",appInstance.OrganizationId).Msg("error updating connections for organization")
+        log.Error().Err(err).Str("organizationID",organizationId).Msg("error updating connections for organization")
         return err
     }
     if len(c.ConnHelper.ClusterReference) == 0 {
-        log.Error().Msgf("no clusters found for organization %s", appInstance.OrganizationId)
+        log.Error().Msgf("no clusters found for organization %s", organizationId)
         return nil
     }
-
     log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
 
-    clusterIds := make(map[string]bool, 0)
-    for _, g := range appInstance.Groups {
-        for _, svc := range g.ServiceInstances {
-            if svc.DeployedOnClusterId != "" {
-                clusterIds[svc.DeployedOnClusterId] = true
-            }
-        }
-    }
-
-
-    log.Debug().Int("number of cluster to send undeploy", len(clusterIds)).Msg("send undeploy to clusters")
-    if len(clusterIds) == 0 {
+    log.Debug().Int("number of cluster to send undeploy", len(targetClusters)).Msg("send undeploy to clusters")
+    if len(targetClusters) == 0 {
         log.Error().Msg("no clusters found to send undeploy notification")
     }
 
-    for clusterId,_ := range clusterIds{
+    for _, clusterId := range targetClusters{
 
         clusterEntry, found := c.ConnHelper.ClusterReference[clusterId]
         if !found {
@@ -647,24 +657,23 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
         dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
 
         undeployRequest := pbDeploymentManager.UndeployRequest{
-            OrganizationId: appInstance.OrganizationId,
-            AppInstanceId: appInstance.AppInstanceId,
+            OrganizationId: organizationId,
+            AppInstanceId: appInstanceId,
         }
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
         _, err = dmClient.Undeploy(ctx, &undeployRequest)
 
         if err != nil {
-            log.Error().Str("app_instance_id", appInstance.AppInstanceId).Msg("could not undeploy app")
+            log.Error().Str("app_instance_id", appInstanceId).Msg("could not undeploy app")
             return err
         }
         cancel()
 
         // remove the deployment fragments for this app
-        err = c.AppClusterDB.DeleteDeploymentFragment(clusterId, appInstance.AppInstanceId)
+        err = c.AppClusterDB.DeleteDeploymentFragment(clusterId, appInstanceId)
         if err != nil {
             log.Error().Err(err).Msg("impossible to remove information about undeployed fragment")
         }
-
     }
     return nil
 }
@@ -766,7 +775,7 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 
     // Drain the whole cluster
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
-    for numApp, appId := range appIds {
+    for _, appId := range appIds {
         fragment, err := c.AppClusterDB.GetDeploymentFragment(drainRequest.ClusterId.ClusterId, appId)
         if err != nil {
             log.Error().Err(err).Str("clusterId",drainRequest.ClusterId.ClusterId).
@@ -776,10 +785,10 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
             toReschedule = append(toReschedule, fragment)
         }
 
-        log.Debug().Str("clusterId",drainRequest.ClusterId.ClusterId).Str("appInstanceId", appId).
-            Msgf("undeploy app %d out of %d",numApp+1,len(appIds))
-        c.SoftUndeploy(drainRequest.ClusterId.OrganizationId, appId)
+        // undeploy all the apps from the given cluster
+        c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, drainRequest.ClusterId.ClusterId, []string{appId})
     }
+
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
 
     // reschedule removed deployment fragments

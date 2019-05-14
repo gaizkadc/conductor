@@ -98,6 +98,18 @@ func (ldb * LocalDB) Delete(bucket []byte, key []byte) derrors.Error {
     return nil
 }
 
+func (ldb * LocalDB) GetBuckets() [][]byte {
+    listBuckets := make([][]byte,0)
+    ldb.db.View(func(tx *bolt.Tx) error {
+        tx.ForEach(func(bucketName []byte, b *bolt.Bucket) error {
+            listBuckets = append(listBuckets, bucketName)
+            return nil
+        })
+        return nil
+    })
+    return listBuckets
+}
+
 
 func (ldb * LocalDB) GetAllPairsInBucket(bucket []byte)([]provider.KVTuple, derrors.Error) {
     result := make([]provider.KVTuple,0)

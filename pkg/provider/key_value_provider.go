@@ -54,4 +54,9 @@ type KeyValueProvider interface {
     //  error if any
     Delete(bucket []byte, key []byte) derrors.Error
 
+    // Get all the current buckets
+    // return:
+    //  Array of byte arrays with the bucket names
+    GetBuckets() [][]byte
+
 }
