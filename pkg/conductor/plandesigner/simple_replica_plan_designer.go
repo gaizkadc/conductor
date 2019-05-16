@@ -6,6 +6,7 @@
 package plandesigner
 
 import (
+    "encoding/json"
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/structures"
     pbApplication "github.com/nalej/grpc-application-go"
@@ -44,6 +45,14 @@ func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesi
     return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper, authxClient:authxClient}
 }
 
+// For a running
+func (p *SimpleReplicaPlanDesigner) ReDesignPlan(app entities.AppInstance,
+    score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
+    obj, _ := json.Marshal(&app)
+    // inspect the instance metadata and find missing elements
+    log.Info().Msg(string(obj))
+    return nil, nil
+}
 
 func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
 score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {

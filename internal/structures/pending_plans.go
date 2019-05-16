@@ -13,6 +13,7 @@ import (
     "github.com/rs/zerolog/log"
 )
 
+
 // Struct to control Pending deployment plans
 type PendingPlans struct {
     // plan_id -> deployment plan

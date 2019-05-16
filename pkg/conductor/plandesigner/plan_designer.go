@@ -25,6 +25,11 @@ type PlanDesigner interface {
     //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app entities.AppInstance,
         score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error)
+
+    // For a plan that is already running and instantiated check the current deployment status and schedule
+    // missing parts of the original application descriptor.
+    ReDesignPlan(app entities.AppInstance,
+        score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error)
 }
 
 const (

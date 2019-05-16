@@ -10,6 +10,7 @@ package monitor
 import (
     "github.com/nalej/conductor/internal/structures"
     "github.com/nalej/conductor/pkg/conductor/baton"
+    "github.com/nalej/derrors"
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     "github.com/nalej/grpc-utils/pkg/conversions"
@@ -62,28 +63,56 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         return err
     }
 
-    if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DONE {
+    var finalStatus entities.DeploymentFragmentStatus
+
+    switch entities.DeploymentStatusToGRPC[request.Status] {
+    case entities.FRAGMENT_DONE:
         log.Info().Str("fragmentId", request.FragmentId).Msgf("deployment fragment was done")
         // This fragment is no longer pending
         m.pendingPlans.SetFragmentNoPending(request.FragmentId)
-    }
+        finalStatus = entities.FRAGMENT_DONE
 
-    if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_DEPLOYING {
+    case entities.FRAGMENT_DEPLOYING:
         log.Info().Str("fragmentId", request.FragmentId).Msgf("deployment fragment is being deployed")
         // This fragment is pending
         m.pendingPlans.SetFragmentPending(request.FragmentId)
-    }
+        finalStatus = entities.FRAGMENT_DEPLOYING
 
-    if entities.DeploymentStatusToGRPC[request.Status] == entities.FRAGMENT_ERROR {
+    case entities.FRAGMENT_ERROR:
+        finalStatus = entities.FRAGMENT_ERROR
         log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment failed")
         // This fragment is pending
         newStatus := m.processFailedFragment(request)
         _, err := m.AppClient.UpdateAppStatus(context.Background(), newStatus)
         if err != nil {
-           log.Error().Err(err).Msg("problem found when update app status after failed fragment")
+            log.Error().Err(err).Msg("problem found when update app status after failed fragment")
         }
+        finalStatus = entities.FRAGMENT_DEPLOYING
+
+    case entities.FRAGMENT_TERMINATING:
+        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment terminating")
+        // This fragment is now pending in the monitoring
+        m.pendingPlans.SetFragmentPending(request.FragmentId)
+        finalStatus = entities.FRAGMENT_TERMINATING
+
+    default:
+        log.Info().Msg("received a non processable status in an update fragment update")
+        return nil
     }
 
+
+    // Update the view of this deployment fragment in the DB
+    df, err := m.manager.AppClusterDB.GetDeploymentFragment(request.ClusterId, request.AppInstanceId)
+    if err != nil {
+        e := derrors.NewInternalError("impossible to get deployment fragment status from database", err)
+        return e
+    }
+    df.Status = finalStatus
+    err = m.manager.AppClusterDB.AddDeploymentFragment(df)
+    if err != nil {
+        e := derrors.NewInternalError("impossible to update deployment fragment status in database", err)
+        return e
+    }
 
     log.Debug().Interface("request", request).Msg("finished processing update fragment")
 

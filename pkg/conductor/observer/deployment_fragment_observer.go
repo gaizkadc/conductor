@@ -1,0 +1,93 @@
+/*
+ * Copyright (C) 2019 Nalej Group - All Rights Reserved
+ *
+ */
+
+package observer
+
+import (
+    "context"
+    "github.com/nalej/conductor/internal/entities"
+    "github.com/nalej/conductor/internal/persistence/app_cluster"
+    "github.com/nalej/derrors"
+    "github.com/rs/zerolog/log"
+    "time"
+)
+
+const CheckSleepTime = time.Second
+
+// This observer can be used to wait for certain deployment fragments and take actions.
+
+
+// Auxiliary structure
+type ObservableDeploymentFragment struct {
+    ClusterId string
+    AppInstanceId string
+}
+
+type DeploymentFragmentsObserver struct {
+    // Map with the clusterId -> appInstanceId
+    Ids []ObservableDeploymentFragment
+    // Monitored apps
+    AppClusterDB *app_cluster.AppClusterDB
+    // Remaining changes to occur
+    RemainingChanges int
+}
+
+func NewDeploymentFragmentsObserver(ids []ObservableDeploymentFragment, appClusterDB *app_cluster.AppClusterDB) DeploymentFragmentsObserver {
+    return DeploymentFragmentsObserver{Ids: ids, AppClusterDB: appClusterDB, RemainingChanges: len(ids)}
+}
+
+// Observe changes in the list of observed deployment fragments and run the indicated function if the deployment fragment
+// changes into the given status type. The observer will stop when all the deployment fragments have been observed to
+// change or when a timeout is reached.
+// params:
+//  timeout duration for the timeout of this context
+//  status to be detected
+//  f function to be called when the defined status is found
+// return:
+//  error if any
+func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status entities.DeploymentFragmentStatus, f func(*entities.DeploymentFragment) derrors.Error) {
+    log.Debug().Msg("started deployments fragment observer")
+    sleep := time.Tick(CheckSleepTime)
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
+
+    for {
+        select {
+        case <-sleep:
+            for _, observed := range df.Ids {
+                clusterId := observed.ClusterId
+                appInstanceId := observed.AppInstanceId
+                fragment, err := df.AppClusterDB.GetDeploymentFragment(clusterId, appInstanceId)
+
+                if fragment == nil {
+                    log.Debug().Msgf("no deployment fragment stored for cluster %s with id %s", clusterId, appInstanceId)
+                    continue
+                }
+
+                if err != nil {
+                    log.Error().Err(err).Str("clusterId",clusterId).Str("appInstanceId",appInstanceId).
+                        Msg("error when collecting fragment data")
+                    continue
+                }
+
+                if fragment.Status == status {
+                    if e:= f(fragment); e!= nil {
+                        log.Error().Err(err).Msg("error when executing callback function after observing change")
+                    }
+                    // one observed reduce the counter
+                    df.RemainingChanges = df.RemainingChanges - 1
+                }
+            }
+
+            if df.RemainingChanges == 0 {
+                log.Debug().Msg("deployment fragments observer stops after all the elements were proceesed")
+            }
+
+        case <- ctx.Done():
+            log.Debug().Msg("timeout reached for deployment fragments observer")
+            return
+        }
+    }
+}

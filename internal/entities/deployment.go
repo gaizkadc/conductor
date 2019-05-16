@@ -87,6 +87,7 @@ const (
 	FRAGMENT_DONE
 	FRAGMENT_ERROR
 	FRAGMENT_RETRYING
+	FRAGMENT_TERMINATING
 )
 
 var DeploymentStatusToGRPC = map[pbConductor.DeploymentFragmentStatus]DeploymentFragmentStatus{
@@ -95,6 +96,7 @@ var DeploymentStatusToGRPC = map[pbConductor.DeploymentFragmentStatus]Deployment
 	pbConductor.DeploymentFragmentStatus_DONE:      FRAGMENT_DONE,
 	pbConductor.DeploymentFragmentStatus_ERROR:     FRAGMENT_ERROR,
 	pbConductor.DeploymentFragmentStatus_RETRYING:  FRAGMENT_RETRYING,
+	pbConductor.DeploymentFragmentStatus_TERMINATING: FRAGMENT_TERMINATING,
 }
 
 // Plan related entries
@@ -141,6 +143,8 @@ type DeploymentFragment struct {
 	Stages []DeploymentStage `json:"stages,omitempty"`
 	// Identifier for the ZtNetworkID. This is a value only used by conductor.
 	ZtNetworkID string `json:"stages,omitempty"`
+	// Status for this deployment fragment
+	Status DeploymentFragmentStatus `json:"status"`
 }
 
 func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {

@@ -13,6 +13,7 @@ import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/conductor/internal/persistence/app_cluster"
     "github.com/nalej/conductor/internal/structures"
+    "github.com/nalej/conductor/pkg/conductor/observer"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
@@ -38,6 +39,8 @@ const (
     ConductorMaxDeploymentRetries = 3
     // Time to wait between retries in seconds
     ConductorSleepBetweenRetries = 25
+    // Time to wait to receive a terminating status when draining clusters in seconds
+    ConductorDrainClusterAppTimeout = time.Second * 60
 )
 
 type Manager struct {
@@ -365,7 +368,6 @@ func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment
     log.Info().Msgf("conductor maximum score has score %v from %d potential candidates",
         scoreResult.DeploymentsScore, scoreResult.NumEvaluatedClusters)
 
-
     // 3) design plan
     // Elaborate deployment plan for the application
     req := entities.DeploymentRequest{
@@ -375,6 +377,10 @@ func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment
         RequestId: uuid.New().String(),
         InstanceId: fragment.AppDescriptorId,
     }
+
+    // --------> run this to check how it is working
+    c.Designer.ReDesignPlan(appInstance, *scoreResult, req)
+
     plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, req)
 
     if err != nil{
@@ -559,6 +565,19 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
         return err
     }
 
+    // create observer and the array of entries to be observed
+    toObserve := make([]observer.ObservableDeploymentFragment, len(targetClusters))
+    for i, clusterId := range targetClusters {
+        toObserve[i] = observer.ObservableDeploymentFragment{ClusterId: clusterId, AppInstanceId: appInstanceId}
+    }
+
+    observer := observer.NewDeploymentFragmentsObserver(toObserve, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        func(d *entities.DeploymentFragment) derrors.Error {
+            return c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.AppInstanceId)
+        })
+
     // terminate execution
     return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,targetClusters)
 }
@@ -604,6 +623,19 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("impossible to find clusters where this app was deployed")
         return err
     }
+
+    // create observer and the array of entries to be observed
+    toObserve := make([]observer.ObservableDeploymentFragment, len(targetClusters))
+    for i, clusterId := range targetClusters {
+        toObserve[i] = observer.ObservableDeploymentFragment{ClusterId: clusterId, AppInstanceId: appInstanceId}
+    }
+
+    observer := observer.NewDeploymentFragmentsObserver(toObserve, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        func(d *entities.DeploymentFragment) derrors.Error {
+            return c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.AppInstanceId)
+        })
 
     // terminate execution
     return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,targetClusters)
@@ -668,12 +700,6 @@ func(c *Manager) undeployClustersInstance(organizationId string, appInstanceId s
             return err
         }
         cancel()
-
-        // remove the deployment fragments for this app
-        err = c.AppClusterDB.DeleteDeploymentFragment(clusterId, appInstanceId)
-        if err != nil {
-            log.Error().Err(err).Msg("impossible to remove information about undeployed fragment")
-        }
     }
     return nil
 }
@@ -770,33 +796,35 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
         return
     }
 
-    // save the fragments to redeploy
-    toReschedule := make([]*entities.DeploymentFragment,0)
+
+    // entries to schedule again
+    toReschedule := make([]observer.ObservableDeploymentFragment,len(appIds))
 
     // Drain the whole cluster
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
-    for _, appId := range appIds {
-        fragment, err := c.AppClusterDB.GetDeploymentFragment(drainRequest.ClusterId.ClusterId, appId)
-        if err != nil {
-            log.Error().Err(err).Str("clusterId",drainRequest.ClusterId.ClusterId).
-                Str("applicationId",appId).
-                Msg("impossible to get deployment fragments from application for redeployment")
-        } else {
-            toReschedule = append(toReschedule, fragment)
-        }
-
-        // undeploy all the apps from the given cluster
+    for i, appId := range appIds {
+        toReschedule[i] = observer.ObservableDeploymentFragment{ClusterId: drainRequest.ClusterId.ClusterId, AppInstanceId: appId}
         c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, drainRequest.ClusterId.ClusterId, []string{appId})
     }
-
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
 
     // reschedule removed deployment fragments
-    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start reschedule after drain operation...")
-    for index, f := range(toReschedule) {
-        log.Debug().Str("clusterId",drainRequest.ClusterId.ClusterId).Str("appInstanceId", f.AppInstanceId).
-            Str("deployment", f.DeploymentId).Msgf("reschedule fragment %d out of %d", (index +1),len(toReschedule))
-        c.ProcessDeploymentFragment(f)
-    }
-    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("done reschedule after drain operation")
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again...")
+
+    observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        func(d *entities.DeploymentFragment) derrors.Error {
+        log.Debug().Str("deploymentFragmentId", d.DeploymentId).Msg("deployment fragment to be re-scheduled")
+        return c.ProcessDeploymentRequest(
+            &entities.DeploymentRequest{
+                AppInstanceId: d.AppInstanceId,
+                OrganizationId: d.OrganizationId,
+                InstanceId: d.AppInstanceId,
+                ApplicationId: d.AppDescriptorId,
+                NumRetries: 0,
+            })
+    })
+
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
 }
