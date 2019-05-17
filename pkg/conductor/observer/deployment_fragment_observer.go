@@ -48,7 +48,7 @@ func NewDeploymentFragmentsObserver(ids []ObservableDeploymentFragment, appClust
 // return:
 //  error if any
 func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status entities.DeploymentFragmentStatus, f func(*entities.DeploymentFragment) derrors.Error) {
-    log.Debug().Msg("started deployments fragment observer")
+    log.Debug().Msgf("started deployments fragment observer with %d pending observations",df.RemainingChanges)
     sleep := time.Tick(CheckSleepTime)
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
@@ -78,11 +78,13 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
                     }
                     // one observed reduce the counter
                     df.RemainingChanges = df.RemainingChanges - 1
-                }
-            }
+                    log.Debug().Msgf("remaining %d deployment fragments to observe",df.RemainingChanges)
 
-            if df.RemainingChanges == 0 {
-                log.Debug().Msg("deployment fragments observer stops after all the elements were proceesed")
+                    if df.RemainingChanges == 0 {
+                        log.Debug().Msg("deployment fragments observer stops after all the elements were processed")
+                        return
+                    }
+                }
             }
 
         case <- ctx.Done():

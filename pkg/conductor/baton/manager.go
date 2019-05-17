@@ -34,7 +34,7 @@ import (
 const (
     CheckSleepTime = 2000
     // Timeout in seconds for queries to the application clusters.
-    ConductorAppTimeout = 600
+    ConductorAppTimeout = 60
     // Maximum number of retries per request
     ConductorMaxDeploymentRetries = 3
     // Time to wait between retries in seconds
@@ -804,7 +804,7 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
     for i, appId := range appIds {
         toReschedule[i] = observer.ObservableDeploymentFragment{ClusterId: drainRequest.ClusterId.ClusterId, AppInstanceId: appId}
-        c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, drainRequest.ClusterId.ClusterId, []string{appId})
+        c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, appId, []string{drainRequest.ClusterId.ClusterId})
     }
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
 
@@ -813,18 +813,38 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 
     observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
-        func(d *entities.DeploymentFragment) derrors.Error {
-        log.Debug().Str("deploymentFragmentId", d.DeploymentId).Msg("deployment fragment to be re-scheduled")
-        return c.ProcessDeploymentRequest(
-            &entities.DeploymentRequest{
-                AppInstanceId: d.AppInstanceId,
-                OrganizationId: d.OrganizationId,
-                InstanceId: d.AppInstanceId,
-                ApplicationId: d.AppDescriptorId,
-                NumRetries: 0,
-            })
-    })
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING, c.scheduleDeploymentFragment)
 
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
+}
+
+// This function schedules a existing deployment fragment to be deployed again an updates the corresponding db status.
+// params:
+//  d deployment fragment to be deployed again
+// return:
+//  error if any
+func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) derrors.Error {
+    log.Debug().Str("deploymentFragmentId", d.DeploymentId).Msg("deployment fragment to be re-scheduled")
+    err := c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId, d.AppInstanceId)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to update local version of deployment fragment")
+        return err
+    }
+    // Delete the associated service group instance
+    ctx, cancel :=  context.WithTimeout(context.Background(), ConductorAppTimeout * time.Second)
+    defer cancel()
+    _, dbErr := c.AppClient.RemoveServiceGroupInstances(ctx,
+        &pbApplication.RemoveServiceGroupInstancesRequest{OrganizationId: d.OrganizationId, AppInstanceId: d.AppInstanceId})
+    if dbErr != nil {
+        return derrors.NewInternalError("error updating service group instance", dbErr)
+    }
+
+    return c.ProcessDeploymentRequest(
+        &entities.DeploymentRequest{
+            AppInstanceId: d.AppInstanceId,
+            OrganizationId: d.OrganizationId,
+            InstanceId: d.AppInstanceId,
+            ApplicationId: d.AppDescriptorId,
+            NumRetries: 0,
+        })
 }

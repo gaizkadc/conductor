@@ -95,6 +95,16 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         m.pendingPlans.SetFragmentPending(request.FragmentId)
         finalStatus = entities.FRAGMENT_TERMINATING
 
+    case entities.FRAGMENT_RETRYING:
+        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment retrying")
+        m.pendingPlans.SetFragmentPending(request.FragmentId)
+        finalStatus = entities.FRAGMENT_RETRYING
+
+    case entities.FRAGMENT_WAITING:
+        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment waiting")
+        m.pendingPlans.SetFragmentPending(request.FragmentId)
+        finalStatus = entities.FRAGMENT_WAITING
+
     default:
         log.Info().Msg("received a non processable status in an update fragment update")
         return nil
