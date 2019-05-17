@@ -6,7 +6,6 @@
 package plandesigner
 
 import (
-    "encoding/json"
     "github.com/google/uuid"
     "github.com/nalej/conductor/internal/structures"
     pbApplication "github.com/nalej/grpc-application-go"
@@ -45,17 +44,10 @@ func NewSimpleReplicaPlanDesigner (connHelper *utils.ConnectionsHelper) PlanDesi
     return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper, authxClient:authxClient}
 }
 
-// For a running
-func (p *SimpleReplicaPlanDesigner) ReDesignPlan(app entities.AppInstance,
-    score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
-    obj, _ := json.Marshal(&app)
-    // inspect the instance metadata and find missing elements
-    log.Info().Msg(string(obj))
-    return nil, nil
-}
 
 func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
-score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error) {
+    score entities.DeploymentScore, request entities.DeploymentRequest, groupIds []string,
+    deployedGroups map[string][]string) (*entities.DeploymentPlan, error) {
 
     // Build deployment stages for the application
     retrievedDesc,err :=p.appClient.GetParametrizedDescriptor(context.Background(),
@@ -75,8 +67,30 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
         return nil, theErr
     }
 
-    // Get a local representation of the object
-    toDeploy := entities.NewParametrizedDescriptorFromGRPC(retrievedDesc)
+    // Get a local representation of the object using the group filters
+    unfilteredDesc := entities.NewParametrizedDescriptorFromGRPC(retrievedDesc)
+    var toDeploy entities.AppDescriptor
+    if groupIds == nil || len(groupIds) == 0 {
+        toDeploy = unfilteredDesc
+    } else {
+        // apply the groups filtering
+        filteredGroups := make([]entities.ServiceGroup,0)
+        for _, gId := range groupIds {
+            for _, g := range toDeploy.Groups {
+                if gId == g.ServiceGroupId {
+                    filteredGroups = append(filteredGroups, g)
+                }
+            }
+        }
+        if len(filteredGroups) == 0 {
+            log.Error().Str("appDescriptorId",unfilteredDesc.AppDescriptorId).
+                Strs("groupIds",groupIds).Msg("no group could be filtered from app descriptor")
+            return nil, derrors.NewInternalError("no group could be filtered from app descriptor")
+        }
+        // Simply change the groups in the deployment
+        toDeploy = unfilteredDesc
+        toDeploy.Groups = filteredGroups
+    }
 
     planId := uuid.New().String()
     log.Info().Str("planId",planId).Msg("start building the plan")
@@ -98,7 +112,7 @@ score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.D
     }
 
     // Build deployment matrix
-    deploymentMatrix := structures.NewDeploymentMatrix(score)
+    deploymentMatrix := structures.NewDeploymentMatrix(score, deployedGroups)
 
     // Compute the list of groups to be deployed per cluster
     clustersMap, groupReplicas, err := p.findTargetClusters(toDeploy, deploymentMatrix)

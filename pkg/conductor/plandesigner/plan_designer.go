@@ -15,21 +15,19 @@ import (
 
 type PlanDesigner interface {
 
-    // For any set of requirements an a given score elaborate a deployment plan.
+    // For any set of requirements an a given score elaborate a deployment plan. If a list of group ids is set
+    // only these groups are chosen otherwise, all the groups from the descriptor are used.
     //  params:
     //   app application instance
-    //   services group of services to deploy
     //   score obtained by musicians
     //   request deployment request for this plan
+    //   groupIds list of group ids to select from the descriptor
     //  return:
     //   A collection of deployment plans each one designed to run in a different cluster.
     DesignPlan(app entities.AppInstance,
-        score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error)
+        score entities.DeploymentScore, request entities.DeploymentRequest, groupIds []string,
+        deployedGroups map[string][]string) (*entities.DeploymentPlan, error)
 
-    // For a plan that is already running and instantiated check the current deployment status and schedule
-    // missing parts of the original application descriptor.
-    ReDesignPlan(app entities.AppInstance,
-        score entities.DeploymentScore, request entities.DeploymentRequest) (*entities.DeploymentPlan, error)
 }
 
 const (

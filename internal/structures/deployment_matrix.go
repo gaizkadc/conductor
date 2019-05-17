@@ -24,12 +24,15 @@ type DeploymentMatrix struct {
     // Cluster -> allocated score
     AllocatedScore map[string]entities.ClusterDeploymentScore
     // Groups per cluster
-    // cluster -> [groupA, groupB, groupC...]
-    GroupsCluster map[string][]entities.ServiceGroup
+    // cluster -> [groupIdA, groupIdB, groupIdC...]
+    GroupsCluster map[string][]string
 }
 
 // Build a deployment matrix using an existing DeploymentScore
-func NewDeploymentMatrix(scores entities.DeploymentScore) *DeploymentMatrix {
+// params:
+//  scores for every cluster
+//  allocatedGroups service groups already allocated in a given cluster if any
+func NewDeploymentMatrix(scores entities.DeploymentScore, allocatedGroups map[string][]string) *DeploymentMatrix {
     clusterScore := make(map[string]entities.ClusterDeploymentScore, 0)
     allocatedScore := make(map[string]entities.ClusterDeploymentScore, 0)
 
@@ -39,10 +42,17 @@ func NewDeploymentMatrix(scores entities.DeploymentScore) *DeploymentMatrix {
         allocatedScore[ds.ClusterId] = ds
     }
 
+    var deployedGroups map[string][]string
+    if allocatedGroups == nil || len(allocatedGroups) == 0 {
+        deployedGroups = make(map[string][]string)
+    } else {
+        deployedGroups = allocatedGroups
+    }
+
     return &DeploymentMatrix{
         ClustersScore: clusterScore,
         AllocatedScore: allocatedScore,
-        GroupsCluster: make(map[string][]entities.ServiceGroup),
+        GroupsCluster: deployedGroups,
     }
 }
 
@@ -59,12 +69,27 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
     // Iterate until we find the best solution to deploy as many replicas as required
     var desiredReplicas int
 
+    // find if there are any initial replicas already allocated
+    alreadyAllocatedGroups := 0
+    for _, groupsInCluster := range dm.GroupsCluster {
+        for _, groupId := range groupsInCluster {
+            if groupId == group.ServiceGroupId {
+                alreadyAllocatedGroups ++
+            }
+        }
+    }
+    log.Debug().Int("alreadyAllocatedGroups", alreadyAllocatedGroups).
+        Interface("groupsCluster",dm.GroupsCluster).
+        Str("groupId",group.ServiceGroupId)
+        Msg("number of already allocated groups found")
+
+
     if group.Specs.MultiClusterReplica{
         // This is a multiple cluster. Replicate as many times as available clusters we have.
-        desiredReplicas = len(dm.AllocatedScore)
+        desiredReplicas = len(dm.AllocatedScore) - alreadyAllocatedGroups
     } else {
         // Deploy as many replicas as mentioned in the deploy specs.
-        desiredReplicas = int(group.Specs.Replicas)
+        desiredReplicas = int(group.Specs.Replicas) - alreadyAllocatedGroups
     }
 
     log.Debug().Interface("deploymentMatrix", dm).Msg("deployment matrix during cluster search")
@@ -112,7 +137,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
     toReturn := make([]string,len(targetClusters))
     i := 0
     for clusterId, _ := range targetClusters {
-        dm.allocateGroups(clusterId, group.Name,[]entities.ServiceGroup{group})
+        dm.allocateGroups(clusterId, group.ServiceGroupId,[]string{group.ServiceGroupId})
         toReturn[i] = clusterId
         i++
     }
@@ -122,7 +147,7 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
 
 // Allocate groups and update scores.
-func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,groups []entities.ServiceGroup) {
+func (dm *DeploymentMatrix) allocateGroups(clusterId string, groupId string,groups []string) {
     dm.GroupsCluster[clusterId] = groups
     scoreToRevisit := dm.AllocatedScore[clusterId]
     load := dm.AllocatedScore[clusterId].Scores[groupId]

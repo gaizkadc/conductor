@@ -276,7 +276,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 
     // 3) design plan
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
+    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req, nil,nil)
 
     if err != nil{
         log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
@@ -378,10 +378,30 @@ func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment
         InstanceId: fragment.AppDescriptorId,
     }
 
-    // --------> run this to check how it is working
-    c.Designer.ReDesignPlan(appInstance, *scoreResult, req)
+    // design a plan for the service groups contained into the deployment fragment
+    // build a summary of the groups running in the cluster
+    allocatedGroupsPerClusters := make(map[string][]string,0)
+    for clusterId, _ := range c.ConnHelper.ClusterReference {
+        df, err := c.AppClusterDB.GetDeploymentFragment(clusterId,appInstance.AppInstanceId)
+        if err != nil {
+            log.Error().Msg("error when getting deployment fragment from cluster")
+            continue
+        }
+        if df != nil {
+            entry, found := allocatedGroupsPerClusters[clusterId]
+            if !found {
+                allocatedGroupsPerClusters[clusterId] = make([]string,0)
+                entry = allocatedGroupsPerClusters[clusterId]
+            }
+            // every stage corresponds to one service group, any service has the service group id
+            for _, s := range df.Stages {
+                entry = append(entry, s.Services[0].ServiceGroupId)
+            }
+        }
+    }
 
-    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, req)
+
+    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, req, serviceGroupIds, allocatedGroupsPerClusters)
 
     if err != nil{
         log.Error().Err(err).Str("appDescriptorId", fragment.AppDescriptorId)
