@@ -112,7 +112,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
 
     // Update the view of this deployment fragment in the DB
-    df, err := m.manager.AppClusterDB.GetDeploymentFragment(request.ClusterId, request.AppInstanceId)
+    df, err := m.manager.AppClusterDB.GetDeploymentFragment(request.ClusterId, request.FragmentId)
     if err != nil {
         e := derrors.NewInternalError("impossible to get deployment fragment status from database", err)
         return e

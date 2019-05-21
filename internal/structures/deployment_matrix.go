@@ -74,13 +74,13 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
     for _, groupsInCluster := range dm.GroupsCluster {
         for _, groupId := range groupsInCluster {
             if groupId == group.ServiceGroupId {
-                alreadyAllocatedGroups ++
+                alreadyAllocatedGroups = alreadyAllocatedGroups + 1
             }
         }
     }
     log.Debug().Int("alreadyAllocatedGroups", alreadyAllocatedGroups).
         Interface("groupsCluster",dm.GroupsCluster).
-        Str("groupId",group.ServiceGroupId)
+        Str("groupId",group.ServiceGroupId).
         Msg("number of already allocated groups found")
 
 
@@ -90,6 +90,11 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
     } else {
         // Deploy as many replicas as mentioned in the deploy specs.
         desiredReplicas = int(group.Specs.Replicas) - alreadyAllocatedGroups
+    }
+
+    // Current conditions do not require additional replicas
+    if desiredReplicas == 0 {
+        return nil, nil
     }
 
     log.Debug().Interface("deploymentMatrix", dm).Msg("deployment matrix during cluster search")

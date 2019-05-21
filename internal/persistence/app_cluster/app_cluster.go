@@ -21,8 +21,8 @@ import (
 // The app cluster db creates one bucket for every cluster and stores
 // the deployment fragments in the corresponding bucket.
 // bucket    --> key                    --> value
-// clusterId --> AppInstanceId_1 --> deploymentFragment
-// clusterId --> AppInstanceId_2 --> deploymentFragment
+// clusterId --> DeploymentFragmentId_1 --> deploymentFragment
+// clusterId --> DeploymentFragmentId_2 --> deploymentFragment
 
 type AppClusterDB struct {
     // provider to persist information
@@ -42,11 +42,11 @@ func (a *AppClusterDB) AddDeploymentFragment(fragment *entities.DeploymentFragme
         return derrors.NewInternalError("impossible to marshall deployment fragment", err)
     }
 
-    return a.db.Put([]byte(fragment.ClusterId),[]byte(fragment.AppInstanceId),buffer.Bytes())
+    return a.db.Put([]byte(fragment.ClusterId),[]byte(fragment.FragmentId),buffer.Bytes())
 }
 
-func (a *AppClusterDB) GetDeploymentFragment(clusterId string, appInstanceId string) (*entities.DeploymentFragment, derrors.Error){
-    retrieved, err := a.db.Get([]byte(clusterId),[]byte(appInstanceId))
+func (a *AppClusterDB) GetDeploymentFragment(clusterId string, fragmentId string) (*entities.DeploymentFragment, derrors.Error){
+    retrieved, err := a.db.Get([]byte(clusterId),[]byte(fragmentId))
     if err != nil {
         return nil, derrors.NewInternalError("impossible to get deployment fragment",err)
     }
@@ -63,45 +63,30 @@ func (a *AppClusterDB) GetDeploymentFragment(clusterId string, appInstanceId str
     return &df, nil
 }
 
-func (a *AppClusterDB) DeleteDeploymentFragment(clusterId string, appInstanceId string) derrors.Error {
-    err := a.db.Delete([]byte(clusterId), []byte(appInstanceId))
+func (a *AppClusterDB) DeleteDeploymentFragment(clusterId string, fragmentId string) derrors.Error {
+    err := a.db.Delete([]byte(clusterId), []byte(fragmentId))
     if err != nil {
         return derrors.NewInternalError("impossible to delete deployment fragment", err)
     }
     return nil
 }
 
-func (a *AppClusterDB) GetAppsInCluster(clusterId string) ([]string, derrors.Error) {
+
+func (a *AppClusterDB) GetFragmentsInCluster(clusterId string) ([]entities.DeploymentFragment, derrors.Error) {
     pairs, err := a.db.GetAllPairsInBucket([]byte(clusterId))
     if err != nil {
         return nil,derrors.NewInternalError("impossible to get deployments from cluster")
     }
-    result := make([]string,len(pairs))
+    result := make([]entities.DeploymentFragment,len(pairs))
+
     for i, pair := range pairs {
-        result[i] = string(pair.Key)
+        b:=bytes.NewReader(pair.Value)
+        d := gob.NewDecoder(b)
+        var df entities.DeploymentFragment
+        if err := d.Decode(&df); err!= nil {
+            return nil, derrors.NewInternalError("impossible to unmarshall deployment fragment", err)
+        }
+        result[i] = df
     }
     return result, nil
-}
-
-// Find the clusters where an app is running.
-func (a *AppClusterDB) FindClustersApp(appInstanceId string) ([]string, derrors.Error) {
-    foundClusters := make([]string, 0)
-    // get all the clusters we know
-    buckets := a.db.GetBuckets()
-    if buckets == nil || len(buckets) == 0 {
-        return nil, nil
-    }
-    // return the array of clusters where the application is running
-    for _, clusterId := range buckets {
-        appsInCluster, err := a.GetAppsInCluster(string(clusterId))
-        if err != nil {
-            return nil, err
-        }
-        for _, app := range appsInCluster {
-            if app == appInstanceId {
-                foundClusters = append(foundClusters, string(clusterId))
-            }
-        }
-    }
-    return foundClusters, nil
 }

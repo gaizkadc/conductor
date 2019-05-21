@@ -4,7 +4,7 @@
  */
 
 package app_cluster
-
+/*
 import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/conductor/pkg/provider"
@@ -136,3 +136,4 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
         gomega.Expect(len(clusters)).To(gomega.Equal(2))
     })
 })
+*/

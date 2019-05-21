@@ -22,6 +22,7 @@ const CheckSleepTime = time.Second
 // Auxiliary structure
 type ObservableDeploymentFragment struct {
     ClusterId string
+    FragmentId string
     AppInstanceId string
 }
 
@@ -48,7 +49,7 @@ func NewDeploymentFragmentsObserver(ids []ObservableDeploymentFragment, appClust
 // return:
 //  error if any
 func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status entities.DeploymentFragmentStatus, f func(*entities.DeploymentFragment) derrors.Error) {
-    log.Debug().Msgf("started deployments fragment observer with %d pending observations",df.RemainingChanges)
+    log.Debug().Interface("observableItems",df.Ids).Msgf("started deployments fragment observer with %d pending observations",df.RemainingChanges)
     sleep := time.Tick(CheckSleepTime)
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
@@ -58,16 +59,16 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
         case <-sleep:
             for _, observed := range df.Ids {
                 clusterId := observed.ClusterId
-                appInstanceId := observed.AppInstanceId
-                fragment, err := df.AppClusterDB.GetDeploymentFragment(clusterId, appInstanceId)
+                fragmentId := observed.FragmentId
+                fragment, err := df.AppClusterDB.GetDeploymentFragment(clusterId, fragmentId)
 
                 if fragment == nil {
-                    log.Debug().Msgf("no deployment fragment stored for cluster %s with id %s", clusterId, appInstanceId)
+                    log.Debug().Msgf("no deployment fragment stored for cluster %s with id %s", clusterId, fragmentId)
                     continue
                 }
 
                 if err != nil {
-                    log.Error().Err(err).Str("clusterId",clusterId).Str("appInstanceId",appInstanceId).
+                    log.Error().Err(err).Str("clusterId",clusterId).Str("fragmentId", fragmentId).
                         Msg("error when collecting fragment data")
                     continue
                 }

@@ -49,6 +49,9 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
     score entities.DeploymentScore, request entities.DeploymentRequest, groupIds []string,
     deployedGroups map[string][]string) (*entities.DeploymentPlan, error) {
 
+    log.Debug().Str("appInstanceId",app.AppInstanceId).Interface("groupIds", groupIds).
+        Interface("deployedGroup",deployedGroups).Msg("design plan invoked")
+
     // Build deployment stages for the application
     retrievedDesc,err :=p.appClient.GetParametrizedDescriptor(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: app.OrganizationId, AppInstanceId: app.AppInstanceId})
@@ -76,9 +79,10 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
         // apply the groups filtering
         filteredGroups := make([]entities.ServiceGroup,0)
         for _, gId := range groupIds {
-            for _, g := range toDeploy.Groups {
+            for _, g := range unfilteredDesc.Groups {
                 if gId == g.ServiceGroupId {
                     filteredGroups = append(filteredGroups, g)
+                    break
                 }
             }
         }
@@ -102,7 +106,7 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
     groupsOrder := make(map[string][][]entities.Service)
     for _, g := range toDeploy.Groups {
         log.Debug().Str("appDescriptor",toDeploy.AppDescriptorId).Str("serviceGroupId",g.ServiceGroupId).
-            Msg("compute dependency graph for service group")
+            Str("groupName",g.Name).Msg("compute dependency graph for service group")
         dependencyGraph := NewDependencyGraph(g.Services)
         order, err := dependencyGraph.GetDependencyOrderByGroups()
         if err != nil {
@@ -112,13 +116,19 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
     }
 
     // Build deployment matrix
+    log.Debug().Interface("deployedGroups",deployedGroups).Msg("create deployment matrix")
     deploymentMatrix := structures.NewDeploymentMatrix(score, deployedGroups)
+
+    log.Debug().Interface("toDeploy",toDeploy).Msg("this is to deploy")
 
     // Compute the list of groups to be deployed per cluster
     clustersMap, groupReplicas, err := p.findTargetClusters(toDeploy, deploymentMatrix)
     if err != nil {
         return nil, err
     }
+
+    log.Debug().Interface("clustersMap",clustersMap).Interface("groupReplicas",groupReplicas).
+        Msg("result after finding target clusters")
 
     // Instantiate the number of replicas we need for every group
     groupInstances := make(map[string][]entities.ServiceGroupInstance)
@@ -184,12 +194,14 @@ func (p* SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
     toReturn := make([]entities.DeploymentFragment, 0)
     // combine all the groups per cluster into the corresponding fragment
     for cluster, listGroups := range clustersMap {
-        // collect stages per group and generate one fragment
-        // UUID for this fragment
-        fragmentUUID := uuid.New().String()
 
         log.Debug().Str("cluster", cluster).Int("numGroupsToDeploy", len(listGroups)).Msg("design plan for cluster")
         for _, g := range listGroups {
+
+            // collect stages per group and generate one fragment
+            // UUID for this fragment
+            fragmentUUID := uuid.New().String()
+
             stages := make([]entities.DeploymentStage, 0)
 
             // take one instance from the available list
@@ -242,6 +254,7 @@ func (p* SimpleReplicaPlanDesigner) findTargetClusters(
     resultClusters := make(map[string][]entities.ServiceGroup,0)
     resultReplicas := make(map[string]int,0)
 
+
     for _, g := range desc.Groups {
         log.Debug().Str("groupName", g.Name).Msg("find target cluster for this group")
         targets, err := deploymentMatrix.FindBestTargetsForReplication(g)
@@ -249,6 +262,11 @@ func (p* SimpleReplicaPlanDesigner) findTargetClusters(
             log.Error().Err(err).Msg("impossible to find best targets for replication")
             return nil, nil, err
         }
+        if targets == nil {
+            // no replicas were required for this service group
+            continue
+        }
+
         log.Debug().Str("groupName", g.Name).Interface("targets",targets).Msg("targets to be deployed on")
         // Add the number of replicas we need for this group
         resultReplicas[g.ServiceGroupId] = len(targets)
