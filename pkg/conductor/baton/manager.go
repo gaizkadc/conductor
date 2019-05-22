@@ -388,20 +388,22 @@ func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment
     // build a summary of the groups running in the cluster
     allocatedGroupsPerClusters := make(map[string][]string,0)
     for clusterId, _ := range c.ConnHelper.ClusterReference {
-        df, err := c.AppClusterDB.GetDeploymentFragment(clusterId,fragment.FragmentId)
+        // get the list of the deployment fragments for the same service group of the
+        // target fragment in the cluster
+        clusterFragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, fragment.AppInstanceId)
         if err != nil {
             log.Error().Msg("error when getting deployment fragment from cluster")
             continue
         }
-        if df != nil {
+        if clusterFragments != nil {
             entry, found := allocatedGroupsPerClusters[clusterId]
             if !found {
                 allocatedGroupsPerClusters[clusterId] = make([]string,0)
                 entry = allocatedGroupsPerClusters[clusterId]
             }
-            // every stage corresponds to one service group, any service has the service group id
-            for _, s := range df.Stages {
-                entry = append(entry, s.Services[0].ServiceGroupId)
+            // TODO this check assumes all stages in a deployment fragment to be in the same service group
+            for _, cf := range clusterFragments {
+                entry = append(entry, cf.Stages[0].Services[0].ServiceGroupId)
             }
             allocatedGroupsPerClusters[clusterId] = entry
         }
@@ -587,30 +589,30 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
     // call Rollback
     c.Rollback(organizationId, appInstanceId)
 
-    // find in what clusters this app is running
     clusterFound := make(map[string]bool, 0)
     clusterIds := make([]string,0)
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
             if svc.DeployedOnClusterId != "" {
-                clusterFound[svc.DeployedOnClusterId] = true
-                clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
+                    clusterFound[svc.DeployedOnClusterId] = true
+                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                }
             }
         }
     }
 
-
     // create observer and the array of entries to be observed
     toObserve := make([]observer.ObservableDeploymentFragment, 0)
     for _, clusterId := range clusterIds {
-        fragments, err := c.AppClusterDB.GetFragmentsInCluster(clusterId)
+        fragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, appInstanceId)
         if err != nil {
             log.Error().Err(err).Msg("error when getting fragments from cluster")
             continue
         }
         for _, fr := range fragments {
             toObserve = append(toObserve, observer.ObservableDeploymentFragment{ClusterId: clusterId,
-                FragmentId: fr.FragmentId, AppInstanceId: appInstance.AppInstanceId})
+                FragmentId: fr.FragmentId, AppInstanceId: appInstanceId})
         }
     }
 
@@ -666,17 +668,18 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
             if svc.DeployedOnClusterId != "" {
-                clusterFound[svc.DeployedOnClusterId] = true
-                clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
+                    clusterFound[svc.DeployedOnClusterId] = true
+                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                }
             }
         }
     }
 
-
     // create observer and the array of entries to be observed
     toObserve := make([]observer.ObservableDeploymentFragment, 0)
     for _, clusterId := range clusterIds {
-        fragments, err := c.AppClusterDB.GetFragmentsInCluster(clusterId)
+        fragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, appInstanceId)
         if err != nil {
             log.Error().Err(err).Msg("error when getting fragments from cluster")
             continue
