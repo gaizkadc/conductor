@@ -45,7 +45,7 @@ func(h InfrastructureOpsHandler) Run() {
 
 // Endless loop waiting for requests
 func (h InfrastructureOpsHandler) waitRequests() {
-    log.Debug().Msg("wait for requests to be received by the application ops queue")
+    log.Debug().Msg("wait for requests to be received by the infrastructure ops queue")
     for {
         ctx, cancel := context.WithTimeout(context.Background(), InfrastructureOpsTimeout)
         // in every iteration this loop consumes data and sends it to the corresponding channels

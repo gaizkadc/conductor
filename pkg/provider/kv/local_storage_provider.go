@@ -12,6 +12,7 @@ import (
     "github.com/nalej/derrors"
     "github.com/nalej/conductor/pkg/provider"
     "github.com/rs/zerolog/log"
+    "sync"
     "time"
 )
 
@@ -21,6 +22,7 @@ import (
 
 type LocalDB struct {
     db *bolt.DB
+    mu sync.Mutex
 }
 
 // Create a new local db using the given file path
@@ -47,6 +49,8 @@ func (ldb * LocalDB) Close() derrors.Error {
 
 
 func (ldb * LocalDB) Get(bucket []byte, key []byte) ([]byte, derrors.Error) {
+    ldb.mu.Lock()
+    defer ldb.mu.Unlock()
     var result []byte
     err := ldb.db.View(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
@@ -66,6 +70,8 @@ func (ldb * LocalDB) Get(bucket []byte, key []byte) ([]byte, derrors.Error) {
 
 
 func (ldb * LocalDB) Put(bucket []byte, key []byte, value []byte) derrors.Error {
+    ldb.mu.Lock()
+    defer ldb.mu.Unlock()
     err := ldb.db.Update(func(tx *bolt.Tx) error{
         b, err := tx.CreateBucketIfNotExists(bucket)
         if err!=nil {
@@ -84,6 +90,8 @@ func (ldb * LocalDB) Put(bucket []byte, key []byte, value []byte) derrors.Error 
 }
 
 func (ldb * LocalDB) Delete(bucket []byte, key []byte) derrors.Error {
+    ldb.mu.Lock()
+    defer ldb.mu.Unlock()
     err := ldb.db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
         if b==nil{
@@ -98,8 +106,24 @@ func (ldb * LocalDB) Delete(bucket []byte, key []byte) derrors.Error {
     return nil
 }
 
+func (ldb * LocalDB) GetBuckets() [][]byte {
+    ldb.mu.Lock()
+    defer ldb.mu.Unlock()
+    listBuckets := make([][]byte,0)
+    ldb.db.View(func(tx *bolt.Tx) error {
+        tx.ForEach(func(bucketName []byte, b *bolt.Bucket) error {
+            listBuckets = append(listBuckets, bucketName)
+            return nil
+        })
+        return nil
+    })
+    return listBuckets
+}
+
 
 func (ldb * LocalDB) GetAllPairsInBucket(bucket []byte)([]provider.KVTuple, derrors.Error) {
+    ldb.mu.Lock()
+    defer ldb.mu.Unlock()
     result := make([]provider.KVTuple,0)
 
     err := ldb.db.View(func(tx *bolt.Tx) error {

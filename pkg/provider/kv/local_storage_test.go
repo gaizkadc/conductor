@@ -66,4 +66,18 @@ var _ = ginkgo.Describe("test local database using bolt", func(){
         gomega.Expect(retrieved).Should(gomega.BeNil())
 
     })
+
+    ginkgo.It("returns the list of bucket names", func(){
+        k := []byte("key")
+        v := []byte("value")
+        buckets := [][]byte{[]byte("bucket1"),[]byte("bucket2"),[]byte("bucket3")}
+        for _, b := range buckets {
+            errPut := db.Put(b, k, v)
+            gomega.Expect(errPut).NotTo(gomega.HaveOccurred())
+        }
+        // get the list of buckets
+        retrievedBuckets := db.GetBuckets()
+        gomega.Expect(len(retrievedBuckets)).To(gomega.Equal(len(buckets)))
+
+    })
 })

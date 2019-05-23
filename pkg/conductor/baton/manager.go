@@ -13,6 +13,7 @@ import (
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/conductor/internal/persistence/app_cluster"
     "github.com/nalej/conductor/internal/structures"
+    "github.com/nalej/conductor/pkg/conductor/observer"
     "github.com/nalej/conductor/pkg/conductor/plandesigner"
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
@@ -33,11 +34,13 @@ import (
 const (
     CheckSleepTime = 2000
     // Timeout in seconds for queries to the application clusters.
-    ConductorAppTimeout = 600
+    ConductorAppTimeout = 60
     // Maximum number of retries per request
     ConductorMaxDeploymentRetries = 3
     // Time to wait between retries in seconds
     ConductorSleepBetweenRetries = 25
+    // Time to wait to receive a terminating status when draining clusters in seconds
+    ConductorDrainClusterAppTimeout = time.Second * 60
 )
 
 type Manager struct {
@@ -273,7 +276,7 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
 
     // 3) design plan
     // Elaborate deployment plan for the application
-    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req)
+    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, *req, nil,nil)
 
     if err != nil{
         log.Error().Err(err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
@@ -299,6 +302,134 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     }
     return nil
 }
+
+// Analyze the best deployment options for a single deployment fragment.
+func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment) derrors.Error{
+    if fragment == nil {
+        err := derrors.NewFailedPreconditionError("the requested fragment was nil")
+        log.Error().Err(err)
+        return err
+    }
+
+    // Get the ServiceGroup structure
+
+    retrievedAppInstance, err  := c.AppClient.GetAppInstance(context.Background(),
+        &pbApplication.AppInstanceId{OrganizationId: fragment.OrganizationId, AppInstanceId: fragment.AppInstanceId})
+    if err != nil {
+        err := derrors.NewGenericError("impossible to obtain application descriptor")
+        log.Error().Err(err).Msg("impossible to retrieve app instance")
+        return err
+    }
+
+
+    appInstance := entities.NewAppInstanceFromGRPC(retrievedAppInstance)
+
+    // 1) collect requirements for the application descriptor
+    // Get the application descriptor (parametrized)
+    appDescriptor, err := c.AppClient.GetParametrizedDescriptor(context.Background(),
+        &pbApplication.AppInstanceId{AppInstanceId: fragment.AppInstanceId, OrganizationId: fragment.OrganizationId})
+    if err != nil {
+        err := derrors.NewNotFoundError("impossible to find application descriptor", err)
+        log.Error().Err(err).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId).
+            Msg("application descriptor not found when processing deployment request")
+        return err
+    }
+
+    log.Debug().Interface("re-scheduled fragment",fragment).Msg("this is the fragment to deploy")
+
+    // Find the service groups in the deployment fragment
+    serviceGroupsMap := make(map[string]bool,0)
+    serviceGroupIds := make([]string, 0)
+    for _, sg := range fragment.Stages{
+        for _, s := range sg.Services {
+            if _, found := serviceGroupsMap[s.ServiceGroupId]; !found {
+                log.Debug().Str("groupName",s.Name).Str("serviceGroupId",s.ServiceGroupId).Msg("services contained in running service group")
+                serviceGroupsMap[s.ServiceGroupId]=true
+                serviceGroupIds = append(serviceGroupIds, s.ServiceGroupId)
+            } else {
+                log.Debug().Str("groupName",s.Name).Str("serviceGroupId",s.ServiceGroupId).Msg("excluded from the list")
+            }
+        }
+    }
+    log.Debug().Interface("serviceGroupIds", serviceGroupIds).
+        Msgf("a total of %d service groups have to be rescheduled",len(serviceGroupIds))
+
+
+    foundRequirements, err := c.ReqCollector.FindRequirementsForGroups(serviceGroupIds, appInstance.AppInstanceId, appDescriptor)
+    if err != nil {
+        err := derrors.NewGenericError("impossible to find requirements for application")
+        log.Error().Err(err).Str("appDescriptorId", fragment.AppDescriptorId)
+        return err
+    }
+
+    // 2) score requirements
+    scoreResult, err := c.ScorerMethod.ScoreRequirements (fragment.OrganizationId,foundRequirements)
+
+    if err != nil {
+        err := derrors.NewGenericError("error scoring request")
+        log.Error().Err(err).Str("appDescriptorId", fragment.AppDescriptorId)
+        return err
+    }
+
+    log.Info().Msgf("conductor maximum score has score %v from %d potential candidates",
+        scoreResult.DeploymentsScore, scoreResult.NumEvaluatedClusters)
+
+    // 3) design plan
+    // Elaborate deployment plan for the application
+    req := entities.DeploymentRequest{
+        OrganizationId: fragment.OrganizationId,
+        AppInstanceId: fragment.AppInstanceId,
+        ApplicationId: fragment.AppDescriptorId,
+        RequestId: uuid.New().String(),
+        InstanceId: fragment.FragmentId,
+    }
+
+    // design a plan for the service groups contained into the deployment fragment
+    // build a summary of the groups running in the cluster
+    allocatedGroupsPerClusters := make(map[string][]string,0)
+    for clusterId, _ := range c.ConnHelper.ClusterReference {
+        // get the list of the deployment fragments for the same service group of the
+        // target fragment in the cluster
+        clusterFragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, fragment.AppInstanceId)
+        if err != nil {
+            log.Error().Msg("error when getting deployment fragment from cluster")
+            continue
+        }
+        if clusterFragments != nil {
+            entry, found := allocatedGroupsPerClusters[clusterId]
+            if !found {
+                allocatedGroupsPerClusters[clusterId] = make([]string,0)
+                entry = allocatedGroupsPerClusters[clusterId]
+            }
+            // TODO this check assumes all stages in a deployment fragment to be in the same service group
+            for _, cf := range clusterFragments {
+                entry = append(entry, cf.Stages[0].Services[0].ServiceGroupId)
+            }
+            allocatedGroupsPerClusters[clusterId] = entry
+        }
+    }
+
+    log.Debug().Interface("allocatedGroupsPerCluster",allocatedGroupsPerClusters).
+        Interface("serviceGroupIds", serviceGroupIds).
+        Msg("design a plan for deployment fragments")
+    plan, err := c.Designer.DesignPlan(appInstance, *scoreResult, req, serviceGroupIds, allocatedGroupsPerClusters)
+
+    if err != nil{
+        log.Error().Err(err).Str("appDescriptorId", fragment.AppDescriptorId)
+        return derrors.AsError(err,fmt.Sprintf("plan design failed for descriptor %s",err.Error()))
+    }
+
+    // 4) deploy fragments
+    // Tell deployment managers to execute plans
+    err_deploy := c.DeployPlan(plan, fragment.ZtNetworkID, 0)
+    if err_deploy != nil {
+        err := derrors.NewGenericError("error deploying plan request", err_deploy)
+        log.Error().Err(err_deploy).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+        return err
+    }
+    return nil
+}
+
 
 // Create a new zero tier network and return the corresponding network id.
 // params:
@@ -407,6 +538,8 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
         }
 
         // update the db of fragments deployed on that cluster
+        // update the value of the ztNetworkId in the local entity
+        fragment.ZtNetworkID = ztNetworkId
         err = c.AppClusterDB.AddDeploymentFragment(&fragment)
         if err != nil {
             log.Error().Err(err).Msg("there was a problem when storing information about a deployment fragment")
@@ -440,6 +573,10 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
+    err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to remove a pending pending plan")
+    }
     return c.HardUndeploy(request.OrganizationId,request.AppInstanceId)
 }
 
@@ -455,8 +592,43 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
 
     // call Rollback
     c.Rollback(organizationId, appInstanceId)
+
+    clusterFound := make(map[string]bool, 0)
+    clusterIds := make([]string,0)
+    for _, g := range appInstance.Groups {
+        for _, svc := range g.ServiceInstances {
+            if svc.DeployedOnClusterId != "" {
+                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
+                    clusterFound[svc.DeployedOnClusterId] = true
+                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                }
+            }
+        }
+    }
+
+    // create observer and the array of entries to be observed
+    toObserve := make([]observer.ObservableDeploymentFragment, 0)
+    for _, clusterId := range clusterIds {
+        fragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, appInstanceId)
+        if err != nil {
+            log.Error().Err(err).Msg("error when getting fragments from cluster")
+            continue
+        }
+        for _, fr := range fragments {
+            toObserve = append(toObserve, observer.ObservableDeploymentFragment{ClusterId: clusterId,
+                FragmentId: fr.FragmentId, AppInstanceId: appInstanceId})
+        }
+    }
+
+    observer := observer.NewDeploymentFragmentsObserver(toObserve, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        func(d *entities.DeploymentFragment) derrors.Error {
+            return c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.FragmentId)
+        })
+
     // terminate execution
-    return c.undeployClustersInstance(appInstance)
+    return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,clusterIds)
 }
 
 // Undeploy function that removes the application instance
@@ -485,7 +657,7 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     // TODO: see if this method could be moved to application manager ( app-manager is responsible for creating it)
     _, err = c.AppClient.RemoveParametrizedDescriptor(context.Background(), instID)
     if err != nil{
-        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove paretrized descriptor from system model")
+        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove parametrized descriptor from system model")
     }
 
     // Remove from the associated request from the queue
@@ -494,43 +666,73 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
     }
 
-    // terminate execution
-    return c.undeployClustersInstance(appInstance)
-}
-
-// Private function to communicate the application clusters to remove a running instance.
-func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance) error {
-    // Send undeploy requests to application clusters
-    log.Debug().Str("app_instance_id", appInstance.AppInstanceId).Msg("undeploy app instance with id")
-
-    err := c.ConnHelper.UpdateClusterConnections(appInstance.OrganizationId)
-    if err != nil {
-        log.Error().Err(err).Str("organizationID",appInstance.OrganizationId).Msg("error updating connections for organization")
-        return err
-    }
-    if len(c.ConnHelper.ClusterReference) == 0 {
-        log.Error().Msgf("no clusters found for organization %s", appInstance.OrganizationId)
-        return nil
-    }
-
-    log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
-
-    clusterIds := make(map[string]bool, 0)
+    // find in what clusters this app is running
+    clusterFound := make(map[string]bool, 0)
+    clusterIds := make([]string,0)
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
             if svc.DeployedOnClusterId != "" {
-                clusterIds[svc.DeployedOnClusterId] = true
+                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
+                    clusterFound[svc.DeployedOnClusterId] = true
+                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                }
             }
         }
     }
 
+    // create observer and the array of entries to be observed
+    toObserve := make([]observer.ObservableDeploymentFragment, 0)
+    for _, clusterId := range clusterIds {
+        fragments, err := c.AppClusterDB.GetFragmentsApp(clusterId, appInstanceId)
+        if err != nil {
+            log.Error().Err(err).Msg("error when getting fragments from cluster")
+            continue
+        }
+        for _, fr := range fragments {
+            toObserve = append(toObserve, observer.ObservableDeploymentFragment{ClusterId: clusterId,
+                FragmentId: fr.FragmentId, AppInstanceId: instID.AppInstanceId})
+        }
+    }
 
-    log.Debug().Int("number of cluster to send undeploy", len(clusterIds)).Msg("send undeploy to clusters")
-    if len(clusterIds) == 0 {
+    observer := observer.NewDeploymentFragmentsObserver(toObserve, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        func(d *entities.DeploymentFragment) derrors.Error {
+            return c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.FragmentId)
+        })
+
+    // terminate execution
+    return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,clusterIds)
+}
+
+// Private function to communicate the application clusters to remove a running instance.
+// params:
+//  organizationId
+//  appInstanceId
+//  targetClusters list with the cluster ids where this function must run. If no list is set, then all clusters are informed.
+// return:
+//  error if any
+func(c *Manager) undeployClustersInstance(organizationId string, appInstanceId string, targetClusters []string) error {
+    // Send undeploy requests to application clusters
+    log.Debug().Str("app_instance_id", appInstanceId).Msg("undeploy app instance with id")
+
+    err := c.ConnHelper.UpdateClusterConnections(organizationId)
+    if err != nil {
+        log.Error().Err(err).Str("organizationID",organizationId).Msg("error updating connections for organization")
+        return err
+    }
+    if len(c.ConnHelper.ClusterReference) == 0 {
+        log.Error().Msgf("no clusters found for organization %s", organizationId)
+        return nil
+    }
+    log.Debug().Interface("number", len(c.ConnHelper.ClusterReference)).Msg("Known clusters")
+
+    log.Debug().Int("number of cluster to send undeploy", len(targetClusters)).Msg("send undeploy to clusters")
+    if len(targetClusters) == 0 {
         log.Error().Msg("no clusters found to send undeploy notification")
     }
 
-    for clusterId,_ := range clusterIds{
+    for _, clusterId := range targetClusters{
 
         clusterEntry, found := c.ConnHelper.ClusterReference[clusterId]
         if !found {
@@ -551,24 +753,17 @@ func(c *Manager) undeployClustersInstance(appInstance *pbApplication.AppInstance
         dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
 
         undeployRequest := pbDeploymentManager.UndeployRequest{
-            OrganizationId: appInstance.OrganizationId,
-            AppInstanceId: appInstance.AppInstanceId,
+            OrganizationId: organizationId,
+            AppInstanceId: appInstanceId,
         }
         ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
         _, err = dmClient.Undeploy(ctx, &undeployRequest)
 
         if err != nil {
-            log.Error().Str("app_instance_id", appInstance.AppInstanceId).Msg("could not undeploy app")
+            log.Error().Str("app_instance_id", appInstanceId).Msg("could not undeploy app")
             return err
         }
         cancel()
-
-        // remove the deployment fragments for this app
-        err = c.AppClusterDB.DeleteDeploymentFragment(clusterId, appInstance.AppInstanceId)
-        if err != nil {
-            log.Error().Err(err).Msg("impossible to remove information about undeployed fragment")
-        }
-
     }
     return nil
 }
@@ -652,24 +847,94 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
 // fragments.
 func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
     // get all the apps deployed on that cluster
-    appIds, err := c.AppClusterDB.GetAppsInCluster(drainRequest.ClusterId.ClusterId)
+
+    fragmentIds, err := c.AppClusterDB.GetFragmentsInCluster(drainRequest.ClusterId.ClusterId)
     if err != nil {
         log.Error().Err(err).Str("clusterId",drainRequest.ClusterId.ClusterId).
-            Msg("impossible to obtain the applications running in cluster")
+            Msg("impossible to obtain fragments running in cluster")
         return
     }
 
-    if len(appIds) == 0 {
+    if len(fragmentIds) == 0 {
         log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).
-            Msg("nothing to do for drain. Target cluster has no running applications")
+            Msg("nothing to do for drain. Target cluster has no running deployments")
         return
     }
 
-    // start draining
-    for numApp, appId := range appIds {
-        log.Debug().Str("clusterId",drainRequest.ClusterId.ClusterId).Str("appInstanceId", appId).
-            Msgf("undeploy app %d out of %d",numApp+1,len(appIds))
-        req := entities.UndeployRequest{OrganizationId: drainRequest.ClusterId.OrganizationId, AppInstanceId: appId}
-        c.Undeploy(&req)
+
+    // entries to schedule again
+    toReschedule := make([]observer.ObservableDeploymentFragment,len(fragmentIds))
+
+    for i, fragId := range fragmentIds {
+        toReschedule[i] = observer.ObservableDeploymentFragment{ClusterId: drainRequest.ClusterId.ClusterId,
+            FragmentId: fragId.FragmentId, AppInstanceId: fragId.AppInstanceId}
     }
+
+    // reschedule removed deployment fragments
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).
+        Int("numFragmentsToReschedule", len(toReschedule)).
+        Msg("schedule drained operations to be scheduled again...")
+
+    observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING, c.scheduleDeploymentFragment)
+
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
+
+    // Drain the whole cluster
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
+    for _, fragment := range toReschedule {
+        c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, []string{drainRequest.ClusterId.ClusterId})
+    }
+    log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
+}
+
+// This function schedules a existing deployment fragment to be deployed again an updates the corresponding db status.
+// params:
+//  d deployment fragment to be deployed again
+// return:
+//  error if any
+func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) derrors.Error {
+    log.Debug().Str("deploymentFragmentId", d.DeploymentId).Msg("deployment fragment to be re-scheduled")
+    // Update the application instance removing the affected service group
+    ctx, cancel :=  context.WithTimeout(context.Background(), ConductorAppTimeout * time.Second)
+    defer cancel()
+    appInstance, errGet := c.AppClient.GetAppInstance(ctx,&pbApplication.AppInstanceId{OrganizationId: d.OrganizationId, AppInstanceId: d.AppInstanceId})
+    if errGet!= nil {
+        log.Error().Err(errGet).Msg("impossible to get application instance when scheduling deployment fragment")
+        return derrors.NewInternalError("impossible to get application instance when scheduling deployment fragment", errGet)
+    }
+
+    // Delete the associated service group instance
+    serviceGroups := appInstance.Groups
+    indexToDelete := 0
+    for i, sg := range serviceGroups {
+        if sg.ServiceGroupInstanceId == d.Stages[0].Services[0].ServiceGroupInstanceId {
+            indexToDelete = i
+            break
+        }
+    }
+    serviceGroups = append(serviceGroups[:indexToDelete], serviceGroups[indexToDelete+1:]...)
+    appInstance.Groups = serviceGroups
+
+
+    ctx2, cancel2 :=  context.WithTimeout(context.Background(), ConductorAppTimeout * time.Second)
+    defer cancel2()
+    _, errUpdate := c.AppClient.UpdateAppInstance(ctx2,appInstance)
+    if errUpdate != nil {
+        log.Error().Err(errUpdate).Msg("impossible to update application when scheduling deployment fragment")
+        return derrors.NewInternalError("impossible to update application when scheduling deployment fragment", errUpdate)
+    }
+
+
+    err := c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId, d.FragmentId)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to update local version of deployment fragment")
+        return err
+    }
+
+    // remove the pending fragment
+    c.PendingPlans.RemoveFragment(d.FragmentId)
+
+    return c.ProcessDeploymentFragment(d)
 }

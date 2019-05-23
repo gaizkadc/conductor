@@ -45,6 +45,7 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
             AppInstanceId: "myappinstance1",
             OrganizationId: "someorg",
             AppName: "testApp",
+            FragmentId: "fragment1",
 
         }
         // Add it
@@ -63,6 +64,7 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
             AppInstanceId: "myappinstance1",
             OrganizationId: "someorg",
             AppName: "testApp",
+            FragmentId: "fragmen1",
 
         }
         // Add it
@@ -84,6 +86,7 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
             AppInstanceId: "myappinstance1",
             OrganizationId: "someorg",
             AppName: "testApp",
+            FragmentId: "fragment1",
         }
         // Add it
         errAdd := db.AddDeploymentFragment(&toAdd1)
@@ -95,15 +98,16 @@ var _ = ginkgo.Describe("application cluster data persistence test", func(){
             AppInstanceId: "myappinstance2",
             OrganizationId: "someorg",
             AppName: "testApp",
+            FragmentId: "fragment2",
         }
         // Add it
         errAdd = db.AddDeploymentFragment(&toAdd2)
         gomega.Expect(errAdd).ToNot(gomega.HaveOccurred())
 
         // Get all the bucket data
-        pairs, bErr := db.GetAppsInCluster(toAdd1.ClusterId)
+        pairs, bErr := db.GetFragmentsInCluster(toAdd1.ClusterId)
         gomega.Expect(bErr).ToNot(gomega.HaveOccurred())
         gomega.Expect(len(pairs)).To(gomega.Equal(2))
-
     })
+
 })
