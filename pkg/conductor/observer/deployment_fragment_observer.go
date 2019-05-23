@@ -54,12 +54,25 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
 
+    // store here processed items
+    processed := make(map[string]bool,len(df.Ids))
+    for _, id := range df.Ids {
+        processed[id.FragmentId] = false
+    }
+
     for {
         select {
         case <-sleep:
             for _, observed := range df.Ids {
                 clusterId := observed.ClusterId
                 fragmentId := observed.FragmentId
+
+                // skip if we have already processed this entry
+                done, _ := processed[fragmentId]
+                if done {
+                    continue
+                }
+
                 fragment, err := df.AppClusterDB.GetDeploymentFragment(clusterId, fragmentId)
 
                 if fragment == nil {
@@ -77,6 +90,9 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
                     if e:= f(fragment); e!= nil {
                         log.Error().Err(err).Msg("error when executing callback function after observing change")
                     }
+                    // set this entry as processed
+                    processed[fragmentId] = true
+
                     // one observed reduce the counter
                     df.RemainingChanges = df.RemainingChanges - 1
                     log.Debug().Msgf("remaining %d deployment fragments to observe",df.RemainingChanges)
@@ -89,7 +105,8 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
             }
 
         case <- ctx.Done():
-            log.Debug().Msg("timeout reached for deployment fragments observer")
+            log.Debug().Interface("observableItems",df.Ids).Interface("processed",processed).
+                Msg("timeout reached for deployment fragments observer")
             return
         }
     }

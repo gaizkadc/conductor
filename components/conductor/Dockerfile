@@ -2,12 +2,7 @@
 # Copyright (C) 2018 Nalej Group - All Rights Reserved
 #
 
-# iron/go is the alpine image with only ca-certificates added
-FROM iron/go
-
-# Set nalej working directory
-# RUN mkdir /nalej
-# WORKDIR /nalej
+FROM alpine:3.9.4
 
 COPY conductor /nalej/
 

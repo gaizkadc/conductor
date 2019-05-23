@@ -110,6 +110,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         return nil
     }
 
+    log.Debug().Interface("finalStatus",finalStatus).Msg("update deployment fragment status")
 
     // Update the view of this deployment fragment in the DB
     df, err := m.manager.AppClusterDB.GetDeploymentFragment(request.ClusterId, request.FragmentId)
@@ -235,6 +236,10 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
             groupFinalStatus = pbApplication.ServiceStatus_SERVICE_ERROR
             break
         }
+        if status == pbApplication.ServiceStatus_SERVICE_TERMINATING {
+            groupFinalStatus = pbApplication.ServiceStatus_SERVICE_TERMINATING
+            break
+        }
         if status != pbApplication.ServiceStatus_SERVICE_SCHEDULED {
             if groupFinalStatus > status {
                 groupFinalStatus = status
@@ -261,6 +266,10 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     for _, g := range instance.Groups {
         if g.Status == pbApplication.ServiceStatus_SERVICE_ERROR {
             groupsSummary = pbApplication.ServiceStatus_SERVICE_ERROR
+            break
+        }
+        if g.Status == pbApplication.ServiceStatus_SERVICE_TERMINATING {
+            groupsSummary = pbApplication.ServiceStatus_SERVICE_TERMINATING
             break
         }
         if g.Status != pbApplication.ServiceStatus_SERVICE_SCHEDULED {
@@ -293,6 +302,11 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     case pbApplication.ServiceStatus_SERVICE_ERROR:
         finalAppStatus = pbApplication.ApplicationStatus_ERROR
         break
+    case pbApplication.ServiceStatus_SERVICE_TERMINATING:
+        finalAppStatus = pbApplication.ApplicationStatus_TERMINATING
+        break
+    default:
+        log.Error().Interface("finalAppStatus",groupsSummary).Msg("unkown service status to be set")
     }
 
     if instance.Status != finalAppStatus {

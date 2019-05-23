@@ -573,6 +573,10 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
+    err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to remove a pending pending plan")
+    }
     return c.HardUndeploy(request.OrganizationId,request.AppInstanceId)
 }
 
@@ -928,6 +932,9 @@ func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) der
         log.Error().Err(err).Msg("impossible to update local version of deployment fragment")
         return err
     }
+
+    // remove the pending fragment
+    c.PendingPlans.RemoveFragment(d.FragmentId)
 
     return c.ProcessDeploymentFragment(d)
 }
