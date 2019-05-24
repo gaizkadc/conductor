@@ -25,6 +25,7 @@ import (
     "github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast"
     queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
     queueInfrOps "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops"
+    queueInfrEvents "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events"
     "net"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
@@ -85,6 +86,8 @@ type ConductorService struct {
     appOpsConsumer *queueAppOps.ApplicationOpsConsumer
     // infrastructure ops consumer
     infOpsConsumer *queueInfrOps.InfrastructureOpsConsumer
+    // infrastructure events consumer
+    infEventsConsumer *queueInfrEvents.InfrastructureEventsConsumer
 }
 
 
@@ -202,6 +205,15 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     }
     log.Info().Msg("done")
 
+    log.Info().Msg("initialize infrastructure events client...")
+    infrEventsConfig := queueInfrEvents.NewConfigInfrastructureEventsConsumer(1,
+        queueInfrEvents.ConsumableStructsInfrastructureEventsConsumer{UpdateClusterRequest: true})
+    infrEvents, err := queueInfrEvents.NewInfrastructureEventsConsumer(pulsarClient, "conductor-infr-events", true, infrEventsConfig)
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to initialize infrastructure ops queue client")
+    }
+    log.Info().Msg("done")
+
 
     // TODO replace this memory queue by the system queue solution
     log.Info().Msg("instantiate local queue in memory...")
@@ -248,6 +260,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
                                 configuration: config,
                                 appOpsConsumer: appsOps,
                                 infOpsConsumer: infrOps,
+                                infEventsConsumer: infrEvents,
     }
 
 
@@ -285,6 +298,13 @@ func(c *ConductorService) Run() {
     infrOpsQueue := queue.NewInfrastructureOpsHandler(c.conductor, c.infOpsConsumer)
     infrOpsQueue.Run()
     log.Info().Msg("done")
+
+    log.Info().Msg("run infrastructure events handler...")
+    infrEventsQueue := queue.NewInfrastructureEventsHandler(c.conductor, c.infEventsConsumer)
+    infrEventsQueue.Run()
+    log.Info().Msg("done")
+
+
 
 
     // Launch the main deployment manager in a separate routine
