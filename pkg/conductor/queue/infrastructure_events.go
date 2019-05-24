@@ -8,6 +8,7 @@ package queue
 import (
     "context"
     "github.com/nalej/conductor/pkg/conductor/baton"
+    "github.com/nalej/conductor/pkg/conductor/observer"
     "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events"
     "github.com/rs/zerolog/log"
     "time"
@@ -69,6 +70,7 @@ func(h InfrastructureEventsHandler) consumeUpdateClusterRequest () {
     for {
         received := <- h.cons.Config.ChUpdateClusterRequest
         log.Debug().Interface("updateCluster", received).Msg("<- incoming update cluster request")
+        observer.NewClusterUpdateObserver()
 
     }
 }
