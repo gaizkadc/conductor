@@ -94,12 +94,12 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:961dc3b1d11f969370533390fdf203813162980c858e1dabe827b60940c909a5"
+  digest = "1:ae39921edb7f801f7ce1b6b5484f9715a1dd2b52cb645daef095cd10fd6ee774"
   name = "github.com/magiconair/properties"
   packages = ["."]
   pruneopts = ""
-  revision = "c2353362d570a7bfa228149c62842019201cfb71"
-  version = "v1.8.0"
+  revision = "de8848e004dd33dc07a2947b3d76f618a7fc7ef1"
+  version = "v1.8.1"
 
 [[projects]]
   digest = "1:bcc46a0fbd9e933087bef394871256b5c60269575bb661935874729c65bbbf60"
@@ -150,12 +150,12 @@
   version = "v0.0.44"
 
 [[projects]]
-  digest = "1:9667308b8468dcecd6c4637c14e8f3838b6237995bb32f9d41ddc2b3a031767f"
+  digest = "1:51948f0804900ab39848e91050f06e220f2a1e4fea5852d9657f32fe892a8c2c"
   name = "github.com/nalej/grpc-bus-go"
   packages = ["."]
   pruneopts = ""
-  revision = "ee822b3ffb37a9e72c80656e51d77698d67f93f6"
-  version = "v0.0.3"
+  revision = "1d22ccbe8c4368e711bac92f4e2b29e89d90711b"
+  version = "v0.0.6"
 
 [[projects]]
   digest = "1:44f7426538411ea9f774f96e3b102decc9f549b188e55e29ecc15be69542a96b"
@@ -214,12 +214,12 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:4df7812b3e684f3ddaa3c829611f4ad64a40c867fecfe08791a4acd8bcbe18bf"
+  digest = "1:9ad117a59388dbf7ce2e8932d2873d3ef9832894929bc415e8b35ec002f6d305"
   name = "github.com/nalej/grpc-inventory-manager-go"
   packages = ["."]
   pruneopts = ""
-  revision = "c7e08087ed8b249965674ca8872643a5d85035a1"
-  version = "v0.0.9"
+  revision = "f16eaabf9b26c15027ae746f21f79a96b539c643"
+  version = "v0.0.12"
 
 [[projects]]
   digest = "1:031b9144b9c2321b929d898bd6b335c93288d3fa4f4ea85f1a00d48d437b2334"
@@ -267,17 +267,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:10f60cef07adc472aa8dddc0475f13b34ad73e5d3a2a8c3ce51902ee8e601fcd"
+  digest = "1:1b621397f100284c6290e087d84c419ac40679bde33e7c9d63b731265e54c56e"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
     "pkg/bus/pulsar-comcast",
     "pkg/queue",
     "pkg/queue/application/ops",
+    "pkg/queue/infrastructure/events",
     "pkg/queue/infrastructure/ops",
   ]
   pruneopts = ""
-  revision = "4a4a4800ac289085bd7ac7ceca4a76a4b952a6fc"
+  revision = "c311d235158d4cd9086a6f589c221ad5a8b4ce3f"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -344,23 +345,23 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:6f218995d6a74636cfcab45ce03005371e682b4b9bee0e5eb0ccfd83ef85364f"
+  digest = "1:6894aa393989b5e59d9936b8b1197dc261c2c200057b92dec34007b06e9856ae"
   name = "github.com/prometheus/client_golang"
   packages = [
     "api",
     "api/prometheus/v1",
   ]
   pruneopts = ""
-  revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
-  version = "v0.9.2"
+  revision = "50c4339db732beb2165735d2cde0bff78eb3c5a5"
+  version = "v0.9.3"
 
 [[projects]]
   branch = "master"
-  digest = "1:acd87a73c6a6f2d61ad04822d68b233a5c12f5b72aef3db0985f90680e9ae8f0"
+  digest = "1:e6315869762add748defb9e0fcc537738f78cabeaf70b2788aba9db13097b6e9"
   name = "github.com/prometheus/common"
   packages = ["model"]
   pruneopts = ""
-  revision = "1ba88736f028e37bc17328369e94a537ae9e0234"
+  revision = "17f5ca1748182ddf24fc33a5a7caaaf790a52fcc"
 
 [[projects]]
   digest = "1:3b6d6b1b349b7a4e3325572853b9e1f95b7f87950be55ae3317f8c91fb878d00"
@@ -395,12 +396,12 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:a1403cc8a94b8d7956ee5e9694badef0e7b051af289caad1cf668331e3ffa4f6"
+  digest = "1:78715f4ed019d19795e67eed1dc63f525461d925616b1ed02b72582c01362440"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = ""
-  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
-  version = "v0.0.3"
+  revision = "67fc4837d267bc9bfd6e47f77783fcc3dffc68de"
+  version = "v0.0.4"
 
 [[projects]]
   digest = "1:cc15ae4fbdb02ce31f3392361a70ac041f4f02e0485de8ffac92bd8033e3d26e"
@@ -436,7 +437,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4f349a7da3e52df38345913607fb3daac185365588a633088107146283b48b46"
+  digest = "1:3fcc745bd071aa073bd666e01ff8df5fc72ab15f493ae7246710c66c738aab45"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -451,15 +452,15 @@
     "trace",
   ]
   pruneopts = ""
-  revision = "f4e77d36d62c17c2336347bb2670ddbd02d092b7"
+  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
 
 [[projects]]
   branch = "master"
-  digest = "1:d8dd58f3046f91d025e601bfd3ebecf3b70f13905106c996791b1ec1abf28428"
+  digest = "1:773e3db0d0569aadf922a0eb5ada3af88b70be00261467dd2533114eb9a002b1"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "2d0786266e9cd132da844109aa05016f11f3df28"
+  revision = "0e01d883c5c5e3a1741118a9962f68d71b0a6ed4"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"
@@ -500,17 +501,17 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8a19759d926bef22018755cf07db0b6d46d6bc87d2abbb8b2c9d50cb67724e97"
+  digest = "1:e07c01c79a9a7aa21369982f91e8e128f7155e6c26f062ab33ad5cde2176a90c"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/rpc/errdetails",
     "googleapis/rpc/status",
   ]
   pruneopts = ""
-  revision = "b515fa19cec88c32f305a962f34ae60068947aea"
+  revision = "c2c4e71fbf6989c3e46a18d65cb88c288f8a3a55"
 
 [[projects]]
-  digest = "1:afc1b03a6d5ba3cbb2e0a12133e734d472e4df3b65f06e600a3d57a4b82f26cc"
+  digest = "1:6598c722afbc10dcbcace4e6504751b3a3b11f66d9251545fce457a66316c9a7"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -550,8 +551,8 @@
     "test/bufconn",
   ]
   pruneopts = ""
-  revision = "25c4f928eaa6d96443009bd842389fb4fa48664e"
-  version = "v1.20.1"
+  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
+  version = "v1.21.0"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"
@@ -602,6 +603,7 @@
     "github.com/nalej/grpc-utils/pkg/tools",
     "github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast",
     "github.com/nalej/nalej-bus/pkg/queue/application/ops",
+    "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events",
     "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops",
     "github.com/nalej/service",
     "github.com/onsi/ginkgo",
