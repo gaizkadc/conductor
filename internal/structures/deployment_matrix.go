@@ -94,6 +94,9 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
     // Current conditions do not require additional replicas
     if desiredReplicas == 0 {
+        log.Debug().Int("alreadyAllocatedGroups",alreadyAllocatedGroups).
+            Int("descriptorReplicas",int(group.Specs.Replicas)).
+            Msg("no desired replicas, exit the search of the best target replication scenario")
         return nil, nil
     }
 
@@ -133,8 +136,9 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
         }
     }
 
-    if len(targetClusters) == 0 {
-        // no replicas were set
+    // if this is not a multi cluster replica we need to have as many target clusters as the desired replicas
+    if !group.Specs.MultiClusterReplica && desiredReplicas != len(targetClusters) {
+        // we could not allocate enough replicas
         return nil, derrors.NewUnavailableError(fmt.Sprintf("no replicas could be allocated for group %s", group.Name))
     }
 

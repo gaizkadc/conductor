@@ -69,6 +69,8 @@ func(h InfrastructureEventsHandler) consumeUpdateClusterRequest () {
     for {
         received := <- h.cons.Config.ChUpdateClusterRequest
         log.Debug().Interface("updateCluster", received).Msg("<- incoming update cluster request")
+        trigger := baton.NewClusterInfrastructureTrigger(h.baton)
+        trigger.ObserveChanges(received)
 
     }
 }

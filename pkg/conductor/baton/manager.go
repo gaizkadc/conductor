@@ -230,8 +230,6 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         return err
     }
 
-    // TODO get all the data from the system model
-    // Get the ServiceGroup structure
 
     retrievedAppInstance, err  := c.AppClient.GetAppInstance(context.Background(),
         &pbApplication.AppInstanceId{OrganizationId: req.OrganizationId, AppInstanceId: req.InstanceId})
@@ -936,5 +934,29 @@ func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) der
     // remove the pending fragment
     c.PendingPlans.RemoveFragment(d.FragmentId)
 
-    return c.ProcessDeploymentFragment(d)
+    deploymentErr := c.ProcessDeploymentFragment(d)
+    if deploymentErr != nil {
+        // if the deployment of a fragment fails we can consider this application instance to be in an error state
+        log.Error().Str("appInstanceId",d.AppInstanceId).Str("fragmentId",d.FragmentId).
+            Msg("fragment deployment failed")
+
+        // get all the clusters for this application
+        errUndeploy := c.SoftUndeploy(d.OrganizationId,d.AppInstanceId)
+        if errUndeploy != nil {
+            log.Error().Err(errUndeploy).Msg("problem during soft undeploy of application")
+            return deploymentErr
+        }
+
+        statusReq := pbApplication.UpdateAppStatusRequest{AppInstanceId: d.AppInstanceId, OrganizationId: d.OrganizationId,
+            Info: fmt.Sprintf("impossible to find candidates for deployment of required service group replica %s", d.Stages[0].Services[0].ServiceGroupId),
+            Status: pbApplication.ApplicationStatus_PLANNING_ERROR}
+        ctxErr, cancelErr := context.WithTimeout(context.Background(), ConductorAppTimeout * time.Second)
+        defer cancelErr()
+        _, updateErr := c.AppClient.UpdateAppStatus(ctxErr, &statusReq)
+        if updateErr != nil {
+            log.Error().Str("appInstanceId",d.AppInstanceId).Msg("error updating status")
+        }
+    }
+
+    return deploymentErr
 }
