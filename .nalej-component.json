@@ -1,11 +1,11 @@
 {
-    "language": "golang",
-    "application_list": [
-        "conductor musician monitoring"
-    ],
-    "tools": [
-        "azure",
-        "k8s",
-        "docker"
-    ]
+  "language": "golang",
+  "application_list": [
+    "conductor musician monitoring"
+  ],
+  "tools": [
+    "azure",
+    "k8s",
+    "docker"
+  ]
 }
