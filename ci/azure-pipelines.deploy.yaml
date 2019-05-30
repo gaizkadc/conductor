@@ -85,6 +85,12 @@ jobs:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceMngt)
 
+  - template: k8s/logs/archive.yaml@ci_templates
+    parameters:
+      kubeconfig: $(kubeconfig)
+      namespace: $(namespace)
+      additionalTag: "mngtcluster_"
+
   - template: k8s/ns/delete.yaml@ci_templates
     parameters:
       kubeconfig: $(kubeconfig)
@@ -121,6 +127,12 @@ jobs:
     parameters:
       kubeconfig: $(kubeconfig)
       namespace: $(namespaceApp)
+
+  - template: k8s/logs/archive.yaml@ci_templates
+    parameters:
+      kubeconfig: $(kubeconfig)
+      namespace: $(namespace)
+      additionalTag: "appcluster_"
 
   - template: k8s/ns/delete.yaml@ci_templates
     parameters:
