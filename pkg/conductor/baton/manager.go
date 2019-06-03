@@ -26,6 +26,7 @@ import (
     pbNetwork "github.com/nalej/grpc-network-go"
     pbCoordinator "github.com/nalej/grpc-unified-logging-go"
     "github.com/nalej/grpc-utils/pkg/conversions"
+    "github.com/nalej/nalej-bus/pkg/queue/network/ops"
     "github.com/rs/zerolog/log"
     "time"
 )
@@ -41,6 +42,8 @@ const (
     ConductorSleepBetweenRetries = 25
     // Time to wait to receive a terminating status when draining clusters in seconds
     ConductorDrainClusterAppTimeout = time.Second * 60
+    // Timeout when sending messages to the queue
+    ConductorQueueTimeout = time.Second * 5
 )
 
 type Manager struct {
@@ -66,11 +69,13 @@ type Manager struct {
     UnifiedLoggingClient pbCoordinator.CoordinatorClient
     // Information about applications deployed in clusters
     AppClusterDB *app_cluster.AppClusterDB
+    // NetworkOps queue producer
+    NetworkOpsProducer *ops.NetworkOpsProducer
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
     reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner,
-    pendingPlans *structures.PendingPlans, appClusterDB *app_cluster.AppClusterDB) *Manager {
+    pendingPlans *structures.PendingPlans, appClusterDB *app_cluster.AppClusterDB, networkOpsProducer *ops.NetworkOpsProducer) *Manager {
     // initialize clients
     pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
@@ -99,7 +104,8 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
     ulClient := pbCoordinator.NewCoordinatorClient(ulPool.GetConnections()[0])
     return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
         Designer: designer, AppClient:appClient, PendingPlans: pendingPlans, NetClient: netClient,
-        DNSClient: dnsClient, UnifiedLoggingClient:ulClient, AppClusterDB: appClusterDB}
+        DNSClient: dnsClient, UnifiedLoggingClient:ulClient, AppClusterDB: appClusterDB,
+        NetworkOpsProducer: networkOpsProducer}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -703,6 +709,9 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,clusterIds)
 }
 
+
+
+
 // Private function to communicate the application clusters to remove a running instance.
 // params:
 //  organizationId
@@ -765,6 +774,103 @@ func(c *Manager) undeployClustersInstance(organizationId string, appInstanceId s
     }
     return nil
 }
+
+
+// Private function to undeploy a fragment from a cluster.
+// params:
+//  organizationId
+//  fragmentId
+//  targetCluster
+// return:
+//  error if any
+func(c *Manager) undeployFragment(organizationId string, appInstanceId string, fragmentId string, targetCluster string) error {
+    // Send undeploy requests to application clusters
+    log.Debug().Str("app_instance_id", appInstanceId).Msg("undeploy fragment from cluster")
+
+    // Unauthorize the members of this fragment
+    fragment, err := c.AppClusterDB.GetFragmentsApp(targetCluster, appInstanceId)
+    if err != nil {
+        log.Error().Msg("impossible to get deployment fragment to unauthorize")
+    }
+
+    var targetFragment *entities.DeploymentFragment = nil
+    for _, f := range fragment {
+        // find the cluster we are looking for
+        if f.FragmentId == fragmentId {
+            targetFragment = &f
+            break
+        }
+    }
+
+    if targetFragment == nil {
+        // this is extremely weird to occur
+        log.Error().Msg("a deployment fragment could not be found. We cannot unauthorize fragment entries")
+        return derrors.NewFailedPreconditionError("a deployment fragment could not be found. We cannot unauthorize fragment entries")
+    }
+
+    // unauthorize every service contained in the fragment
+    for _, stage := range targetFragment.Stages {
+        for _, serv := range stage.Services {
+            ctxFrg, cancelFrg  := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+            req := pbNetwork.DisauthorizeMemberRequest{
+                AppInstanceId: appInstanceId, OrganizationId: organizationId,
+                ServiceGroupInstanceId: serv.ServiceGroupInstanceId, ServiceApplicationInstanceId: serv.ServiceInstanceId}
+            errPostMsg := c.NetworkOpsProducer.Send(ctxFrg, &req)
+            cancelFrg()
+            if errPostMsg != nil {
+                log.Error().Err(errPostMsg).Interface("request",req).
+                    Msg("there was an error posting an undeploy fragment request")
+            }
+        }
+    }
+
+
+    errUpdate := c.ConnHelper.UpdateClusterConnections(organizationId)
+    if errUpdate != nil {
+        log.Error().Err(err).Str("organizationID",organizationId).Msg("error updating connections for organization")
+        return err
+    }
+    if len(c.ConnHelper.ClusterReference) == 0 {
+        log.Error().Msgf("no clusters found for organization %s", organizationId)
+        return nil
+    }
+
+    clusterEntry, found := c.ConnHelper.ClusterReference[targetCluster]
+    if !found {
+        log.Error().Str("clusterId",targetCluster).Str("clusterHost",clusterEntry.Hostname).Msg("unknown clusterHost for the clusterId")
+        return errors.New(fmt.Sprintf("unknown host for cluster id %s", targetCluster))
+    }
+
+    log.Debug().Str("targetCluster", targetCluster).Str("clusterHost", clusterEntry.Hostname).Msg("conductor query deployment-manager cluster")
+
+
+    clusterAddress := fmt.Sprintf("%s:%d",clusterEntry.Hostname,utils.APP_CLUSTER_API_PORT)
+    conn, errUpdate := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
+    if err != nil {
+        log.Error().Err(err).Str("clusterHost", clusterEntry.Hostname).Msg("impossible to get connection for the host")
+        return err
+    }
+
+    dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
+
+    undeployFragmentRequest := pbDeploymentManager.UndeployFragmentRequest{
+        OrganizationId: organizationId,
+        DeploymentFragmentId: fragmentId,
+        AppInstanceId: appInstanceId,
+    }
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second * ConductorAppTimeout)
+    defer cancel()
+    _, errUpdate = dmClient.UndeployFragment(ctx, &undeployFragmentRequest)
+
+    if err != nil {
+        log.Error().Str("app_instance_id", appInstanceId).Msg("could not undeploy app")
+        return err
+    }
+
+
+    return nil
+}
+
 
 func (c *Manager) expireUnifiedLogging(organizationId string, appInstanceId string) {
 
@@ -882,7 +988,7 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
     // Drain the whole cluster
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
     for _, fragment := range toReschedule {
-        c.undeployClustersInstance(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, []string{drainRequest.ClusterId.ClusterId})
+        c.undeployFragment(drainRequest.ClusterId.OrganizationId,fragment.AppInstanceId,fragment.FragmentId,drainRequest.ClusterId.ClusterId)
     }
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
 }

@@ -15,6 +15,7 @@ import (
     "github.com/nalej/conductor/pkg/provider/kv"
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
+    "github.com/nalej/nalej-bus/pkg/queue/network/ops"
 
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
@@ -26,6 +27,7 @@ import (
     queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
     queueInfrOps "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops"
     queueInfrEvents "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events"
+    queueNetOps "github.com/nalej/nalej-bus/pkg/queue/network/ops"
     "net"
     "fmt"
     "github.com/nalej/conductor/pkg/utils"
@@ -88,6 +90,8 @@ type ConductorService struct {
     infOpsConsumer *queueInfrOps.InfrastructureOpsConsumer
     // infrastructure events consumer
     infEventsConsumer *queueInfrEvents.InfrastructureEventsConsumer
+    // network operations producer
+    networkOpsProducder *queueNetOps.NetworkOpsProducer
 }
 
 
@@ -214,6 +218,13 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     }
     log.Info().Msg("done")
 
+    log.Info().Msg("initialize network ops producer...")
+    netOpsProducer, err := ops.NewNetworkOpsProducer(pulsarClient, "conductor-network-ops")
+    if err != nil {
+        log.Panic().Err(err).Msg("impossible to initialize network ops queue client")
+    }
+    log.Info().Msg("done")
+
 
     // TODO replace this memory queue by the system queue solution
     log.Info().Msg("instantiate local queue in memory...")
@@ -239,7 +250,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     appClusterDB := app_cluster.NewAppClusterDB(boltProvider)
     log.Info().Msg("done")
 
-    batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans, appClusterDB)
+    batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer,pendingPlans, appClusterDB,netOpsProducer)
     if batonMgr == nil {
         log.Panic().Msg("impossible to create baton service")
         return nil, errors.New("impossible to create baton service")
@@ -261,6 +272,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
                                 appOpsConsumer: appsOps,
                                 infOpsConsumer: infrOps,
                                 infEventsConsumer: infrEvents,
+                                networkOpsProducder: netOpsProducer,
     }
 
 

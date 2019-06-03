@@ -107,9 +107,9 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
 
     log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
 
-    // Drain the whole cluster
+    // Remove the fragments
     for _, fragment := range toReallocate {
-        cuo.baton.undeployClustersInstance(update.OrganizationId, fragment.AppInstanceId, []string{fragment.ClusterId})
+        cuo.baton.undeployFragment(update.OrganizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
     }
 
     log.Info().Str("clusterId", update.ClusterId).Msg("cluster update changes observation done")
