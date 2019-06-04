@@ -46,7 +46,7 @@ const (
 func GetDeploymentVariableForService(serv entities.ServiceInstance) (string, string) {
     key := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(serv.Name))
     value := fmt.Sprintf("%s-%s-%s-%s.%s", formatName(serv.Name), serv.OrganizationId[0:5],
-        serv.ServiceGroupInstanceId[0:5], serv.AppInstanceId[0:5], NalejServiceSuffix)
+        serv.ServiceGroupInstanceId[0:5], serv.ServiceInstanceId[0:5], NalejServiceSuffix)
     return key,value
 }
 
