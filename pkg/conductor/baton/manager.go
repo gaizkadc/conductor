@@ -192,8 +192,7 @@ func (c *Manager) processQueuedRequest(req *entities.DeploymentRequest) {
             log.Error().Interface("request", updateRequest).Msg("error updating application instance status")
         }
         // call the Rollback
-        // TODO review how to proceed with zt network id
-        c.Rollback(req.OrganizationId, req.InstanceId)
+        c.Rollback(req.OrganizationId, req.InstanceId,make([]string,0))
     }
 }
 
@@ -594,8 +593,6 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
         return err
     }
 
-    // call Rollback
-    c.Rollback(organizationId, appInstanceId)
 
     clusterFound := make(map[string]bool, 0)
     clusterIds := make([]string,0)
@@ -609,6 +606,9 @@ func(c *Manager) SoftUndeploy(organizationId string, appInstanceId string) error
             }
         }
     }
+
+    // call Rollback
+    c.Rollback(organizationId, appInstanceId, clusterIds)
 
     // create observer and the array of entries to be observed
     toObserve := make([]observer.ObservableDeploymentFragment, 0)
@@ -645,8 +645,22 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         return err
     }
 
+    // find in what clusters this app is running
+    clusterFound := make(map[string]bool, 0)
+    clusterIds := make([]string,0)
+    for _, g := range appInstance.Groups {
+        for _, svc := range g.ServiceInstances {
+            if svc.DeployedOnClusterId != "" {
+                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
+                    clusterFound[svc.DeployedOnClusterId] = true
+                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
+                }
+            }
+        }
+    }
+
     // call Rollback
-    c.Rollback(organizationId, appInstanceId)
+    c.Rollback(organizationId, appInstanceId, clusterIds)
 
     // Remove any entry from the system model
     instID := &pbApplication.AppInstanceId{
@@ -668,20 +682,6 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     removed := c.Queue.Remove(appInstanceId)
     if !removed {
         log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
-    }
-
-    // find in what clusters this app is running
-    clusterFound := make(map[string]bool, 0)
-    clusterIds := make([]string,0)
-    for _, g := range appInstance.Groups {
-        for _, svc := range g.ServiceInstances {
-            if svc.DeployedOnClusterId != "" {
-                if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
-                    clusterFound[svc.DeployedOnClusterId] = true
-                    clusterIds = append(clusterIds, svc.DeployedOnClusterId)
-                }
-            }
-        }
     }
 
     // create observer and the array of entries to be observed
@@ -890,7 +890,7 @@ func (c *Manager) expireUnifiedLogging(organizationId string, appInstanceId stri
 }
 
 // Run operations to remove additional information generated in the system after instantiating an application.
-func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
+func (c *Manager) Rollback(organizationId string, appInstanceId string, clusterIds []string) error {
     // Remove any related pending plan
     log.Debug().Str("appInstanceId",appInstanceId).Msg("Rollback app instance")
 
@@ -899,6 +899,9 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
 
 
     // 2) Delete zt network
+    c.unauthorizeEntries(organizationId, appInstanceId, clusterIds)
+
+
     req := pbNetwork.DeleteNetworkRequest{AppInstanceId: appInstanceId, OrganizationId: organizationId}
     log.Debug().Interface("deleteNetworkRequest", req).Msg("delete zt network")
     _, err := c.NetClient.DeleteNetwork(context.Background(), &req)
@@ -925,7 +928,7 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     // NP-1031. Improve undeploy performance
     go c.expireUnifiedLogging(organizationId, appInstanceId)
       
-    // 5) Remove app entry points  
+    // 4) Remove app entry points
     _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveAppEndpointRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
@@ -944,6 +947,41 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string) error {
     }
 
     return nil
+}
+
+
+// Unauthorize all the network entries for a certain application
+// params:
+//  organizationId
+//  appInstanceId
+//  clusterIds
+func (c *Manager) unauthorizeEntries(organizationId string, appInstanceId string, clusterIds []string) {
+    for _, clusterId := range clusterIds {
+        fragments, err := c.AppClusterDB.GetFragmentsApp(clusterId,appInstanceId)
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to find fragments to unauthorize entries")
+            continue
+        }
+        // unauthorize every entry
+        for _, f := range fragments {
+            for _, ds := range f.Stages {
+                for _, serv := range ds.Services {
+                    unauthorizeReq := pbNetwork.DisauthorizeMemberRequest{
+                        OrganizationId: serv.OrganizationId,
+                        AppInstanceId: serv.AppInstanceId,
+                        ServiceGroupInstanceId: serv.ServiceGroupInstanceId,
+                        ServiceApplicationInstanceId: serv.ServiceInstanceId,
+                    }
+                    ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+                    err := c.NetworkOpsProducer.Send(ctx, &unauthorizeReq)
+                    cancel()
+                    if err != nil {
+                        log.Error().Err(err).Msg("problem sending unauthorize request to the queue")
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -1035,6 +1073,26 @@ func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) der
     if err != nil {
         log.Error().Err(err).Msg("impossible to update local version of deployment fragment")
         return err
+    }
+
+    // unauthorize all the services
+    for _, stage := range d.Stages {
+        for _, service := range stage.Services {
+            ctxUnauthorize, cancelUnauthorize := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+            req := pbNetwork.DisauthorizeMemberRequest{
+                OrganizationId: service.OrganizationId,
+                AppInstanceId: service.AppInstanceId,
+                ServiceGroupInstanceId: service.ServiceGroupInstanceId,
+                ServiceApplicationInstanceId: service.ServiceInstanceId,
+            }
+            err := c.NetworkOpsProducer.Send(ctxUnauthorize, &req)
+            cancelUnauthorize()
+            if err != nil {
+                log.Error().Err(err).Msg("error sending unauthorize member request to the queue")
+            } else {
+                log.Info().Interface("request", req).Msg("send unauthorize member request to the queue")
+            }
+        }
     }
 
     // remove the pending fragment
