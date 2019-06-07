@@ -168,12 +168,12 @@
   version = "v0.0.49"
 
 [[projects]]
-  digest = "1:268c439f1929d452e7a5a6a8ba84f5010e0cca7063bfb46d167afc296b10fd0b"
+  digest = "1:5f9f97be8a4876a69d3a860a69daa5069446832a0fffa977226edb25ccb602bd"
   name = "github.com/nalej/grpc-bus-go"
   packages = ["."]
   pruneopts = ""
-  revision = "80fc3bce1fecc6fadb5e1b99217c203a36dc6865"
-  version = "v0.0.8"
+  revision = "d5a38f01121cd971637bd153d0b702c349d7653e"
+  version = "v0.0.9"
 
 [[projects]]
   digest = "1:44f7426538411ea9f774f96e3b102decc9f549b188e55e29ecc15be69542a96b"
@@ -240,28 +240,28 @@
   version = "v0.0.3"
 
 [[projects]]
-  digest = "1:36fd391a271781cae054cdcb61efe8ff15e8d78c28771bec326662c20edca044"
+  digest = "1:d9d6a9ca97f31b3fd6170de1b5253d72c738cd30e50d71b0408fa8e782c6e06d"
   name = "github.com/nalej/grpc-inventory-go"
   packages = ["."]
   pruneopts = ""
-  revision = "e0d0d4a0902bfb23d47ec240731e1255fc659b97"
-  version = "v0.0.13"
+  revision = "9a05569cf09ba72393cbee5cd3f7f26b961c46bc"
+  version = "v0.0.16"
 
 [[projects]]
-  digest = "1:ce6d99a147cc14352584e70b91a745e0293409989408828306249553c173392b"
+  digest = "1:50c8af477ee3c60754673b36c687262c26850fbe0b95936a844d37eff973ab80"
   name = "github.com/nalej/grpc-inventory-manager-go"
   packages = ["."]
   pruneopts = ""
-  revision = "98f91cc5991523ed4174dbe4275b0076ae88c118"
-  version = "v0.0.28"
+  revision = "e647671983d66ba9092ee48533967e16c55b50b7"
+  version = "v0.0.30"
 
 [[projects]]
-  digest = "1:0f3048dfaf72e8c2a95d7f4839c53b27451da67cb4ebafd699ee41363a5084c3"
+  digest = "1:9f1852ec8f2809cf18f2f5ba93515eb2d9f8e7bf755cf1cf9c229a6614853477"
   name = "github.com/nalej/grpc-network-go"
   packages = ["."]
   pruneopts = ""
-  revision = "964e18e991c5a2171c91b53d880e53af722b8bd0"
-  version = "v0.0.36"
+  revision = "3351718a02d354441dd67559cdfd91f549c30f51"
+  version = "v0.0.38"
 
 [[projects]]
   digest = "1:9921e275160e1559963d6452a918027db3563746fd03f63369ab104c0fbf16bf"
@@ -301,7 +301,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:13609280e54a67eec3a591672a314fdeba813efee13c5de133633e9a8e798a88"
+  digest = "1:a5c972021a6a1b631cedc116995a3c9df1e7eaf4d6553cc65d5adc3ee28118eb"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -313,7 +313,7 @@
     "pkg/queue/network/ops",
   ]
   pruneopts = ""
-  revision = "46ece4fbae3952e7f9fb5b2869ecd757a18f712e"
+  revision = "f74e36fd9a6f4e51c1d2fbd1ff3172ad925105d3"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -491,11 +491,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ab8e7eea4bffdd9000e76bb80d02b583b3864900ad86c6913ec1743fc833c80a"
+  digest = "1:3f1f4a37ecf63f5d37ada11b2854f8f5fc847b6a1d9364f937924492f90c4560"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "4c4f7f33c9ed00de01c4c741d2177abfcfe19307"
+  revision = "79a91cf218c425e1f4d48cd960839b45dd4d065f"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"
@@ -536,7 +536,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:303bb7bcb96f7562686015a90eabd865f2c32c468e6702e1724d69b178d0427b"
+  digest = "1:52c6a188a1f16480607d7753e02cbd5ad43089d5550c725f32f46d376c946f37"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
@@ -546,10 +546,10 @@
     "protobuf/field_mask",
   ]
   pruneopts = ""
-  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
+  revision = "eb0b1bdb6ae60fcfc41b8d907b50dfb346112301"
 
 [[projects]]
-  digest = "1:6598c722afbc10dcbcace4e6504751b3a3b11f66d9251545fce457a66316c9a7"
+  digest = "1:6881653b963cd12dc1a9824aed5e122d0ff38e53e3ee07862f969a56ad2f2e9c"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -589,8 +589,8 @@
     "test/bufconn",
   ]
   pruneopts = ""
-  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
-  version = "v1.21.0"
+  revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
+  version = "v1.21.1"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"

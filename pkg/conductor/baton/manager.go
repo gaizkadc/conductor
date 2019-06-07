@@ -811,6 +811,7 @@ func(c *Manager) undeployFragment(organizationId string, appInstanceId string, f
     // unauthorize every service contained in the fragment
     for _, stage := range targetFragment.Stages {
         for _, serv := range stage.Services {
+            // Unauthorize this entry
             ctxFrg, cancelFrg  := context.WithTimeout(context.Background(), ConductorQueueTimeout)
             req := pbNetwork.DisauthorizeMemberRequest{
                 AppInstanceId: appInstanceId, OrganizationId: organizationId,
@@ -820,6 +821,24 @@ func(c *Manager) undeployFragment(organizationId string, appInstanceId string, f
             if errPostMsg != nil {
                 log.Error().Err(errPostMsg).Interface("request",req).
                     Msg("there was an error posting an undeploy fragment request")
+            }
+            // Remove the DNS entry
+            ctxDNS, cancelDNS := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+            reqDNS := pbNetwork.DeleteDNSEntryRequest{
+                OrganizationId: serv.OrganizationId,
+                ServiceName: "*",
+                Tags: []string{
+                    fmt.Sprintf("organizationId:%s",serv.OrganizationId),
+                    fmt.Sprintf("appInstanceId:%s",serv.AppInstanceId),
+                    fmt.Sprintf("serviceGroupInstanceId:%s",serv.ServiceGroupInstanceId),
+                    fmt.Sprintf("serviceAppInstanceId:%s",serv.ServiceInstanceId),
+                },
+            }
+            errPostMsg = c.NetworkOpsProducer.Send(ctxDNS, &reqDNS)
+            cancelDNS()
+            if errPostMsg != nil {
+                log.Error().Err(errPostMsg).Interface("request", reqDNS).
+                    Msg("there was an error posting a remove DNS entry request")
             }
         }
     }
@@ -913,9 +932,14 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, clusterI
 
     // 3) Remove associated DNS entries if any
     log.Debug().Msgf("remove DNS entries for %s in %s",appInstanceId, organizationId)
+    // request to delete any service with the appInstanceId and organizationId tags
     deleteReq := pbNetwork.DeleteDNSEntryRequest{
         OrganizationId: organizationId,
-        AppInstanceId: appInstanceId,
+        ServiceName: "*",
+        Tags: []string{
+            fmt.Sprintf("organizationId:%s",organizationId),
+            fmt.Sprintf("appInstanceId:%s",appInstanceId),
+        },
     }
 
     _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
