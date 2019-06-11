@@ -37,7 +37,7 @@ func NextIP(ip net.IP, inc uint) net.IP {
 // return:
 //  the fqdn
 func GetVSAName(serviceName string, organizationId string, appInstanceId string) string {
-    value := fmt.Sprintf("%s-%s-%s.service.nalej", common.FormatName(serviceName), organizationId[0:10],
+    value := fmt.Sprintf("%s-%s-%s", common.FormatName(serviceName), organizationId[0:10],
         appInstanceId[0:10])
     return value
 }
