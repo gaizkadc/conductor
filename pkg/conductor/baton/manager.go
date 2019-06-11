@@ -18,7 +18,8 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/utils"
-    "github.com/nalej/deployment-manager/pkg/network"
+
+    //"github.com/nalej/deployment-manager/pkg/network"
     "github.com/nalej/derrors"
     pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     pbApplication "github.com/nalej/grpc-application-go"
@@ -47,7 +48,7 @@ const (
     // Timeout when sending messages to the queue
     ConductorQueueTimeout = time.Second * 5
     // Initial address to use during the definition of VSA
-    ConductorBaseVSA = "10.0.0.1/8"
+    ConductorBaseVSA = "10.0.0.1"
 )
 
 type Manager struct {
@@ -999,7 +1000,7 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
             dnsRequest := pbNetwork.AddDNSEntryRequest{
                 OrganizationId: serv.OrganizationId,
                 ServiceName: serv.Name,
-                Fqdn: network.GetNetworkingName(serv.Name, appDescriptor.OrganizationId,appInstanceId),
+                Fqdn: utils.GetVSAName(serv.Name, appDescriptor.OrganizationId,appInstanceId),
                 Ip: currentIp.String(),
                 Tags: []string{
                     fmt.Sprintf("appInstanceId:%s",appInstanceId),

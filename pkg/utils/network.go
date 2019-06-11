@@ -5,7 +5,11 @@
 
 package utils
 
-import "net"
+import (
+    "fmt"
+    "github.com/nalej/deployment-manager/pkg/common"
+    "net"
+)
 
 // Compute the next consecutive IP address
 // params:
@@ -22,4 +26,18 @@ func NextIP(ip net.IP, inc uint) net.IP {
     v1 := byte((v >> 16) & 0xFF)
     v0 := byte((v >> 24) & 0xFF)
     return net.IPv4(v0, v1, v2, v3)
+}
+
+
+// Return how would be the VSA of a potential entry.
+// params:
+//  serviceName
+//  organizationId
+//  appInstanceId
+// return:
+//  the fqdn
+func GetVSAName(serviceName string, organizationId string, appInstanceId string) string {
+    value := fmt.Sprintf("%s-%s-%s.service.nalej", common.FormatName(serviceName), organizationId[0:10],
+        appInstanceId[0:10])
+    return value
 }
