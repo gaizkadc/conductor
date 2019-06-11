@@ -662,8 +662,12 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     // find in what clusters this app is running
     clusterFound := make(map[string]bool, 0)
     clusterIds := make([]string,0)
+    // set of services
+    services := make(map[string]bool,1)
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
+            // add this service to the set
+            services[svc.Name] = true
             if svc.DeployedOnClusterId != "" {
                 if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
                     clusterFound[svc.DeployedOnClusterId] = true
@@ -697,6 +701,21 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     if !removed {
         log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
     }
+
+    // Remove any DNS entry
+    for serviceName, _ := range services {
+        req := pbNetwork.DeleteDNSEntryRequest{
+            OrganizationId: organizationId,
+            ServiceName: utils.GetVSAName(serviceName, organizationId, appInstanceId),
+        }
+        ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+        errQueue := c.NetworkOpsProducer.Send(ctx,&req)
+        cancel()
+        if errQueue != nil {
+            log.Error().Err(errQueue).Interface("request", req).Msg("faile sending delete dns entry request to the queue")
+        }
+    }
+
 
     // create observer and the array of entries to be observed
     toObserve := make([]observer.ObservableDeploymentFragment, 0)
