@@ -18,6 +18,8 @@ import (
     "github.com/nalej/conductor/pkg/conductor/requirementscollector"
     "github.com/nalej/conductor/pkg/conductor/scorer"
     "github.com/nalej/conductor/pkg/utils"
+
+    //"github.com/nalej/deployment-manager/pkg/network"
     "github.com/nalej/derrors"
     pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
     pbApplication "github.com/nalej/grpc-application-go"
@@ -28,6 +30,7 @@ import (
     "github.com/nalej/grpc-utils/pkg/conversions"
     "github.com/nalej/nalej-bus/pkg/queue/network/ops"
     "github.com/rs/zerolog/log"
+    "net"
     "time"
 )
 
@@ -44,6 +47,8 @@ const (
     ConductorDrainClusterAppTimeout = time.Second * 60
     // Timeout when sending messages to the queue
     ConductorQueueTimeout = time.Second * 5
+    // Initial address to use during the definition of VSA
+    ConductorBaseVSA = "10.0.0.1"
 )
 
 type Manager struct {
@@ -295,7 +300,15 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         return err
     }
 
-    // 5) deploy fragments
+    // 7) Create the virtual service addresses
+    err = c.createVSA(entities.NewParametrizedDescriptorFromGRPC(appDescriptor), appInstance.AppInstanceId)
+    if err != nil {
+        err := derrors.NewGenericError("impossible to create VAS", err)
+        log.Error().Err(err).Str("appDescriptorId",appDescriptor.AppDescriptorId).Msg("impossible to create VAS")
+        return err
+    }
+
+    // 6) deploy fragments
     // Tell deployment managers to execute plans
     err_deploy := c.DeployPlan(plan, ztNetworkId, req.NumRetries)
     if err_deploy != nil {
@@ -489,6 +502,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
         }
     }
 
+
     // time to deploy
     for fragmentIndex, fragment := range plan.Fragments {
         log.Debug().Interface("fragment", fragment).Msg("fragment to be deployed")
@@ -648,8 +662,12 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     // find in what clusters this app is running
     clusterFound := make(map[string]bool, 0)
     clusterIds := make([]string,0)
+    // set of services
+    services := make(map[string]bool,1)
     for _, g := range appInstance.Groups {
         for _, svc := range g.ServiceInstances {
+            // add this service to the set
+            services[svc.Name] = true
             if svc.DeployedOnClusterId != "" {
                 if _, found := clusterFound[svc.DeployedOnClusterId]; !found {
                     clusterFound[svc.DeployedOnClusterId] = true
@@ -683,6 +701,21 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
     if !removed {
         log.Info().Interface("appInstanceId", appInstanceId).Msg("no request was found in the queue for this deployed app")
     }
+
+    // Remove any DNS entry
+    for serviceName, _ := range services {
+        req := pbNetwork.DeleteDNSEntryRequest{
+            OrganizationId: organizationId,
+            ServiceName: utils.GetVSAName(serviceName, organizationId, appInstanceId),
+        }
+        ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+        errQueue := c.NetworkOpsProducer.Send(ctx,&req)
+        cancel()
+        if errQueue != nil {
+            log.Error().Err(errQueue).Interface("request", req).Msg("faile sending delete dns entry request to the queue")
+        }
+    }
+
 
     // create observer and the array of entries to be observed
     toObserve := make([]observer.ObservableDeploymentFragment, 0)
@@ -822,24 +855,6 @@ func(c *Manager) undeployFragment(organizationId string, appInstanceId string, f
                 log.Error().Err(errPostMsg).Interface("request",req).
                     Msg("there was an error posting an undeploy fragment request")
             }
-            // Remove the DNS entry
-            ctxDNS, cancelDNS := context.WithTimeout(context.Background(), ConductorQueueTimeout)
-            reqDNS := pbNetwork.DeleteDNSEntryRequest{
-                OrganizationId: serv.OrganizationId,
-                ServiceName: "*",
-                Tags: []string{
-                    fmt.Sprintf("organizationId:%s",serv.OrganizationId),
-                    fmt.Sprintf("appInstanceId:%s",serv.AppInstanceId),
-                    fmt.Sprintf("serviceGroupInstanceId:%s",serv.ServiceGroupInstanceId),
-                    fmt.Sprintf("serviceAppInstanceId:%s",serv.ServiceInstanceId),
-                },
-            }
-            errPostMsg = c.NetworkOpsProducer.Send(ctxDNS, &reqDNS)
-            cancelDNS()
-            if errPostMsg != nil {
-                log.Error().Err(errPostMsg).Interface("request", reqDNS).
-                    Msg("there was an error posting a remove DNS entry request")
-            }
         }
     }
 
@@ -930,29 +945,10 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, clusterI
             Msg("impossible to delete zerotier network")
     }
 
-    // 3) Remove associated DNS entries if any
-    log.Debug().Msgf("remove DNS entries for %s in %s",appInstanceId, organizationId)
-    // request to delete any service with the appInstanceId and organizationId tags
-    deleteReq := pbNetwork.DeleteDNSEntryRequest{
-        OrganizationId: organizationId,
-        ServiceName: "*",
-        Tags: []string{
-            fmt.Sprintf("organizationId:%s",organizationId),
-            fmt.Sprintf("appInstanceId:%s",appInstanceId),
-        },
-    }
-
-    _, err = c.DNSClient.DeleteDNSEntry(context.Background(), &deleteReq)
-    if err != nil {
-        // TODO decide what to do here
-        log.Error().Str("appInstanceId",appInstanceId).Err(err).
-            Msgf("error removing dns entries for appInstance %s", deleteReq.OrganizationId)
-    }
-
     // NP-1031. Improve undeploy performance
     go c.expireUnifiedLogging(organizationId, appInstanceId)
       
-    // 4) Remove app entry points
+    // 3) Remove app entry points
     _, err = c.AppClient.RemoveAppEndpoints(context.Background(), &pbApplication.RemoveAppEndpointRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
@@ -961,7 +957,7 @@ func (c *Manager) Rollback(organizationId string, appInstanceId string, clusterI
         log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove app endpoint  from system model")
     }
 
-    // 6) Remove any service group instance
+    // 4) Remove any service group instance
     _, err = c.AppClient.RemoveServiceGroupInstances(context.Background(), &pbApplication.RemoveServiceGroupInstancesRequest{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
@@ -1006,6 +1002,45 @@ func (c *Manager) unauthorizeEntries(organizationId string, appInstanceId string
             }
         }
     }
+}
+
+
+// Create the virtual application addresses for a given application descriptor
+// params:
+//  appDescriptor requiring the VAS entries
+//  appInstanceId to work with
+// return:
+//  error if the operation failed
+func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId string) derrors.Error {
+    currentIp := net.ParseIP(ConductorBaseVSA).To4()
+
+    for _, sg := range appDescriptor.Groups {
+        for _, serv := range sg.Services {
+            dnsRequest := pbNetwork.AddDNSEntryRequest{
+                OrganizationId: serv.OrganizationId,
+                ServiceName: serv.Name,
+                Fqdn: utils.GetVSAName(serv.Name, appDescriptor.OrganizationId,appInstanceId),
+                Ip: currentIp.String(),
+                Tags: []string{
+                    fmt.Sprintf("appInstanceId:%s",appInstanceId),
+                    fmt.Sprintf("organizationId:%s",appDescriptor.OrganizationId),
+                    fmt.Sprintf("descriptorId:%s",appDescriptor.AppDescriptorId),
+                    fmt.Sprintf("serviceGroupId:%s",sg.ServiceGroupId),
+                    fmt.Sprintf("serviceId:%s",serv.ServiceId),
+                },
+            }
+            ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+            err := c.NetworkOpsProducer.Send(ctx, &dnsRequest)
+            cancel()
+            if err != nil {
+                log.Error().Err(err).Interface("request", dnsRequest).Msg("impossible to send a dns entry request")
+                return err
+            }
+            // Increase the IP
+            currentIp = utils.NextIP(currentIp,1)
+        }
+    }
+    return nil
 }
 
 
