@@ -84,7 +84,7 @@ func (c *PrometheusClient) execQuery(query string) (float64, error) {
 
 
 func (c *PrometheusClient) runQuery(query string) (*model.Value, error) {
-    value, err := c.api.Query(context.Background(), query, time.Now())
+    value, _, err := c.api.Query(context.Background(), query, time.Now())
     if err != nil {
         log.Error().Err(err).Msg("error querying prometheus")
         return nil, err
