@@ -291,22 +291,24 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
         return derrors.AsError(err,fmt.Sprintf("plan design failed for descriptor %s",err.Error()))
     }
 
-    // 4) Create ZT-network with Network manager
+    // 4) Create the virtual service addresses
+    vsa, err := c.createVSA(entities.NewParametrizedDescriptorFromGRPC(appDescriptor), appInstance.AppInstanceId)
+    if err != nil {
+        err := derrors.NewGenericError("impossible to create VAS", err)
+        log.Error().Err(err).Str("appDescriptorId",appDescriptor.AppDescriptorId).Msg("impossible to create VAS")
+        return err
+    }
+
+    // 5) Create ZT-network with Network manager
     // we use the app instance id as the network id
-    ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId, retrievedAppInstance.AppInstanceId)
+    ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId,
+        retrievedAppInstance.AppInstanceId, vsa)
     if zt_err != nil {
         err := derrors.NewGenericError("impossible to create zt network before deployment", zt_err)
         log.Error().Err(zt_err).Str("requestId",req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
         return err
     }
 
-    // 7) Create the virtual service addresses
-    err = c.createVSA(entities.NewParametrizedDescriptorFromGRPC(appDescriptor), appInstance.AppInstanceId)
-    if err != nil {
-        err := derrors.NewGenericError("impossible to create VAS", err)
-        log.Error().Err(err).Str("appDescriptorId",appDescriptor.AppDescriptorId).Msg("impossible to create VAS")
-        return err
-    }
 
     // 6) deploy fragments
     // Tell deployment managers to execute plans
@@ -453,8 +455,12 @@ func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment
 //  organizationId for this network
 // returns:
 //  networkId or error otherwise
-func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanceId string) (string, error){
-    request := pbNetwork.AddNetworkRequest{ Name: name, OrganizationId: organizationId, AppInstanceId: appInstanceId }
+func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanceId string, vsa map[string]string) (string, error){
+    request := pbNetwork.AddNetworkRequest{
+        Name: name,
+        OrganizationId: organizationId,
+        AppInstanceId: appInstanceId,
+        Vsa: vsa}
 
     log.Debug().Interface("addNetworkRequest",request).Msgf("create a network request")
 
@@ -1010,16 +1016,20 @@ func (c *Manager) unauthorizeEntries(organizationId string, appInstanceId string
 //  appDescriptor requiring the VAS entries
 //  appInstanceId to work with
 // return:
+//  map with the VSA list
 //  error if the operation failed
-func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId string) derrors.Error {
+func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId string) (map[string]string, derrors.Error) {
     currentIp := net.ParseIP(ConductorBaseVSA).To4()
+    // store the generated vsa
+    vsa := make(map[string]string,0)
 
     for _, sg := range appDescriptor.Groups {
         for _, serv := range sg.Services {
+            fqdn := utils.GetVSAName(serv.Name, appDescriptor.OrganizationId,appInstanceId)
             dnsRequest := pbNetwork.AddDNSEntryRequest{
                 OrganizationId: serv.OrganizationId,
                 ServiceName: serv.Name,
-                Fqdn: utils.GetVSAName(serv.Name, appDescriptor.OrganizationId,appInstanceId),
+                Fqdn: fqdn,
                 Ip: currentIp.String(),
                 Tags: []string{
                     fmt.Sprintf("appInstanceId:%s",appInstanceId),
@@ -1034,13 +1044,14 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
             cancel()
             if err != nil {
                 log.Error().Err(err).Interface("request", dnsRequest).Msg("impossible to send a dns entry request")
-                return err
+                return nil, err
             }
+            vsa[fqdn] = currentIp.String()
             // Increase the IP
             currentIp = utils.NextIP(currentIp,1)
         }
     }
-    return nil
+    return vsa,nil
 }
 
 
