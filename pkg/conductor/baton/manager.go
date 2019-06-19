@@ -48,7 +48,7 @@ const (
     // Timeout when sending messages to the queue
     ConductorQueueTimeout = time.Second * 5
     // Initial address to use during the definition of VSA
-    ConductorBaseVSA = "10.0.0.1"
+    ConductorBaseVSA = "172.16.0.1"
 )
 
 type Manager struct {
