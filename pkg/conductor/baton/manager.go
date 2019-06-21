@@ -1144,27 +1144,7 @@ func (c *Manager) scheduleDeploymentFragment(d *entities.DeploymentFragment) der
         log.Error().Err(err).Msg("impossible to update local version of deployment fragment")
         return err
     }
-
-    // unauthorize all the services
-    for _, stage := range d.Stages {
-        for _, service := range stage.Services {
-            ctxUnauthorize, cancelUnauthorize := context.WithTimeout(context.Background(), ConductorQueueTimeout)
-            req := pbNetwork.DisauthorizeMemberRequest{
-                OrganizationId: service.OrganizationId,
-                AppInstanceId: service.AppInstanceId,
-                ServiceGroupInstanceId: service.ServiceGroupInstanceId,
-                ServiceApplicationInstanceId: service.ServiceInstanceId,
-            }
-            err := c.NetworkOpsProducer.Send(ctxUnauthorize, &req)
-            cancelUnauthorize()
-            if err != nil {
-                log.Error().Err(err).Msg("error sending unauthorize member request to the queue")
-            } else {
-                log.Info().Interface("request", req).Msg("send unauthorize member request to the queue")
-            }
-        }
-    }
-
+    
     // remove the pending fragment
     c.PendingPlans.RemoveFragment(d.FragmentId)
 
