@@ -50,20 +50,52 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
         return
     }
 
+    toReallocate := cuo.findFragmentsToRedeploy(clusterEntry)
+    if toReallocate == nil {
+        return
+    }
+
+    log.Info().Interface("toReallocate",toReallocate).
+        Msgf("there is a total of %d deployment fragments to be reallocated",len(toReallocate))
+
+    if len(toReallocate) == 0 {
+        log.Info().Msg("no deployment fragments to reallocate. Exit")
+        return
+    }
+
+    observer := observer.NewDeploymentFragmentsObserver(toReallocate, cuo.baton.AppClusterDB)
+    // Run an observer in a separated thread to send the schedule to the queue when is terminating
+    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING, cuo.baton.scheduleDeploymentFragment)
+
+    log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
+
+    // Remove the fragments
+    for _, fragment := range toReallocate {
+        cuo.baton.undeployFragment(update.OrganizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
+    }
+
+    log.Info().Str("clusterId", update.ClusterId).Msg("cluster update changes observation done")
+
+}
+
+
+// Find for the current cluster configuration what fragments have to be redeploy because they do not meet
+// the expected constraints.
+func(cuo *ClusterInfrastructureTrigger) findFragmentsToRedeploy(clusterEntry *pbInfrastructure.Cluster) []observer.ObservableDeploymentFragment {
     // get deployment fragments in the cluster
-    dfs, err := cuo.baton.AppClusterDB.GetFragmentsInCluster(update.ClusterId)
+    dfs, err := cuo.baton.AppClusterDB.GetFragmentsInCluster(clusterEntry.ClusterId)
     if err != nil {
         log.Error().Err(err).Msg("skip potential reallocation due to error retrieving deployment fragments")
-        return
+        return nil
     }
 
     if dfs == nil || len(dfs) == 0 {
         log.Debug().Msg("no deployment fragments allocated in cluster. Skip potential reallocation")
-        return
+        return nil
     }
 
     // check if the current cluster definition can allocate this deployment group
-    log.Debug().Str("clusterId", update.ClusterId).Int("reallocationCandidates",len(dfs)).
+    log.Debug().Str("clusterId", clusterEntry.ClusterId).Int("reallocationCandidates",len(dfs)).
         Interface("candidates",dfs).
         Msg("there are candidate fragments to be reallocated")
 
@@ -92,29 +124,10 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
                 FragmentId: df.FragmentId, AppInstanceId: df.AppInstanceId})
         }
     }
-
-    log.Info().Interface("toReallocate",toReallocate).
-        Msgf("there is a total of %d deployment fragments to be reallocated",len(toReallocate))
-
-    if len(toReallocate) == 0 {
-        log.Info().Msg("no deployment fragments to reallocate. Exit")
-        return
-    }
-
-    observer := observer.NewDeploymentFragmentsObserver(toReallocate, cuo.baton.AppClusterDB)
-    // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING, cuo.baton.scheduleDeploymentFragment)
-
-    log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
-
-    // Remove the fragments
-    for _, fragment := range toReallocate {
-        cuo.baton.undeployFragment(update.OrganizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
-    }
-
-    log.Info().Str("clusterId", update.ClusterId).Msg("cluster update changes observation done")
-
+    return toReallocate
 }
+
+
 
 // Determine if a deployment fragment has to be reallocated in the context of a new cluster definition for its
 // current application descriptor.
