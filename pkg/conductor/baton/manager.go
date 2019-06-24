@@ -27,6 +27,7 @@ import (
     pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
     pbNetwork "github.com/nalej/grpc-network-go"
     pbCoordinator "github.com/nalej/grpc-unified-logging-go"
+    pbOrganization "github.com/nalej/grpc-organization-go"
     "github.com/nalej/grpc-utils/pkg/conversions"
     "github.com/nalej/nalej-bus/pkg/queue/network/ops"
     "github.com/rs/zerolog/log"
@@ -320,6 +321,80 @@ func(c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derro
     }
     return nil
 }
+
+
+// Reschedule all the current app instances if needed.
+func (c *Manager) scheduleRunningApps(organizationId string) {
+
+    // get the list of available application instances
+    ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+    instances, err := c.AppClient.ListAppInstances(ctx, &pbOrganization.OrganizationId{OrganizationId: organizationId})
+    defer cancel()
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to retrieve application instances")
+        return
+    }
+
+    for i, appInstance := range instances.Instances {
+        log.Debug().Msgf("rescheduling %d out of %d instances", i+1, len(instances.Instances))
+
+        if err != nil {
+            log.Error().Err(err).Msg("impossible to get app descriptor")
+
+        }
+
+        // summary of service groups with multiple replica set
+        replicated := make(map[string]*pbApplication.ServiceGroupInstance,0)
+        numReplicas := make(map[string]int,0)
+        for _, group := range appInstance.Groups {
+            if group.Specs.MultiClusterReplica {
+                replicated[group.ServiceGroupId] = group
+                if _, found:=numReplicas[group.ServiceGroupId]; !found {
+                    numReplicas[group.ServiceGroupId]++
+                }
+            }
+        }
+
+        // check if these groups are instantiated as many times as it can be
+        // store the list of service groups for scheduling
+        toReschedule := make([]string,0)
+        for _, group := range replicated {
+            expectedReplicas := 0
+            for _, cluster := range c.ConnHelper.ClusterReference {
+                if c.clusterCanDeployGroup(cluster.Labels, group.Specs.DeploymentSelectors) {
+                    expectedReplicas++
+                }
+            }
+            // check if expected and current do not match
+            if expectedReplicas > numReplicas[group.ServiceGroupId] {
+                toReschedule = append(toReschedule, group.ServiceGroupId)
+            }
+        }
+
+        // Reschedule....
+    }
+}
+
+
+// Check if a cluster can deploy a service group
+func (c *Manager) clusterCanDeployGroup(cluster map[string]string, group map[string]string) bool {
+    if group == nil {
+        return true
+    }
+
+    for expectedKey, expectedValue := range group {
+        foundValue, foundKey := cluster[expectedKey]
+        if !foundKey {
+            return false
+        }
+        if foundValue != expectedValue {
+            return true
+        }
+    }
+    // everything was correct
+    return true
+}
+
 
 // Analyze the best deployment options for a single deployment fragment.
 func(c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragment) derrors.Error{

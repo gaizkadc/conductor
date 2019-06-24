@@ -12,6 +12,7 @@ import (
     pbAuthx "github.com/nalej/grpc-authx-go"
     pbDevice "github.com/nalej/grpc-device-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     "github.com/nalej/derrors"
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/conductor/pkg/utils"
@@ -386,4 +387,62 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
     }
 
     return fragmentsToDeploy
+}
+
+
+func (p *SimpleReplicaPlanDesigner) CheckAndDeployApp(appInstance *entities.AppInstance,
+    clusters []*pbInfrastructure.Cluster) derrors.Error {
+
+    // get the descriptor
+    ctx, cancel := context.WithTimeout(context.Background(), PlanDesignerGRPCTimeout)
+    descriptor, err := p.appClient.GetParametrizedDescriptor(ctx,
+        &pbApplication.AppInstanceId{OrganizationId: appInstance.OrganizationId, AppInstanceId: appInstance.AppInstanceId})
+    defer cancel()
+
+    if err != nil {
+        log.Error().Err(err).Msg("impossible to get app descriptor")
+        return derrors.NewInternalError(err.Error())
+    }
+
+    // summary of service groups with multiple replica set
+    replicated := make([]*pbApplication.ServiceGroup,0)
+    for _, group := range descriptor.Groups {
+        if group.Specs.MultiClusterReplica {
+            replicated = append(replicated, group)
+        }
+    }
+
+    // check if these groups are instantiated as many times as it can be
+    expectedGroupReplicas := make(map[string]int,0)
+    for _, group := range replicated {
+        expectedReplicas := 0
+        for _, cluster := range clusters {
+            if p.clusterCanDeployGroup(cluster, group) {
+                expectedReplicas++
+            }
+        }
+        expectedGroupReplicas[group.ServiceGroupId] = expectedReplicas
+    }
+
+
+    return nil
+}
+
+
+func (p *SimpleReplicaPlanDesigner) clusterCanDeployGroup(cluster *pbInfrastructure.Cluster, group *pbApplication.ServiceGroup) bool {
+    if group.Specs.DeploymentSelectors == nil {
+        return true
+    }
+
+    for expectedKey, expectedValue := range group.Specs.DeploymentSelectors {
+        foundValue, foundKey := cluster.Labels[expectedKey]
+        if !foundKey {
+            return false
+        }
+        if foundValue != expectedValue {
+            return true
+        }
+    }
+    // everything was correct
+    return true
 }

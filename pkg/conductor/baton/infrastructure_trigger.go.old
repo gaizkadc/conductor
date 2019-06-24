@@ -49,7 +49,7 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
         log.Error().Err(err).Msg("impossible to retrieve cluster status to observe changes")
         return
     }
-
+    
     toReallocate := cuo.findFragmentsToRedeploy(clusterEntry)
     if toReallocate == nil {
         return
@@ -64,11 +64,8 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     }
 
     observer := observer.NewDeploymentFragmentsObserver(toReallocate, cuo.baton.AppClusterDB)
-
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    // Then scheduleRunningApps
-    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING,
-        cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
+    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING, cuo.baton.scheduleDeploymentFragment)
 
     log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
 

@@ -8,7 +8,9 @@ package plandesigner
 import (
     "github.com/nalej/conductor/internal/entities"
     "fmt"
+    "github.com/nalej/derrors"
     "strings"
+    "time"
 )
 
 // Basic interface to be follow by any plan designer.
@@ -35,6 +37,8 @@ const (
     NalejVariablePrefix = "NALEJ_SERV_%s"
     // Nalej service suffix
     NalejServiceSuffix = "service.nalej"
+    // Timeout for GRPC operations
+    PlanDesignerGRPCTimeout = 5 * time.Second
 )
 
 
