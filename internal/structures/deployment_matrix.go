@@ -71,10 +71,12 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
     // find if there are any initial replicas already allocated
     alreadyAllocatedGroups := 0
-    for _, groupsInCluster := range dm.GroupsCluster {
+    groupDeployedOnClusters := make(map[string]bool,0)
+    for clusterId, groupsInCluster := range dm.GroupsCluster {
         for _, groupId := range groupsInCluster {
             if groupId == group.ServiceGroupId {
                 alreadyAllocatedGroups = alreadyAllocatedGroups + 1
+                groupDeployedOnClusters[clusterId] = true
             }
         }
     }
@@ -102,13 +104,19 @@ func (dm *DeploymentMatrix) FindBestTargetsForReplication(group entities.Service
 
     log.Debug().Interface("deploymentMatrix", dm).Msg("deployment matrix during cluster search")
 
-    targetClusters := make(map[string]float32, 0)
+
     // Allocate a replica in the cluster with the largest score
+    // Skip clusters with already running replicas
     // Greedy approach to find the best cluster with no allocated replica
+    targetClusters := make(map[string]float32, 0)
     for i := 0; i < desiredReplicas; i++ {
         roundCandidate := ""
         candidateScore := float32(-1)
         for clusterId, clusterScore := range dm.AllocatedScore {
+            // if we have already deployed on this cluster, skip it
+            if _, alreadyDeployed := groupDeployedOnClusters[clusterId]; alreadyDeployed {
+                continue
+            }
             _, usedCluster := targetClusters[clusterId]
             if !usedCluster {
                 // We have not allocated anything in this cluster

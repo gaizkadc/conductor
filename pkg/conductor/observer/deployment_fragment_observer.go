@@ -54,7 +54,8 @@ func (df * DeploymentFragmentsObserver) Observe(
     status entities.DeploymentFragmentStatus,
     f func(*entities.DeploymentFragment) derrors.Error,
     callback func(string)) {
-    log.Debug().Interface("observableItems",df.Ids).Msgf("started deployments fragment observer with %d pending observations",df.RemainingChanges)
+    log.Debug().Interface("observableItems",df.Ids).Msgf("started deployments fragment observer with %d " +
+        "pending observations",df.RemainingChanges)
     sleep := time.Tick(CheckSleepTime)
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()

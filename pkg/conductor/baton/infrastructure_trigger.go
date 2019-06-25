@@ -51,17 +51,15 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     }
 
     toReallocate := cuo.findFragmentsToRedeploy(clusterEntry)
-    if toReallocate == nil {
+    if toReallocate == nil || len(toReallocate) == 0 {
+        log.Info().Msg("no deployment fragments to reallocated launch to reschedule. Exit")
+        cuo.baton.scheduleRunningApps(update.OrganizationId)
         return
     }
 
     log.Info().Interface("toReallocate",toReallocate).
         Msgf("there is a total of %d deployment fragments to be reallocated",len(toReallocate))
 
-    if len(toReallocate) == 0 {
-        log.Info().Msg("no deployment fragments to reallocate. Exit")
-        return
-    }
 
     observer := observer.NewDeploymentFragmentsObserver(toReallocate, cuo.baton.AppClusterDB)
 
