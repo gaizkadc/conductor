@@ -792,10 +792,12 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 
 // Undeploy
 func (c* Manager) Undeploy (request *entities.UndeployRequest) error {
+    /*
     err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
     if err != nil {
         log.Error().Err(err).Msg("impossible to remove a pending pending plan")
     }
+    */
     return c.HardUndeploy(request.OrganizationId,request.AppInstanceId)
 }
 
@@ -858,6 +860,7 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         &pbApplication.AppInstanceId{OrganizationId: organizationId, AppInstanceId: appInstanceId})
     if err != nil {
         log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
+        log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
         return err
     }
 
@@ -879,17 +882,9 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         }
     }
 
-    // call Rollback
-    c.Rollback(organizationId, appInstanceId, clusterIds)
-
-    // Remove any entry from the system model
     instID := &pbApplication.AppInstanceId{
         OrganizationId: organizationId,
         AppInstanceId: appInstanceId,
-    }
-    _, err = c.AppClient.RemoveAppInstance(context.Background(), instID)
-    if err != nil{
-        log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
     }
 
     // TODO: see if this method could be moved to application manager ( app-manager is responsible for creating it)
@@ -935,10 +930,42 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
 
     observer := observer.NewDeploymentFragmentsObserver(toObserve, c.AppClusterDB)
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+    go observer.Observe(
+        ConductorDrainClusterAppTimeout,
+        entities.FRAGMENT_TERMINATING,
+        // function to execute in every deployment fragment
         func(d *entities.DeploymentFragment) derrors.Error {
-            return c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.FragmentId)
-        }, nil)
+            log.Debug().Str("deploymentFragmentId", d.DeploymentId).Msg("deployment fragment terminated has" +
+                " to be removed")
+            err := c.AppClusterDB.DeleteDeploymentFragment(d.ClusterId,d.FragmentId)
+            if err != nil {
+                return err
+            }
+            if !c.PendingPlans.PlanHasPendingFragments(d.DeploymentId) {
+                log.Debug().Msg("pending plan has no fragments, remove it")
+                c.PendingPlans.RemovePendingPlan(d.DeploymentId)
+            }
+            return nil
+        },
+        // finally remove the application instance
+        func() {
+
+            // call Rollback
+            c.Rollback(organizationId, appInstanceId, clusterIds)
+
+            // Remove any entry from the system model
+            instID := &pbApplication.AppInstanceId{
+                OrganizationId: organizationId,
+                AppInstanceId: appInstanceId,
+            }
+            ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+            defer cancel()
+            log.Debug().Interface("appInstanceId", instID).Msg("remove application instance")
+            _, err = c.AppClient.RemoveAppInstance(ctx, instID)
+            if err != nil{
+                log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
+            }
+        })
 
     // terminate execution
     return c.undeployClustersInstance(appInstance.OrganizationId, appInstance.AppInstanceId,clusterIds)
@@ -1285,7 +1312,8 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 
     observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    go observer.Observe(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING, c.scheduleDeploymentFragment,nil)
+    go observer.ObserveOrganizationLevel(ConductorDrainClusterAppTimeout,entities.FRAGMENT_TERMINATING,
+        drainRequest.ClusterId.OrganizationId, c.scheduleDeploymentFragment,nil)
 
     log.Info().Str("clusterId",drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
 
