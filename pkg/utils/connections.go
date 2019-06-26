@@ -33,6 +33,8 @@ type ClusterEntry struct {
     Hostname string
     // Cordon true if this cluster is in a cordon status
     Cordon bool
+    // Labels
+    Labels map[string]string
 }
 
 
@@ -287,8 +289,7 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
         // The cluster is running and is not in cordon status
         if h.isClusterAvailable(cluster){
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
-            log.Debug().Str("clusterId", cluster.ClusterId).Str("hostname", cluster.Hostname).Str("targetHostname", targetHostname).Msg("add connection to cluster")
-            h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: cluster.Cordon}
+            h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: cluster.Cordon, Labels: cluster.Labels}
             targetPort := int(APP_CLUSTER_API_PORT)
             params := make([]interface{}, 0)
             params = append(params, h.useTLS)

@@ -12,6 +12,7 @@ import (
     pbAuthx "github.com/nalej/grpc-authx-go"
     pbDevice "github.com/nalej/grpc-device-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
+    pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     "github.com/nalej/derrors"
     "github.com/nalej/conductor/internal/entities"
     "github.com/nalej/conductor/pkg/utils"
@@ -161,7 +162,7 @@ func(p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
     }
 
     // Fill variables
-    finalFragments := p.fillVariables(fragments)
+    finalFragments := p.fillVariables(fragments, request.AppInstanceId, unfilteredDesc)
 
     // Now that we have all the fragments, build the deployment plan
     newPlan := entities.DeploymentPlan{
@@ -356,34 +357,43 @@ func(p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescrip
 
 // Fill the fragments with the corresponding variables per group. This has to be done after the generation of the fragments
 // to correctly fill the entries with the corresponding values.
-func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.DeploymentFragment) []entities.DeploymentFragment {
-    toChange := make(map[int]map[string]string,0)
-    allServices := make(map[string]string,0)
-    for fragmentIndex, f := range fragmentsToDeploy {
+func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.DeploymentFragment, appInstanceId string,
+    appDescriptor entities.AppDescriptor) []entities.DeploymentFragment {
+
+    variables := make(map[string]string,0)
+    for _, g := range appDescriptor.Groups {
         // Create the service entries we need for this fragment
-        variables := make(map[string]string,0)
-        for _, stage := range f.Stages {
-            for _, serv := range stage.Services {
-                key, value := GetDeploymentVariableForService(serv)
-                variables[key] = value
-                // TODO: this might be modified depending on decissions about how to declare variables
-                allServices[key] = value
-            }
+        for _, s := range g.Services {
+            key, value := GetDeploymentVariableForService(s.Name, appInstanceId, s.OrganizationId)
+            variables[key] = value
         }
-        toChange[fragmentIndex] = variables
     }
 
-    for fragmentIndex, variables := range toChange {
-        fragmentsToDeploy[fragmentIndex].NalejVariables = variables
-        // This fragment must know all the variables for the sake of completeness
-        for key, variable := range allServices {
-            _, found := fragmentsToDeploy[fragmentIndex].NalejVariables[key]
-            if !found {
-                // we couldn't find it, add the first entry we know
-                fragmentsToDeploy[fragmentIndex].NalejVariables[key] = variable
-            }
-        }
+    // set the same set of services for all variables
+    // TODO NP-1557 only declare variables for the services allowed by the rules
+    for i, _ := range fragmentsToDeploy {
+        fragmentsToDeploy[i].NalejVariables = variables
     }
+
 
     return fragmentsToDeploy
+}
+
+
+func (p *SimpleReplicaPlanDesigner) clusterCanDeployGroup(cluster *pbInfrastructure.Cluster, group *pbApplication.ServiceGroup) bool {
+    if group.Specs.DeploymentSelectors == nil {
+        return true
+    }
+
+    for expectedKey, expectedValue := range group.Specs.DeploymentSelectors {
+        foundValue, foundKey := cluster.Labels[expectedKey]
+        if !foundKey {
+            return false
+        }
+        if foundValue != expectedValue {
+            return true
+        }
+    }
+    // everything was correct
+    return true
 }

@@ -51,21 +51,22 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     }
 
     toReallocate := cuo.findFragmentsToRedeploy(clusterEntry)
-    if toReallocate == nil {
+    if toReallocate == nil || len(toReallocate) == 0 {
+        log.Info().Msg("no deployment fragments to reallocated launch to reschedule. Exit")
+        cuo.baton.scheduleRunningApps(update.OrganizationId)
         return
     }
 
     log.Info().Interface("toReallocate",toReallocate).
         Msgf("there is a total of %d deployment fragments to be reallocated",len(toReallocate))
 
-    if len(toReallocate) == 0 {
-        log.Info().Msg("no deployment fragments to reallocate. Exit")
-        return
-    }
 
     observer := observer.NewDeploymentFragmentsObserver(toReallocate, cuo.baton.AppClusterDB)
+
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
-    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING, cuo.baton.scheduleDeploymentFragment)
+    // Then scheduleRunningApps
+    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING,
+        cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
 
     log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
 

@@ -9,6 +9,7 @@ import (
     "github.com/nalej/conductor/internal/entities"
     "fmt"
     "strings"
+    "time"
 )
 
 // Basic interface to be follow by any plan designer.
@@ -35,18 +36,22 @@ const (
     NalejVariablePrefix = "NALEJ_SERV_%s"
     // Nalej service suffix
     NalejServiceSuffix = "service.nalej"
+    // Timeout for GRPC operations
+    PlanDesignerGRPCTimeout = 5 * time.Second
 )
 
 
 // Generate the tuple key and value for a nalej service to be represented.
 // params:
-//  serv service instance to be processed
+//  serviceName
+//  appInstanceId
+//  organizationId
 // return:
 //  variable name, variable value
-func GetDeploymentVariableForService(serv entities.ServiceInstance) (string, string) {
-    key := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(serv.Name))
-    value := fmt.Sprintf("%s-%s-%s.%s", formatName(serv.Name), serv.OrganizationId[0:10],
-        serv.AppInstanceId[0:10], NalejServiceSuffix)
+func GetDeploymentVariableForService(serviceName string, appInstanceId string, organizationId string) (string, string) {
+    key := fmt.Sprintf(NalejVariablePrefix,strings.ToUpper(serviceName))
+    value := fmt.Sprintf("%s-%s-%s.%s", formatName(serviceName), organizationId[0:10],
+        appInstanceId[0:10], NalejServiceSuffix)
     return key,value
 }
 

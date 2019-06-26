@@ -46,10 +46,16 @@ func NewDeploymentFragmentsObserver(ids []ObservableDeploymentFragment, appClust
 //  timeout duration for the timeout of this context
 //  status to be detected
 //  f function to be called when the defined status is found
+//  callback function to be called when the observe method has finished. This function receives an organization id
 // return:
 //  error if any
-func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status entities.DeploymentFragmentStatus, f func(*entities.DeploymentFragment) derrors.Error) {
-    log.Debug().Interface("observableItems",df.Ids).Msgf("started deployments fragment observer with %d pending observations",df.RemainingChanges)
+func (df * DeploymentFragmentsObserver) Observe(
+    timeout time.Duration,
+    status entities.DeploymentFragmentStatus,
+    f func(*entities.DeploymentFragment) derrors.Error,
+    callback func(string)) {
+    log.Debug().Interface("observableItems",df.Ids).Msgf("started deployments fragment observer with %d " +
+        "pending observations",df.RemainingChanges)
     sleep := time.Tick(CheckSleepTime)
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
@@ -60,6 +66,7 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
         processed[id.FragmentId] = false
     }
 
+    targetOrganizationId := ""
     for {
         select {
         case <-sleep:
@@ -80,6 +87,8 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
                     continue
                 }
 
+                targetOrganizationId = fragment.OrganizationId
+
                 if err != nil {
                     log.Error().Err(err).Str("clusterId",clusterId).Str("fragmentId", fragmentId).
                         Msg("error when collecting fragment data")
@@ -99,6 +108,10 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
 
                     if df.RemainingChanges == 0 {
                         log.Debug().Msg("deployment fragments observer stops after all the elements were processed")
+                        if callback != nil {
+                            log.Debug().Msg("run callback function")
+                            callback(targetOrganizationId)
+                        }
                         return
                     }
                 }
@@ -107,6 +120,10 @@ func (df * DeploymentFragmentsObserver) Observe(timeout time.Duration, status en
         case <- ctx.Done():
             log.Debug().Interface("observableItems",df.Ids).Interface("processed",processed).
                 Msg("timeout reached for deployment fragments observer")
+            if callback != nil {
+                log.Debug().Msg("run callback function")
+                callback(targetOrganizationId)
+            }
             return
         }
     }
