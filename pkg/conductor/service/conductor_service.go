@@ -211,10 +211,10 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
     log.Info().Msg("initialize infrastructure events client...")
     infrEventsConfig := queueInfrEvents.NewConfigInfrastructureEventsConsumer(1,
-        queueInfrEvents.ConsumableStructsInfrastructureEventsConsumer{UpdateClusterRequest: true})
+        queueInfrEvents.ConsumableStructsInfrastructureEventsConsumer{UpdateClusterRequest: true, SetClusterStatusRequest: true})
     infrEvents, err := queueInfrEvents.NewInfrastructureEventsConsumer(pulsarClient, "conductor-infr-events", true, infrEventsConfig)
     if err != nil {
-        log.Panic().Err(err).Msg("impossible to initialize infrastructure ops queue client")
+        log.Panic().Err(err).Msg("impossible to initialize infrastructure events queue client")
     }
     log.Info().Msg("done")
 
