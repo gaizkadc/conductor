@@ -860,7 +860,6 @@ func(c *Manager) HardUndeploy(organizationId string, appInstanceId string) error
         &pbApplication.AppInstanceId{OrganizationId: organizationId, AppInstanceId: appInstanceId})
     if err != nil {
         log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
-        log.Error().Err(err).Str("appInstanceID",appInstanceId).Msgf("impossible to obtain application descriptor")
         return err
     }
 

@@ -91,8 +91,6 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
 
     case entities.FRAGMENT_TERMINATING:
         log.Info().Str("deploymentId", request.FragmentId).Msg("deployment fragment terminating")
-        // This fragment is now pending in the monitoring
-        //m.pendingPlans.RemoveFragment(request.FragmentId)
         finalStatus = entities.FRAGMENT_TERMINATING
 
     case entities.FRAGMENT_RETRYING:
