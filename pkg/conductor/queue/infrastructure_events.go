@@ -39,6 +39,7 @@ func NewInfrastructureEventsHandler(baton *baton.Manager, cons *events.Infrastru
 // This operations runs a set of subroutines feeding the corresponding channels for this handler.
 func(h InfrastructureEventsHandler) Run() {
     go h.consumeUpdateClusterRequest()
+    go h.consumeSetClusterStatusRequest()
     go h.waitRequests()
 }
 
@@ -70,8 +71,17 @@ func(h InfrastructureEventsHandler) consumeUpdateClusterRequest () {
         received := <- h.cons.Config.ChUpdateClusterRequest
         log.Debug().Interface("updateCluster", received).Msg("<- incoming update cluster request")
         trigger := baton.NewClusterInfrastructureTrigger(h.baton)
-        trigger.ObserveChanges(received)
+        trigger.ObserveChanges(received.OrganizationId, received.ClusterId)
+    }
+}
 
+func(h InfrastructureEventsHandler) consumeSetClusterStatusRequest () {
+    log.Debug().Msg("waiting for set cluster status requests...")
+    for {
+        received := <- h.cons.Config.ChSetClusterStatusRequest
+        log.Debug().Interface("setClusterStatusRequest", received).Msg("<- incoming set cluster status request")
+        trigger := baton.NewClusterInfrastructureTrigger(h.baton)
+        trigger.ObserveChanges(received.ClusterId.OrganizationId, received.ClusterId.ClusterId)
     }
 }
 

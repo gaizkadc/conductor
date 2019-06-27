@@ -33,8 +33,9 @@ func NewClusterInfrastructureTrigger (baton *Manager) ClusterInfrastructureTrigg
     }
 }
 
-func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure.UpdateClusterRequest) {
-    log.Info().Str("clusterId", update.ClusterId).Msg("started cluster update changes observation...")
+//func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure.UpdateClusterRequest) {
+func (cuo *ClusterInfrastructureTrigger) ObserveChanges(organizationId string, clusterId string) {
+    log.Info().Str("clusterId", clusterId).Msg("started cluster update changes observation...")
 
     // Create a local infrastructure client
     conn := cuo.baton.ConnHelper.GetSystemModelClients().GetConnections()[0]
@@ -44,7 +45,7 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     defer cancel()
     // get the final cluster definition stored in the system
     clusterEntry, err := infrClient.GetCluster(ctx,&pbInfrastructure.ClusterId{
-        OrganizationId: update.OrganizationId, ClusterId: update.ClusterId})
+        OrganizationId: organizationId, ClusterId: clusterId})
     if err!=nil{
         log.Error().Err(err).Msg("impossible to retrieve cluster status to observe changes")
         return
@@ -53,7 +54,7 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     toReallocate := cuo.findFragmentsToRedeploy(clusterEntry)
     if toReallocate == nil || len(toReallocate) == 0 {
         log.Info().Msg("no deployment fragments to reallocated launch to reschedule. Exit")
-        cuo.baton.scheduleRunningApps(update.OrganizationId)
+        cuo.baton.scheduleRunningApps(organizationId)
         return
     }
 
@@ -66,16 +67,16 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
     // Then scheduleRunningApps
     go observer.ObserveOrganizationLevel(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING,
-        update.OrganizationId,cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
+        organizationId,cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
 
-    log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
+    log.Info().Str("clusterId",clusterId).Msg("scheduled fragments reallocation")
 
     // Remove the fragments
     for _, fragment := range toReallocate {
-        cuo.baton.undeployFragment(update.OrganizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
+        cuo.baton.undeployFragment(organizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
     }
 
-    log.Info().Str("clusterId", update.ClusterId).Msg("cluster update changes observation done")
+    log.Info().Str("clusterId", clusterId).Msg("cluster update changes observation done")
 
 }
 

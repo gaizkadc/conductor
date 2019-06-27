@@ -73,3 +73,4 @@ func(h InfrastructureOpsHandler) consumeDrainRequest () {
         h.baton.DrainCluster(received)
     }
 }
+
