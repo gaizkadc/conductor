@@ -90,9 +90,7 @@ func(m *Manager) UpdateFragmentStatus(request *pbConductor.DeploymentFragmentUpd
         finalStatus = entities.FRAGMENT_DEPLOYING
 
     case entities.FRAGMENT_TERMINATING:
-        log.Info().Str("deploymentId", request.DeploymentId).Msg("deployment fragment terminating")
-        // This fragment is now pending in the monitoring
-        m.pendingPlans.SetFragmentPending(request.FragmentId)
+        log.Info().Str("deploymentId", request.FragmentId).Msg("deployment fragment terminating")
         finalStatus = entities.FRAGMENT_TERMINATING
 
     case entities.FRAGMENT_RETRYING:
@@ -284,6 +282,7 @@ func (m *Manager) updateAppInstanceServiceStatus(instance *pbApplication.AppInst
     if scheduledEntries == len(instance.Groups) {
         groupsSummary = pbApplication.ServiceStatus_SERVICE_SCHEDULED
     }
+
 
     var finalAppStatus pbApplication.ApplicationStatus
     switch groupsSummary {

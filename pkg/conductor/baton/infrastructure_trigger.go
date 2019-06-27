@@ -65,8 +65,8 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(update *pbInfrastructure
 
     // Run an observer in a separated thread to send the schedule to the queue when is terminating
     // Then scheduleRunningApps
-    go observer.Observe(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING,
-        cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
+    go observer.ObserveOrganizationLevel(ClusterInfrastructureTriggerTimeout,entities.FRAGMENT_TERMINATING,
+        update.OrganizationId,cuo.baton.scheduleDeploymentFragment, cuo.baton.scheduleRunningApps)
 
     log.Info().Str("clusterId",update.ClusterId).Msg("scheduled fragments reallocation")
 
