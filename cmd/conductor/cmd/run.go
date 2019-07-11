@@ -76,6 +76,8 @@ func RunConductor() {
     var queueAddress string
     // Database folder path
     var dbFolder string
+    // Debug flag
+    var debug bool
 
     port = uint32(viper.GetInt32("port"))
     systemModel = viper.GetString("systemModelAddress")
@@ -88,6 +90,7 @@ func RunConductor() {
     unifiedLoggingService = viper.GetString("unifiedLogging")
     queueAddress = viper.GetString("queueAddress")
     dbFolder = viper.GetString("dbFolder")
+    debug = viper.GetBool("debug")
 
 
     log.Info().Msg("launching conductor...")
@@ -105,6 +108,7 @@ func RunConductor() {
         UnifiedLoggingURL:unifiedLoggingService,
         QueueURL: queueAddress,
         DBFolder: dbFolder,
+        Debug: debug,
     }
     config.Print()
 

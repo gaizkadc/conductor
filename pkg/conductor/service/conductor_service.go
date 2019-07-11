@@ -16,6 +16,7 @@ import (
     "github.com/nalej/grpc-utils/pkg/tools"
     pbConductor "github.com/nalej/grpc-conductor-go"
     "github.com/nalej/nalej-bus/pkg/queue/network/ops"
+    "google.golang.org/grpc"
 
     "google.golang.org/grpc/reflection"
     "github.com/rs/zerolog/log"
@@ -57,6 +58,8 @@ type ConductorConfig struct {
     QueueURL string
     // Folder for the local database
     DBFolder string
+    // Debugging flag
+    Debug bool
 
 }
 
@@ -70,6 +73,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Uint32("appclusterport", conf.AppClusterApiPort).Msg("appClusterApi gRPC port")
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
     log.Info().Str("DBFolder", conf.DBFolder).Msg("Folder for the local database")
+    log.Info().Bool("Debug", conf.Debug).Msg("Debug enabled")
 }
 
 
@@ -79,7 +83,7 @@ type ConductorService struct {
     // Conductor monitor
     monitor *monitor.Manager
     // Server for incoming requests
-    server *tools.GenericGRPCServer
+    server *grpc.Server
     // Connections with musicians
     connections *tools.ConnectionsMap
     // Configuration object
@@ -263,7 +267,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     }
 
 
-    conductorServer := tools.NewGenericGRPCServer(config.Port)
+    conductorServer := grpc.NewServer()
     instance := ConductorService{conductor: batonMgr,
                                 monitor: monitorMgr,
                                 server: conductorServer,
@@ -293,13 +297,16 @@ func(c *ConductorService) Run() {
 
     // Server and registry
     // -- conductor service
-    pbConductor.RegisterConductorServer(c.server.Server, conductorService)
+    pbConductor.RegisterConductorServer(c.server, conductorService)
     // -- monitor service
-    pbConductor.RegisterConductorMonitorServer(c.server.Server, monitorService)
+    pbConductor.RegisterConductorMonitorServer(c.server, monitorService)
 
 
     // Register reflection service on gRPC server.
-    reflection.Register(c.server.Server)
+    if c.configuration.Debug {
+        reflection.Register(c.server)
+    }
+
 
     log.Info().Msg("run application ops handler...")
     appOpsQueue := queue.NewApplicationOpsHandler(c.conductor, c.appOpsConsumer)
@@ -324,7 +331,7 @@ func(c *ConductorService) Run() {
 
     // Run
     log.Info().Uint32("port", c.configuration.Port).Msg("Launching gRPC server")
-    if err := c.server.Server.Serve(lis); err != nil {
+    if err := c.server.Serve(lis); err != nil {
         log.Fatal().Errs("failed to serve: %v", []error{err})
     }
 
