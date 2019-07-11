@@ -47,11 +47,14 @@ func RunMusician() {
     var sleepTime uint32
     // Application port
     var port uint32
+    // Debug flag
+    var debug bool
 
 
     port = uint32(viper.GetInt32("musician-port"))
     prometheus = viper.GetString("prometheus")
     sleepTime = uint32(viper.GetInt32("sleep"))
+    debug = viper.GetBool("debug")
 
     log.Info().Msg("launching musician...")
     collector := statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
@@ -63,6 +66,7 @@ func RunMusician() {
         Port: port,
         Scorer: &scorer,
         Collector: &collector,
+        Debug: debug,
     }
 
     musicianService, err := service.NewMusicianService(conf)

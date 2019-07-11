@@ -8,10 +8,9 @@ package service
 import (
     "github.com/nalej/conductor/pkg/musician/service/handler"
     "github.com/nalej/conductor/pkg/musician/scorer"
+    "google.golang.org/grpc"
     "google.golang.org/grpc/reflection"
     pbConductor "github.com/nalej/grpc-conductor-go"
-
-    "github.com/nalej/grpc-utils/pkg/tools"
     "github.com/nalej/conductor/pkg/musician/statuscollector"
     "os"
     "github.com/nalej/conductor/pkg/utils"
@@ -27,18 +26,19 @@ type MusicianConfig struct {
     Collector *statuscollector.StatusCollector
     // Scorer
     Scorer *scorer.Scorer
+    // Debug enabled
+    Debug bool
 }
 
 type MusicianService struct {
     musician *handler.Manager
     configuration *MusicianConfig
-    server *tools.GenericGRPCServer
+    server *grpc.Server
 }
 
 //func NewMusicianService(port uint32, collector *statuscollector.StatusCollector, scor *scorer.Scorer) (*MusicianService, error) {
 func NewMusicianService(config *MusicianConfig) (*MusicianService, error) {
-
-    musicianServer := tools.NewGenericGRPCServer(config.Port)
+    musicianServer := grpc.NewServer()
     c := handler.NewManager(config.Collector, *config.Scorer)
     instance := MusicianService{c, config,musicianServer}
     return &instance, nil
@@ -59,14 +59,17 @@ func(m *MusicianService) Run() {
     deployment := handler.NewHandler(m.musician)
 
     // Server and registry
-    pbConductor.RegisterMusicianServer(m.server.Server,deployment)
+    pbConductor.RegisterMusicianServer(m.server,deployment)
 
     // Register reflection service on gRPC server.
-    reflection.Register(m.server.Server)
+    if m.configuration.Debug {
+        reflection.Register(m.server)
+    }
+
 
     // Run
     log.Info().Uint32("port", m.configuration.Port).Msg("Launching gRPC server")
-    if err := m.server.Server.Serve(lis); err != nil {
+    if err := m.server.Serve(lis); err != nil {
         log.Fatal().Errs("failed to serve: %v", []error{err})
     }
 
