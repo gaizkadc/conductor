@@ -332,7 +332,6 @@
   version = "v1.4.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:78b9ea1f00799013ef71a7aac9d14bd90467df5046914544b80a3e37450215cb"
   name = "github.com/nalej/nalej-bus"
   packages = [
@@ -346,6 +345,7 @@
   ]
   pruneopts = ""
   revision = "c9e71fc5c960d72e422c7cb4a23add81ab263515"
+  version = "v0.3.0"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
