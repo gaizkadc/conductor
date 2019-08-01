@@ -35,4 +35,4 @@ data:
       scrape_interval: 60s
       static_configs:
         - targets:
-            - "infrastructure-monitor-slave:8424"
+            - "metrics-collector:8424"
