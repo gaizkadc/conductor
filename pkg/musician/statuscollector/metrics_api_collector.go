@@ -62,6 +62,7 @@ func(coll *MetricsAPICollector) Run() error {
 
 	err := coll.gatherStats()
 	if err != nil {
+		log.Error().Err(err).Msg("error collecting status from metrics api")
 		return err
 	}
 
@@ -86,7 +87,6 @@ func (coll *MetricsAPICollector) gatherStats() error {
 	req := &grpc_monitoring_go.ClusterSummaryRequest{
 		OrganizationId: coll.organizationId,
 		ClusterId: coll.clusterId,
-		RangeMinutes: 1,
 	}
 
 	summary, err := coll.client.GetClusterSummary(ctx, req)
@@ -94,9 +94,11 @@ func (coll *MetricsAPICollector) gatherStats() error {
 		return err
 	}
 
+	log.Debug().Interface("stats", summary).Msg("collected cluster summary")
+
 	coll.cached.Put(cpuKey, summary.GetCpuMillicores())
 	coll.cached.Put(memKey, summary.GetMemoryBytes())
-	coll.cached.Put(diskKey, summary.GetStorageBytes())
+	coll.cached.Put(diskKey, summary.GetUsableStorageBytes())
 
 	return nil
 }

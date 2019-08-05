@@ -38,8 +38,8 @@ spec:
           runAsUser: 2000
         args:
         - "musician"
-        - "--prometheus=http://prometheus.__NPH_NAMESPACE.svc.cluster.local:9090"
-        #- "--debug"
+        - "--metrics=metrics-collector.__NPH_NAMESPACE.svc.cluster.local:8422"
+        - "--debug"
         ports:
         - name: musician-port
           containerPort: 5100
