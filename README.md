@@ -10,9 +10,14 @@ This explanation assumes a minikube environment is up and running.
 
 ## Musician
 
-Musicians use Prometheus available cluster monitoring data. For that reason, prior to deploy any musician in the
-cluster the corresponding monitoring infrastructure must be deployed. A monitoring infrastructure is defined in
-components/monitoring/component.yaml. Deploy the corresponding services by running
+Musicians use Prometheus available cluster monitoring data through `metrics-collector`. The Prometheus deployment
+hence is managed from the `monitoring` repository and `musician` solely uses the `MetricsCollector` API.
+
+For historic reasons, we have the original Prometheus deployment still available in `components/monitoring`. The
+status collector that uses this deployment is also still available; start `musician` with the `--prometheus` flag
+instead of the `--metrics` flag.
+
+### Deprecated minikube instructions
 
 ```bash
 kubectl create namespace nalej
