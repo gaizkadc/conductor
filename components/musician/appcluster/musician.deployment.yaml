@@ -22,6 +22,11 @@ spec:
       containers:
       - name: musician
         env:
+          - name: ORGANIZATION_ID
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-config
+                key: organization_id
           - name: CLUSTER_ID
             valueFrom:
               configMapKeyRef:
