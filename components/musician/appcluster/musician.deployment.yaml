@@ -22,6 +22,11 @@ spec:
       containers:
       - name: musician
         env:
+          - name: ORGANIZATION_ID
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-config
+                key: organization_id
           - name: CLUSTER_ID
             valueFrom:
               configMapKeyRef:
@@ -33,8 +38,8 @@ spec:
           runAsUser: 2000
         args:
         - "musician"
-        - "--prometheus=http://prometheus.__NPH_NAMESPACE.svc.cluster.local:9090"
-        #- "--debug"
+        - "--metrics=metrics-collector.__NPH_NAMESPACE.svc.cluster.local:8422"
+        - "--debug"
         ports:
         - name: musician-port
           containerPort: 5100
