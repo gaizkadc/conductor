@@ -85,11 +85,11 @@ func RunMusician() {
         if err != nil {
             log.Fatal().Err(err).Str("metricsAddress", metrics).Msg("cannot create connection with the metrics collector")
         }
-	metricsClient := grpc_monitoring_go.NewMetricsCollectorClient(metricsConn)
+        metricsClient := grpc_monitoring_go.NewMetricsCollectorClient(metricsConn)
 
         organizationId := os.Getenv("ORGANIZATION_ID")
-	clusterId := os.Getenv("CLUSTER_ID")
-	if organizationId == "" || clusterId == "" {
+        clusterId := os.Getenv("CLUSTER_ID")
+        if organizationId == "" || clusterId == "" {
             log.Fatal().Msg("ORGANIZATION_ID or CLUSTER_ID environment not set")
         }
 
