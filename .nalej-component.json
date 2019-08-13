@@ -1,7 +1,7 @@
 {
   "language": "golang",
   "application_list": [
-    "conductor musician monitoring"
+    "conductor musician"
   ],
   "tools": [
     "azure",
