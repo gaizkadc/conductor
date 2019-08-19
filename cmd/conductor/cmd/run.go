@@ -41,7 +41,7 @@ func init() {
     runCmd.Flags().Uint32P("appClusterPort","p",utils.APP_CLUSTER_API_PORT, "port where the application cluster api is listening")
     runCmd.Flags().Bool("useTLS", true, "Use TLS to connect to the application cluster API")
     runCmd.Flags().String("caCertPath", "", "Part for the CA certificate")
-    runCmd.Flags().Bool("skipCAValidation", true, "Skip CA authentication validation")
+    runCmd.Flags().Bool("skipServerCertValidation", true, "Skip CA authentication validation")
     runCmd.Flags().StringP("unifiedLogging", "u",fmt.Sprintf("localhost:%d",utils.UNIFIED_LOGGING_PORT),
         "host:port address for unifiedLogging")
     runCmd.Flags().StringP("queueAddress", "q", fmt.Sprintf("localhost:%d", utils.QUEUE_PORT),
@@ -67,7 +67,7 @@ func RunConductor() {
     // CA cert path
     var caCertPath string
     // Skip CA validation
-    var skipCAValidation bool
+    var skipServerCertValidation bool
     // Authx url
     var authxService string
     // Unified Logging url
@@ -86,7 +86,7 @@ func RunConductor() {
     appClusterApiPort = uint32(viper.GetInt32("appClusterPort"))
     useTLS = viper.GetBool("useTLS")
     caCertPath = viper.GetString("caCertPath")
-    skipCAValidation = viper.GetBool("skipCAValidation")
+    skipServerCertValidation = viper.GetBool("skipServerCertValidation")
     unifiedLoggingService = viper.GetString("unifiedLogging")
     queueAddress = viper.GetString("queueAddress")
     dbFolder = viper.GetString("dbFolder")
@@ -103,7 +103,7 @@ func RunConductor() {
         AppClusterApiPort: appClusterApiPort,
         UseTLSForClusterAPI: useTLS,
         CACertPath: caCertPath,
-        SkipCAValidation: skipCAValidation,
+        SkipServerCertValidation: skipServerCertValidation,
         AuthxURL:authxService,
         UnifiedLoggingURL:unifiedLoggingService,
         QueueURL: queueAddress,

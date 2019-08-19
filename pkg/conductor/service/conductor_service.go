@@ -49,7 +49,7 @@ type ConductorConfig struct {
     // Path for the certificate of the CA
     CACertPath string
     // Skip CA validation
-    SkipCAValidation bool
+    SkipServerCertValidation bool
     // URL where authx client is available
     AuthxURL string
     // UnifiedLogging client is available
@@ -105,7 +105,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     // set global port
     utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
-    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipCAValidation)
+    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipServerCertValidation)
 
     // Initialize connections pool with system model
     log.Info().Msg("initialize system model client...")
