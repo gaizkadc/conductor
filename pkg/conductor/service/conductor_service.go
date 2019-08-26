@@ -74,6 +74,8 @@ func (conf * ConductorConfig) Print() {
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
     log.Info().Str("DBFolder", conf.DBFolder).Msg("Folder for the local database")
     log.Info().Bool("Debug", conf.Debug).Msg("Debug enabled")
+    log.Info().Bool("SkipServerCertValidation", conf.SkipServerCertValidation).Msg("SkipServerCertValidation enabled")
+    log.Info().Str("CACertPath", conf.CACertPath).Msg("CA cert path")
 }
 
 
