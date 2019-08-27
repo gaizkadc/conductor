@@ -121,6 +121,7 @@ func(coll *MetricsAPICollector) GetStatus() (*entities.Status, error) {
 		log.Debug().Msg("no status entry found in cache; trying to retrieve now")
 		err := coll.gatherStats()
 		if err != nil {
+			log.Warn().Err(err).Msg("error gathering stats")
 			return nil, derrors.NewNotFoundError("no cache entries found and unable to retrieve stats", err)
 		}
 		cacheContent = coll.cached.GetAll()
