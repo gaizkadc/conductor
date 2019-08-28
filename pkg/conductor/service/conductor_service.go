@@ -48,7 +48,9 @@ type ConductorConfig struct {
     UseTLSForClusterAPI bool
     // Path for the certificate of the CA
     CACertPath string
-    // Skip CA validation
+    // Client Cert Path
+    ClientCertPath string
+    // Skip Server validation
     SkipServerCertValidation bool
     // URL where authx client is available
     AuthxURL string
@@ -76,6 +78,7 @@ func (conf * ConductorConfig) Print() {
     log.Info().Bool("Debug", conf.Debug).Msg("Debug enabled")
     log.Info().Bool("SkipServerCertValidation", conf.SkipServerCertValidation).Msg("SkipServerCertValidation enabled")
     log.Info().Str("CACertPath", conf.CACertPath).Msg("CA cert path")
+    log.Info().Str("ClientCertPath", conf.ClientCertPath).Msg("Client cert path")
 }
 
 

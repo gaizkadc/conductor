@@ -52,9 +52,11 @@ type ConnectionsHelper struct {
     ClusterReference map[string]ClusterEntry
     // useTLS connections
     useTLS bool
-    // path for the CA
+    // path for the ca cert
     caCertPath string
-    // skip CA validation
+    // path for the client cert
+    clientCertPath string
+    // skip server validation
     skipServerCertValidation bool
     // Singleton instance of connections with the Authx
     AuthxClients *tools.ConnectionsMap
@@ -65,12 +67,12 @@ type ConnectionsHelper struct {
 
 }
 
-func NewConnectionsHelper(useTLS bool, caCertPath string, skipServerCertValidation bool) *ConnectionsHelper {
+func NewConnectionsHelper(useTLS bool, clientCertPath string, skipServerCertValidation bool) *ConnectionsHelper {
 
     return &ConnectionsHelper{
-        ClusterReference: make(map[string]ClusterEntry, 0),
-        useTLS: useTLS,
-        caCertPath: caCertPath,
+        ClusterReference:         make(map[string]ClusterEntry, 0),
+        useTLS:                   useTLS,
+        clientCertPath:           clientCertPath,
         skipServerCertValidation: skipServerCertValidation,
     }
 }
@@ -144,8 +146,8 @@ func basicClientFactory(hostname string, port int, params...interface{}) (*grpc.
 //   hostname of the target server
 //   port of the target server
 //   useTLS flag indicating whether to use the TLS security
-//   caCert path of the CA certificate
-//   skipServerCertValidation skip the validation of the CA
+//   caCertPath of the CA certificate
+//   skipServerCertValidation skip the validation of the server certiicate
 //  return:
 //   grpc connection and error if any
 func secureClientFactory(hostname string, port int, useTLS bool, caCertPath string, skipServerCertValidation bool) (*grpc.ClientConn, error) {
@@ -155,23 +157,23 @@ func secureClientFactory(hostname string, port int, useTLS bool, caCertPath stri
     }
 
     if caCertPath != "" {
-        log.Debug().Str("caCertPath", caCertPath).Msg("loading CA cert")
-        caCert, err := ioutil.ReadFile(caCertPath)
+        log.Debug().Str("serverCertPath", caCertPath).Msg("loading server certificate")
+        serverCert, err := ioutil.ReadFile(caCertPath)
         if err != nil {
-            return nil, derrors.NewInternalError("Error loading CA certificate")
+            return nil, derrors.NewInternalError("Error loading server certificate")
         }
-        added := rootCAs.AppendCertsFromPEM(caCert)
+        added := rootCAs.AppendCertsFromPEM(serverCert)
         if !added {
-            return nil, derrors.NewInternalError("cannot add CA certificate to the pool")
+            return nil, derrors.NewInternalError("cannot add server certificate to the pool")
         }
         tlsConfig.RootCAs = rootCAs
     }
 
     targetAddress := fmt.Sprintf("%s:%d", hostname, port)
-    log.Debug().Str("address", targetAddress).Bool("useTLS", useTLS).Str("caCertPath", caCertPath).Bool("skipServerCertValidation", skipServerCertValidation).Msg("creating secure connection")
+    log.Debug().Str("address", targetAddress).Bool("useTLS", useTLS).Str("serverCertPath", caCertPath).Bool("skipServerCertValidation", skipServerCertValidation).Msg("creating secure connection")
 
     if skipServerCertValidation {
-        log.Debug().Msg("skipping CA validation")
+        log.Debug().Msg("skipping server cert validation")
         tlsConfig.InsecureSkipVerify = true
     }
 
@@ -226,8 +228,8 @@ func unifiedLoggingClientFactory(hostname string, port int, params...interface{}
 //   hostname of the target server
 //   port of the target server
 //   useTLS flag indicating whether to use the TLS security
-//   caCert path of the CA certificate
-//   skipServerCertValidation skip the validation of the CA
+//   clientCert path of the server certificate
+//   skipServerCertValidation skip the validation of the server certificate
 //  return:
 //   client and error if any
 func clusterClientFactory(hostname string, port int, params...interface{}) (*grpc.ClientConn, error) {
@@ -236,9 +238,9 @@ func clusterClientFactory(hostname string, port int, params...interface{}) (*grp
         log.Fatal().Interface("params",params).Msg("not enough parameters when calling cluster client factory")
     }
     useTLS := params[0].(bool)
-    caCertPath := params[1].(string)
+    clientCertPath := params[1].(string)
     skipServerCertValidation := params[2].(bool)
-    return secureClientFactory(hostname, port, useTLS, caCertPath, skipServerCertValidation)
+    return secureClientFactory(hostname, port, useTLS, clientCertPath, skipServerCertValidation)
 }
 
 
@@ -294,7 +296,7 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
             targetPort := int(APP_CLUSTER_API_PORT)
             params := make([]interface{}, 0)
             params = append(params, h.useTLS)
-            params = append(params, h.caCertPath)
+            params = append(params, h.clientCertPath)
             params = append(params, h.skipServerCertValidation)
 
             clusters.AddConnection(targetHostname, targetPort, params ... )

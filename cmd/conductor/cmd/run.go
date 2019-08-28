@@ -66,6 +66,8 @@ func RunConductor() {
     var useTLS bool
     // CA cert path
     var caCertPath string
+    // Client cert path
+    var clientCertPath string
     // Skip CA validation
     var skipServerCertValidation bool
     // Authx url
@@ -86,6 +88,7 @@ func RunConductor() {
     appClusterApiPort = uint32(viper.GetInt32("appClusterPort"))
     useTLS = viper.GetBool("useTLS")
     caCertPath = viper.GetString("caCertPath")
+    clientCertPath = viper.GetString("clientCertPath")
     skipServerCertValidation = viper.GetBool("skipServerCertValidation")
     unifiedLoggingService = viper.GetString("unifiedLogging")
     queueAddress = viper.GetString("queueAddress")
@@ -103,6 +106,7 @@ func RunConductor() {
         AppClusterApiPort: appClusterApiPort,
         UseTLSForClusterAPI: useTLS,
         CACertPath: caCertPath,
+        ClientCertPath: clientCertPath,
         SkipServerCertValidation: skipServerCertValidation,
         AuthxURL:authxService,
         UnifiedLoggingURL:unifiedLoggingService,

@@ -185,7 +185,8 @@ func (m *Manager) updateAppEndpointInstances(update *pbConductor.ServiceUpdate) 
                 EndpointInstance: endpoint,
             } )
             if err != nil {
-                log.Error().Str("error", conversions.ToDerror(err).DebugReport()).Str("serviceInstanceId", update.ServiceInstanceId).
+                log.Error().Str("error", conversions.ToDerror(err).DebugReport()).
+                    Str("serviceInstanceId", update.ServiceInstanceId).
                     Str("endpointInstanceId", endpoint.EndpointInstanceId).
                     Msg("impossible to update appEndpointInstance")
             }
