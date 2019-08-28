@@ -100,7 +100,7 @@ type ConductorService struct {
     // infrastructure events consumer
     infEventsConsumer *queueInfrEvents.InfrastructureEventsConsumer
     // network operations producer
-    networkOpsProducder *queueNetOps.NetworkOpsProducer
+    networkOpsProducer *queueNetOps.NetworkOpsProducer
 }
 
 
@@ -274,14 +274,14 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
     conductorServer := grpc.NewServer()
     instance := ConductorService{conductor: batonMgr,
-                                monitor: monitorMgr,
-                                server: conductorServer,
-                                connections: connectionsHelper.GetClusterClients(),
-                                configuration: config,
-                                appOpsConsumer: appsOps,
-                                infOpsConsumer: infrOps,
-                                infEventsConsumer: infrEvents,
-                                networkOpsProducder: netOpsProducer,
+                                monitor:            monitorMgr,
+                                server:             conductorServer,
+                                connections:        connectionsHelper.GetClusterClients(),
+                                configuration:      config,
+                                appOpsConsumer:     appsOps,
+                                infOpsConsumer:     infrOps,
+                                infEventsConsumer:  infrEvents,
+                                networkOpsProducer: netOpsProducer,
     }
 
 
