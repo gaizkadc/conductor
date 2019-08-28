@@ -41,6 +41,7 @@ func init() {
     runCmd.Flags().Uint32P("appClusterPort","p",utils.APP_CLUSTER_API_PORT, "port where the application cluster api is listening")
     runCmd.Flags().Bool("useTLS", true, "Use TLS to connect to the application cluster API")
     runCmd.Flags().String("caCertPath", "", "Part for the CA certificate")
+    runCmd.Flags().String("clientCertPath", "", "Part for the client certificate")
     runCmd.Flags().Bool("skipServerCertValidation", true, "Skip CA authentication validation")
     runCmd.Flags().StringP("unifiedLogging", "u",fmt.Sprintf("localhost:%d",utils.UNIFIED_LOGGING_PORT),
         "host:port address for unifiedLogging")
