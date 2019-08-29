@@ -41,15 +41,30 @@ spec:
           - "--unifiedLogging=unified-logging-coord.__NPH_NAMESPACE:8323"
           - "--queueAddress=broker.__NPH_NAMESPACE:6650"
           - "--dbFolder=/data"
+          - "--caCertPath=/nalej/tls-ca-certificate/tls.crt"
+          - "--clientCertPath=/nalej/tls-client-certificate/tls.crt"
+          - "--skipServerCertValidation=false"
         ports:
         - name: api-port
           containerPort: 5000
         volumeMounts:
         - name: conductor-local-db
           mountPath: /data
+        - name: tls-client-certificate-volume
+          readOnly: true
+          mountPath: /nalej/tls-client-certificate
+        - name: tls-ca-certificate-volume
+          readOnly: true
+          mountPath: /nalej/tls-ca-certificate
       imagePullSecrets:
       - name: nalej-registry
       volumes:
       - name: conductor-local-db
         persistentVolumeClaim:
           claimName: conductor-local-db
+      - name: tls-client-certificate-volume
+        secret:
+          secretName: tls-client-certificate
+      - name: tls-ca-certificate-volume
+        secret:
+          secretName: tls-ca-certificate

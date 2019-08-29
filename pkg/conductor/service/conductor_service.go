@@ -48,8 +48,10 @@ type ConductorConfig struct {
     UseTLSForClusterAPI bool
     // Path for the certificate of the CA
     CACertPath string
-    // Skip CA validation
-    SkipCAValidation bool
+    // Client Cert Path
+    ClientCertPath string
+    // Skip Server validation
+    SkipServerCertValidation bool
     // URL where authx client is available
     AuthxURL string
     // UnifiedLogging client is available
@@ -74,6 +76,9 @@ func (conf * ConductorConfig) Print() {
     log.Info().Bool("useTLS", conf.UseTLSForClusterAPI).Msg("Use TLS to connect the the Application Cluster API")
     log.Info().Str("DBFolder", conf.DBFolder).Msg("Folder for the local database")
     log.Info().Bool("Debug", conf.Debug).Msg("Debug enabled")
+    log.Info().Bool("SkipServerCertValidation", conf.SkipServerCertValidation).Msg("SkipServerCertValidation enabled")
+    log.Info().Str("CACertPath", conf.CACertPath).Msg("CA cert path")
+    log.Info().Str("ClientCertPath", conf.ClientCertPath).Msg("Client cert path")
 }
 
 
@@ -95,7 +100,7 @@ type ConductorService struct {
     // infrastructure events consumer
     infEventsConsumer *queueInfrEvents.InfrastructureEventsConsumer
     // network operations producer
-    networkOpsProducder *queueNetOps.NetworkOpsProducer
+    networkOpsProducer *queueNetOps.NetworkOpsProducer
 }
 
 
@@ -105,7 +110,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     // set global port
     utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
-    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipCAValidation)
+    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipServerCertValidation)
 
     // Initialize connections pool with system model
     log.Info().Msg("initialize system model client...")
@@ -269,14 +274,14 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 
     conductorServer := grpc.NewServer()
     instance := ConductorService{conductor: batonMgr,
-                                monitor: monitorMgr,
-                                server: conductorServer,
-                                connections: connectionsHelper.GetClusterClients(),
-                                configuration: config,
-                                appOpsConsumer: appsOps,
-                                infOpsConsumer: infrOps,
-                                infEventsConsumer: infrEvents,
-                                networkOpsProducder: netOpsProducer,
+                                monitor:            monitorMgr,
+                                server:             conductorServer,
+                                connections:        connectionsHelper.GetClusterClients(),
+                                configuration:      config,
+                                appOpsConsumer:     appsOps,
+                                infOpsConsumer:     infrOps,
+                                infEventsConsumer:  infrEvents,
+                                networkOpsProducer: netOpsProducer,
     }
 
 
