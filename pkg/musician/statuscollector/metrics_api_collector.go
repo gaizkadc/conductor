@@ -62,8 +62,7 @@ func(coll *MetricsAPICollector) Run() error {
 
 	err := coll.gatherStats()
 	if err != nil {
-		log.Error().Err(err).Msg("error collecting status from metrics api")
-		return err
+		log.Warn().Err(err).Msg("error initializing cache with stats; continuing gather loop anyway")
 	}
 
 	coll.ticker = time.NewTicker(coll.sleepDuration)
@@ -119,7 +118,13 @@ func(coll *MetricsAPICollector) GetStatus() (*entities.Status, error) {
 	// Build the status and return it
 	cacheContent := coll.cached.GetAll()
 	if cacheContent == nil {
-		return nil, derrors.NewNotFoundError("not found cache entries")
+		log.Debug().Msg("no status entry found in cache; trying to retrieve now")
+		err := coll.gatherStats()
+		if err != nil {
+			log.Warn().Err(err).Msg("error gathering stats")
+			return nil, derrors.NewNotFoundError("no cache entries found and unable to retrieve stats", err)
+		}
+		cacheContent = coll.cached.GetAll()
 	}
 
 	status := &entities.Status{
