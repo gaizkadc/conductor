@@ -30,7 +30,7 @@ func(s *SimpleScorer) Score(request *pbConductor.ClusterScoreRequest) (*pbConduc
     status, err := s.collector.GetStatus()
 
     if err != nil {
-        log.Error().Err(err)
+        log.Error().Err(err).Msg("error obtaining status")
         return nil, err
     }
 
