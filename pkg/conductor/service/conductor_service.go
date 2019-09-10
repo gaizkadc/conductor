@@ -110,7 +110,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
     // set global port
     utils.APP_CLUSTER_API_PORT = config.AppClusterApiPort
 
-    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.CACertPath,config.SkipServerCertValidation)
+    connectionsHelper := utils.NewConnectionsHelper(config.UseTLSForClusterAPI,config.ClientCertPath,config.CACertPath,config.SkipServerCertValidation)
 
     // Initialize connections pool with system model
     log.Info().Msg("initialize system model client...")
