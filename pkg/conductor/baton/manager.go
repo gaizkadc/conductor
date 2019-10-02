@@ -303,20 +303,20 @@ func (c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derr
 
 	// 5) Create ZT-network with Network manager
 	// we use the app instance id as the network id
-	ztNetworkId, zt_err := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId,
+	ztNetworkId, ztErr := c.CreateZTNetwork(retrievedAppInstance.AppInstanceId, req.OrganizationId,
 		retrievedAppInstance.AppInstanceId, vsa)
-	if zt_err != nil {
-		err := derrors.NewGenericError("impossible to create zt network before deployment", zt_err)
-		log.Error().Err(zt_err).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+	if ztErr != nil {
+		err := derrors.NewGenericError("impossible to create zt network before deployment", ztErr)
+		log.Error().Err(ztErr).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
 		return err
 	}
 
 	// 6) deploy fragments
 	// Tell deployment managers to execute plans
-	err_deploy := c.DeployPlan(plan, ztNetworkId, req.NumRetries)
-	if err_deploy != nil {
-		err := derrors.NewGenericError("error deploying plan request", err_deploy)
-		log.Error().Err(err_deploy).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
+	errDeploy := c.DeployPlan(plan, ztNetworkId, req.NumRetries)
+	if errDeploy != nil {
+		err := derrors.NewGenericError("error deploying plan request", errDeploy)
+		log.Error().Err(errDeploy).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
 		return err
 	}
 	return nil
@@ -334,14 +334,10 @@ func (c *Manager) scheduleRunningApps(organizationId string) {
 		return
 	}
 
-	c.ConnHelper.UpdateClusterConnections(organizationId)
+	_ = c.ConnHelper.UpdateClusterConnections(organizationId)
 
 	for i, appInstance := range instances.Instances {
 		log.Debug().Msgf("Check if instance %d out of %d instances has to be scheduled", i+1, len(instances.Instances))
-
-		if err != nil {
-			log.Error().Err(err).Msg("impossible to get app descriptor")
-		}
 
 		// summary of service groups with multiple replica set
 		replicated := make(map[string]*pbApplication.ServiceGroupInstance, 0)
