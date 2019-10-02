@@ -52,8 +52,7 @@ const (
 //  variable name, variable value
 func GetDeploymentVariableForService(serviceName string, appInstanceId string, organizationId string) (string, string) {
 	key := fmt.Sprintf(NalejVariablePrefix, strings.ToUpper(serviceName))
-	value := fmt.Sprintf("%s-%s-%s.%s", formatName(serviceName), organizationId[0:10],
-		appInstanceId[0:10], NalejServiceSuffix)
+	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId), NalejServiceSuffix)
 	return key, value
 }
 
