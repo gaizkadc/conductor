@@ -361,8 +361,10 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
 		}
 	}
 	for _, securityRule := range appDescriptor.Rules {
-		key, value := GetDeploymentVariableForOutbound(securityRule.TargetServiceName, appInstanceId, appDescriptor.OrganizationId)
-		variables[key] = value
+		key, value := GetDeploymentVariableForOutbound(securityRule.TargetServiceName, securityRule.OutboundNetInterfaceName, appInstanceId, appDescriptor.OrganizationId)
+		if key != "" {
+			variables[key] = value
+		}
 	}
 
 	// set the same set of services for all variables

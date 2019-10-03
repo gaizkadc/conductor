@@ -56,8 +56,11 @@ func GetDeploymentVariableForService(serviceName string, appInstanceId string, o
 	return key, value
 }
 
-func GetDeploymentVariableForOutbound(serviceName string, appInstanceId string, organizationId string) (string, string) {
-	key := fmt.Sprintf(NalejVariableOutboundPrefix, strings.ToUpper(serviceName))
+func GetDeploymentVariableForOutbound(serviceName string, outboundName string, appInstanceId string, organizationId string) (string, string) {
+	if outboundName == "" {
+		return "", ""
+	}
+	key := fmt.Sprintf(NalejVariableOutboundPrefix, strings.ToUpper(outboundName))
 	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId), NalejOutboundSuffix)
 	return key, value
 }
