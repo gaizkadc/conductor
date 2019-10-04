@@ -61,7 +61,8 @@ func GetDeploymentVariableForOutbound(serviceName string, outboundName string, a
 		return "", ""
 	}
 	key := fmt.Sprintf(NalejVariableOutboundPrefix, strings.ToUpper(outboundName))
-	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId)+OutboundSuffix+outboundName, NalejServiceSuffix)
+	vsaNameCompound := utils.GetVSAName(serviceName, organizationId, appInstanceId) + OutboundSuffix + outboundName
+	value := fmt.Sprintf("%s.%s", vsaNameCompound, NalejServiceSuffix)
 	return key, value
 }
 

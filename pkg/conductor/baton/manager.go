@@ -337,6 +337,10 @@ func (c *Manager) scheduleRunningApps(organizationId string) {
 	for i, appInstance := range instances.Instances {
 		log.Debug().Msgf("Check if instance %d out of %d instances has to be scheduled", i+1, len(instances.Instances))
 
+		if err != nil {
+			log.Error().Err(err).Msg("impossible to get app descriptor")
+		}
+
 		// summary of service groups with multiple replica set
 		replicated := make(map[string]*pbApplication.ServiceGroupInstance, 0)
 		numReplicas := make(map[string]int, 0)
