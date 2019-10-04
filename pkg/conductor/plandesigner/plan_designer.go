@@ -38,7 +38,7 @@ const (
 	// Nalej service suffix
 	NalejServiceSuffix = "service.nalej"
 	// Nalej service suffix
-	NalejOutboundSuffix = "outbound.nalej"
+	NalejOutboundSuffix = "outbound.service.nalej"
 	// Timeout for GRPC operations
 	PlanDesignerGRPCTimeout = 5 * time.Second
 )
