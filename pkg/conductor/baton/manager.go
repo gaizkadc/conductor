@@ -52,8 +52,6 @@ const (
 	ConductorBaseVSA = "172.16.0.1"
 	// Initial address to use during the definition of VSA
 	ConductorOutboundVSA = "172.18.0.1"
-	// Suffix to add to the outbound FQDNs
-	OutboundSuffix = "-OUT"
 )
 
 type Manager struct {
@@ -1250,7 +1248,7 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
 	currentOutboundIp := net.ParseIP(ConductorOutboundVSA).To4()
 	for _, securityRule := range appDescriptor.Rules {
 		// TODO beware to not overflow the maximum length for a DNS name (253 chars)
-		fqdn := utils.GetVSAName(securityRule.TargetServiceName+OutboundSuffix, appDescriptor.OrganizationId, appInstanceId)
+		fqdn := utils.GetVSAName(securityRule.TargetServiceName, appDescriptor.OrganizationId, appInstanceId) + plandesigner.OutboundSuffix + securityRule.OutboundNetInterfaceName
 		targetService := servicesByName[securityRule.TargetServiceName]
 		dnsRequest := pbNetwork.AddDNSEntryRequest{
 			OrganizationId: securityRule.OrganizationId,

@@ -37,8 +37,8 @@ const (
 	NalejVariableOutboundPrefix = "NALEJ_OUTBOUND_%s"
 	// Nalej service suffix
 	NalejServiceSuffix = "service.nalej"
-	// Nalej service suffix
-	NalejOutboundSuffix = "outbound.service.nalej"
+	// Suffix to add to the outbound FQDNs
+	OutboundSuffix = "-OUT-"
 	// Timeout for GRPC operations
 	PlanDesignerGRPCTimeout = 5 * time.Second
 )
@@ -61,7 +61,7 @@ func GetDeploymentVariableForOutbound(serviceName string, outboundName string, a
 		return "", ""
 	}
 	key := fmt.Sprintf(NalejVariableOutboundPrefix, strings.ToUpper(outboundName))
-	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId), NalejOutboundSuffix)
+	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId)+OutboundSuffix+outboundName, NalejServiceSuffix)
 	return key, value
 }
 
