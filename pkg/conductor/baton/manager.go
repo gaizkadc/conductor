@@ -315,9 +315,7 @@ func (c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derr
 		return err
 	}
 
-	log.Debug().Interface("requestConnections", req.Connections).Msg("---MarcosG--- Creating connections after deployment")
 	for _, connectionToCreate := range req.Connections {
-		log.Debug().Interface("connectionToCreate", connectionToCreate).Msg("---MarcosG--- Creating connection after deployment")
 		ctx, netCancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
 		err = c.NetworkOpsProducer.Send(ctx, &grpc_application_network_go.AddConnectionRequest{
 			OrganizationId:   connectionToCreate.OrganizationId,
