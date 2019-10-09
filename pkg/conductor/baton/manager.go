@@ -1252,33 +1252,35 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
 	currentOutboundIp := net.ParseIP(ConductorOutboundVSA).To4()
 	for _, securityRule := range appDescriptor.Rules {
 		// TODO beware to not overflow the maximum length for a DNS name (253 chars)
-		fqdn := utils.GetVSAName(securityRule.TargetServiceName, appDescriptor.OrganizationId, appInstanceId) + plandesigner.OutboundSuffix + securityRule.OutboundNetInterfaceName
-		targetService := servicesByName[securityRule.TargetServiceName]
-		dnsRequest := pbNetwork.AddDNSEntryRequest{
-			OrganizationId: securityRule.OrganizationId,
-			ServiceName:    targetService.Name,
-			AppInstanceId:  appInstanceId,
-			Fqdn:           fqdn,
-			Ip:             currentOutboundIp.String(),
-			Tags: []string{
-				fmt.Sprintf("appInstanceId:%s", appInstanceId),
-				fmt.Sprintf("organizationId:%s", appDescriptor.OrganizationId),
-				fmt.Sprintf("descriptorId:%s", appDescriptor.AppDescriptorId),
-				fmt.Sprintf("serviceGroupId:%s", targetService.ServiceGroupId),
-				fmt.Sprintf("serviceId:%s", targetService.ServiceId),
-				fmt.Sprintf("securityRule:%s", securityRule.Name),
-			},
+		if securityRule.OutboundNetInterfaceName != "" {
+			fqdn := utils.GetVSAName(securityRule.TargetServiceName, appDescriptor.OrganizationId, appInstanceId) + plandesigner.OutboundSuffix + securityRule.OutboundNetInterfaceName
+			targetService := servicesByName[securityRule.TargetServiceName]
+			dnsRequest := pbNetwork.AddDNSEntryRequest{
+				OrganizationId: securityRule.OrganizationId,
+				ServiceName:    targetService.Name,
+				AppInstanceId:  appInstanceId,
+				Fqdn:           fqdn,
+				Ip:             currentOutboundIp.String(),
+				Tags: []string{
+					fmt.Sprintf("appInstanceId:%s", appInstanceId),
+					fmt.Sprintf("organizationId:%s", appDescriptor.OrganizationId),
+					fmt.Sprintf("descriptorId:%s", appDescriptor.AppDescriptorId),
+					fmt.Sprintf("serviceGroupId:%s", targetService.ServiceGroupId),
+					fmt.Sprintf("serviceId:%s", targetService.ServiceId),
+					fmt.Sprintf("securityRule:%s", securityRule.Name),
+				},
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+			err := c.NetworkOpsProducer.Send(ctx, &dnsRequest)
+			cancel()
+			if err != nil {
+				log.Error().Err(err).Interface("request", dnsRequest).Msg("impossible to send a dns entry request")
+				return nil, err
+			}
+			vsa[fqdn] = currentOutboundIp.String()
+			// Increase the IP
+			currentOutboundIp = utils.NextIP(currentOutboundIp, 1)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
-		err := c.NetworkOpsProducer.Send(ctx, &dnsRequest)
-		cancel()
-		if err != nil {
-			log.Error().Err(err).Interface("request", dnsRequest).Msg("impossible to send a dns entry request")
-			return nil, err
-		}
-		vsa[fqdn] = currentOutboundIp.String()
-		// Increase the IP
-		currentOutboundIp = utils.NextIP(currentOutboundIp, 1)
 	}
 
 	return vsa, nil
