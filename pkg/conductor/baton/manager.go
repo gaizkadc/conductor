@@ -18,6 +18,7 @@ import (
 	"github.com/nalej/conductor/pkg/conductor/requirementscollector"
 	"github.com/nalej/conductor/pkg/conductor/scorer"
 	"github.com/nalej/conductor/pkg/utils"
+	grpc_application_network_go "github.com/nalej/grpc-application-network-go"
 
 	//"github.com/nalej/deployment-manager/pkg/network"
 	"github.com/nalej/derrors"
@@ -221,14 +222,10 @@ func (c *Manager) PushRequest(req *pbConductor.DeploymentRequest) error {
 		NumRetries:     0,
 		TimeRetry:      nil,
 		AppInstanceId:  req.AppInstanceId.AppInstanceId,
+		Connections:    req.OutboundConnections,
 	}
 	err = c.Queue.PushRequest(&toEnqueue)
 	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		log.Error().Err(err).Msgf("problems updating application %s", req.AppInstanceId.AppInstanceId)
 		return err
 	}
 
@@ -317,6 +314,27 @@ func (c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derr
 		log.Error().Err(errDeploy).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
 		return err
 	}
+
+	log.Debug().Interface("requestConnections", req.Connections).Msg("---MarcosG--- Creating connections after deployment")
+	for _, connectionToCreate := range req.Connections {
+		log.Debug().Interface("connectionToCreate", connectionToCreate).Msg("---MarcosG--- Creating connection after deployment")
+		ctx, netCancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+		err = c.NetworkOpsProducer.Send(ctx, &grpc_application_network_go.AddConnectionRequest{
+			OrganizationId:   connectionToCreate.OrganizationId,
+			SourceInstanceId: plan.AppInstanceId,
+			TargetInstanceId: connectionToCreate.TargetInstanceId,
+			InboundName:      connectionToCreate.InboundName,
+			OutboundName:     connectionToCreate.OutboundName,
+		})
+		if err != nil {
+			log.Error().
+				Str("error", conversions.ToDerror(err).DebugReport()).
+				Interface("connectionToCreate", connectionToCreate).
+				Msg("error when creating the connection")
+		}
+		netCancel()
+	}
+
 	return nil
 }
 
@@ -1251,8 +1269,8 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
 
 	currentOutboundIp := net.ParseIP(ConductorOutboundVSA).To4()
 	for _, securityRule := range appDescriptor.Rules {
-		// TODO beware to not overflow the maximum length for a DNS name (253 chars)
 		if securityRule.OutboundNetInterfaceName != "" {
+			// TODO beware to not overflow the maximum length for a DNS name (253 chars)
 			fqdn := utils.GetVSAName(securityRule.TargetServiceName, appDescriptor.OrganizationId, appInstanceId) + plandesigner.OutboundSuffix + securityRule.OutboundNetInterfaceName
 			targetService := servicesByName[securityRule.TargetServiceName]
 			dnsRequest := pbNetwork.AddDNSEntryRequest{
