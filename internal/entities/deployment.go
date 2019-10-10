@@ -7,6 +7,7 @@ package entities
 import (
 	"github.com/nalej/derrors"
 	pbApplication "github.com/nalej/grpc-application-go"
+	"github.com/nalej/grpc-application-network-go"
 	pbConductor "github.com/nalej/grpc-conductor-go"
 	"sort"
 	"strings"
@@ -67,14 +68,15 @@ func(cds *ClusterDeploymentScore) AddScore(serviceGroupIds []string, score float
 // Objects describing received deployment requests. These objects are designed to be stored into
 // a provider structure such as a queue.
 type DeploymentRequest struct {
-	RequestId      string `json:"request_id,omitempty"`
-	OrganizationId string `json:"organization_id,omitempty"`
-	ApplicationId  string `json:"application_id,omitempty"`
-	InstanceId     string `json:"instance_id,omitempty"`
-	NumRetries     int32  `json:"num_retries,omitempty"`
-	TimeRetry      *time.Time `json:"time_retry,omitempty"`
+	RequestId      string                                            `json:"request_id,omitempty"`
+	OrganizationId string                                            `json:"organization_id,omitempty"`
+	ApplicationId  string                                            `json:"application_id,omitempty"`
+	InstanceId     string                                            `json:"instance_id,omitempty"`
+	NumRetries     int32                                             `json:"num_retries,omitempty"`
+	TimeRetry      *time.Time                                        `json:"time_retry,omitempty"`
 	// The AppInstanceId is internally used to link this request with a certain instance
-	AppInstanceId string `json:"app_instance_id,omitempty"`
+	AppInstanceId  string                                            `json:"app_instance_id,omitempty"`
+	Connections    []*grpc_application_network_go.ConnectionInstance `json:"connections,omitempty"`
 }
 
 // Fragment deployment Status definition
