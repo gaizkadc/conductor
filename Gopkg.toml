@@ -41,7 +41,7 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-organization-go"
-    version="=v0.0.28"
+    version="=v0.0.29"
 
 [[constraint]]
     name="github.com/nalej/grpc-deployment-manager-go"
@@ -53,7 +53,7 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-infrastructure-go"
-    version="=v0.0.38"
+    version="=v0.0.44"
 
 [[constraint]]
     name="github.com/nalej/grpc-network-go"

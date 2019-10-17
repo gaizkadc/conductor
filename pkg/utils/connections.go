@@ -16,6 +16,7 @@ import (
     "errors"
     "fmt"
     "github.com/nalej/derrors"
+    grpc_connectivity_manager_go "github.com/nalej/grpc-connectivity-manager-go"
     pbInfrastructure "github.com/nalej/grpc-infrastructure-go"
     pbOrganization "github.com/nalej/grpc-organization-go"
     "github.com/nalej/grpc-utils/pkg/tools"
@@ -307,7 +308,8 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
         // The cluster is running and is not in cordon status
         if h.isClusterAvailable(cluster){
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
-            h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: cluster.Cordon, Labels: cluster.Labels}
+            clusterCordon := cluster.ClusterStatus == grpc_connectivity_manager_go.ClusterStatus_ONLINE_CORDON || cluster.ClusterStatus == grpc_connectivity_manager_go.ClusterStatus_OFFLINE_CORDON
+            h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: clusterCordon, Labels: cluster.Labels}
             targetPort := int(APP_CLUSTER_API_PORT)
             params := make([]interface{}, 0)
             params = append(params, h.useTLS)
@@ -324,10 +326,12 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
 
 // Internal function to check if a cluster meets all the conditions to be added to the list of available clusters.
 func (h * ConnectionsHelper) isClusterAvailable(cluster *pbInfrastructure.Cluster) bool {
-    if cluster.Status != pbInfrastructure.InfraStatus_RUNNING {
-        log.Debug().Str("clusterID", cluster.ClusterId).Msg("cluster ignored because it is not running")
+    // TODO: when state is implemented, check this ->
+    if cluster.ClusterStatus != grpc_connectivity_manager_go.ClusterStatus_ONLINE {
+        log.Debug().Str("clusterID", cluster.ClusterId).Msg("cluster ignored because it is not available")
         return false
     }
+
     // Others...
     return true
 }
