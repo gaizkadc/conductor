@@ -21,7 +21,6 @@ resources:
       type: github
       name: nalej/ci-templates
       endpoint: nalej
-      tags: v1.0.0
 
 jobs:
 - job: MainWorkflow
@@ -72,6 +71,7 @@ jobs:
     parameters:
       modulePath: $(modulePath)
       appList: $(appList)
+      version: $(version)
   
   - template: docker/login.yaml@ci_templates
     parameters:
@@ -84,12 +84,14 @@ jobs:
       modulePath: $(modulePath)
       imageList: $(imageList)
       dockerRegistry: $(stagingDockerRegistry)
+      version: $(version)
   
   - template: docker/push.yaml@ci_templates
     parameters:
       modulePath: $(modulePath)
       imageList: $(imageList)
       dockerRegistry: $(stagingDockerRegistry)
+      version: $(version)
     
   - template: docker/logout.yaml@ci_templates
     parameters:
