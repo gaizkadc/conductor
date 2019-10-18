@@ -14,6 +14,7 @@ import (
     pbConductor "github.com/nalej/grpc-conductor-go"
     pbApplication "github.com/nalej/grpc-application-go"
     "github.com/nalej/grpc-utils/pkg/conversions"
+    "github.com/nalej/nalej-bus/pkg/queue/application/events"
     "github.com/rs/zerolog/log"
     "errors"
     "fmt"
@@ -21,6 +22,11 @@ import (
     "context"
     "github.com/nalej/conductor/pkg/utils"
     "time"
+)
+
+const(
+    // Timeout when sending messages to the queue
+    ConductorQueueTimeout = time.Second * 5
 )
 
 type Manager struct {
@@ -32,10 +38,12 @@ type Manager struct {
     queue structures.RequestsQueue
     // Access to baton to operate with deployments
     manager *baton.Manager
+    // ApplicationEvents queue producer
+    ApplicationEventsProducer *events.ApplicationEventsProducer
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, pendingPlans *structures.PendingPlans,
-    manager *baton.Manager) *Manager {
+    manager *baton.Manager, producer *events.ApplicationEventsProducer) *Manager {
     // initialize clients
     pool := connHelper.GetSystemModelClients()
     if pool!=nil && len(pool.GetConnections())==0{
@@ -45,7 +53,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
     conn := pool.GetConnections()[0]
     appClient := pbApplication.NewApplicationsClient(conn)
     return &Manager{ConnHelper: connHelper, AppClient: appClient, pendingPlans: pendingPlans,
-        queue: queue, manager: manager}
+        queue: queue, manager: manager, ApplicationEventsProducer:producer}
 }
 
 // Add a plan to be monitored.
@@ -166,6 +174,14 @@ func(m *Manager) UpdateServicesStatus(request *pbConductor.DeploymentServiceUpda
         if err != nil {
             log.Error().Err(err).Str("appInstanceId", appInstanceId).Msg("impossible to update application instance")
         }
+    }
+
+    // send the DeploymentServiceUpdateRequest to the bus
+    ctx, cancel := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+    defer cancel()
+    sErr := m.ApplicationEventsProducer.Send(ctx, request)
+    if sErr != nil {
+        return conversions.ToGRPCError(sErr)
     }
 
     return nil
