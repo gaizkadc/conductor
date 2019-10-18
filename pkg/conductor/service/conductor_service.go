@@ -25,6 +25,7 @@ import (
 	"github.com/nalej/conductor/pkg/utils"
 	"github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast"
 	queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
+	queueAppEvents "github.com/nalej/nalej-bus/pkg/queue/application/events"
 	queueInfrEvents "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events"
 	queueInfrOps "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops"
 	queueNetOps "github.com/nalej/nalej-bus/pkg/queue/network/ops"
@@ -92,6 +93,8 @@ type ConductorService struct {
 	configuration *ConductorConfig
 	// Application ops consumer
 	appOpsConsumer *queueAppOps.ApplicationOpsConsumer
+	// Application events producer
+	appEventsProducer *queueAppEvents.ApplicationEventsProducer
 	// infrastructure ops consumer
 	infOpsConsumer *queueInfrOps.InfrastructureOpsConsumer
 	// infrastructure events consumer
@@ -204,6 +207,14 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 	}
 	log.Info().Msg("done")
 
+	log.Info().Msg("initialize application events producer...")
+	appEventsProducer, err := queueAppEvents.NewApplicationEventsProducer(pulsarClient, "conductor-app-events")
+	if err != nil {
+		log.Panic().Err(err).Msg("impossible to initialize application events queue client")
+	}
+	log.Info().Msg("done")
+
+
 	log.Info().Msg("initialize infrastructure ops client...")
 	infrOpsConfig := queueInfrOps.NewConfigInfrastructureOpsConsumer(1,
 		queueInfrOps.ConsumableStructsInfrastructureOpsConsumer{DrainRequest: true})
@@ -259,7 +270,7 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 		return nil, errors.New("impossible to create baton service")
 	}
 
-	monitorMgr := monitor.NewManager(connectionsHelper, q, pendingPlans, batonMgr)
+	monitorMgr := monitor.NewManager(connectionsHelper, q, pendingPlans, batonMgr, appEventsProducer)
 	if monitorMgr == nil {
 		log.Panic().Msg("impossible to create monitorMgr service")
 		return nil, err
