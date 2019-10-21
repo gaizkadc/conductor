@@ -24,16 +24,12 @@
     version="v1.0.5"
 
 [[constraint]]
-    name="github.com/nalej/nalej-bus"
-    branch="master"
-
-[[constraint]]
     name="github.com/nalej/grpc-utils"
     version="=v1.4.0"
 
 [[constraint]]
     name="github.com/nalej/grpc-conductor-go"
-    version="=v0.0.92"
+    version="=v0.0.93"
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
@@ -82,3 +78,8 @@
  [[constraint]]
     name = "github.com/google/uuid"
     version = "v1.0.0"
+
+[[constraint]]
+    name = "github.com/nalej/nalej-bus"
+#    version="=v0.4.0"
+    branch="master"

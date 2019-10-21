@@ -1340,11 +1340,14 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 
 	log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
 
-	// Drain the whole cluster
-	log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
-	for _, fragment := range toReschedule {
-		c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId)
+	if !drainRequest.ClusterOffline {
+		// Drain the whole cluster
+		log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
+		for _, fragment := range toReschedule {
+			c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId)
+		}
 	}
+
 	log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("cluster drain operation complete")
 }
 
