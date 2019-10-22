@@ -1066,6 +1066,7 @@ func (c *Manager) undeployFragment(organizationId string, appInstanceId string, 
 		return derrors.NewFailedPreconditionError("a deployment fragment could not be found. We cannot unauthorize fragment entries")
 	}
 
+
 	// unauthorize every service contained in the fragment
 	for _, stage := range targetFragment.Stages {
 		for _, serv := range stage.Services {
@@ -1082,6 +1083,9 @@ func (c *Manager) undeployFragment(organizationId string, appInstanceId string, 
 			}
 		}
 	}
+
+	// remove this fragment from the pending list
+	c.PendingPlans.RemoveFragment(targetFragment.FragmentId)
 
 	errUpdate := c.ConnHelper.UpdateClusterConnections(organizationId)
 	if errUpdate != nil {
