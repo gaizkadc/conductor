@@ -301,12 +301,11 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
         return errors.New(msg)
     }
 
-    toReturn := make([]string,0)
     clusters := h.GetClusterClients()
 
     for _, cluster := range clusterList.Clusters {
         // The cluster is running and is not in cordon status
-        if h.isClusterAvailable(cluster){
+        if h.isClusterInstalled(cluster){
             targetHostname := fmt.Sprintf("appcluster.%s", cluster.Hostname)
             clusterCordon := cluster.ClusterStatus == grpc_connectivity_manager_go.ClusterStatus_ONLINE_CORDON || cluster.ClusterStatus == grpc_connectivity_manager_go.ClusterStatus_OFFLINE_CORDON
             h.ClusterReference[cluster.ClusterId] = ClusterEntry{Hostname: targetHostname, Cordon: clusterCordon, Labels: cluster.Labels}
@@ -318,7 +317,6 @@ func(h *ConnectionsHelper) UpdateClusterConnections(organizationId string) error
             params = append(params, h.skipServerCertValidation)
 
             clusters.AddConnection(targetHostname, targetPort, params ... )
-            toReturn = append(toReturn, targetHostname)
         }
     }
     return nil
@@ -336,4 +334,7 @@ func (h * ConnectionsHelper) isClusterAvailable(cluster *pbInfrastructure.Cluste
     return true
 }
 
-
+func (h*ConnectionsHelper) isClusterInstalled(cluster *pbInfrastructure.Cluster) bool {
+    // TODO Check on cluster state when that becomes available
+    return true
+}

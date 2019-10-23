@@ -19,7 +19,6 @@ import (
 	"github.com/nalej/conductor/pkg/conductor/scorer"
 	"github.com/nalej/conductor/pkg/utils"
 	grpc_application_network_go "github.com/nalej/grpc-application-network-go"
-
 	//"github.com/nalej/deployment-manager/pkg/network"
 	"github.com/nalej/derrors"
 	pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
@@ -1041,12 +1040,12 @@ func (c *Manager) undeployClustersInstance(organizationId string, appInstanceId 
 //  targetCluster
 // return:
 //  error if any
-func (c *Manager) undeployFragment(organizationId string, appInstanceId string, fragmentId string, targetCluster string) error {
+func (c *Manager) undeployFragment(organizationId string, appInstanceId string, fragmentId string, targetClusterId string, clusterOffline bool) error {
 	// Send undeploy requests to application clusters
-	log.Debug().Str("app_instance_id", appInstanceId).Msg("undeploy fragment from cluster")
+	log.Debug().Str("app_instance_id", appInstanceId).Str("fragmentID", fragmentId).Msg("undeploy fragment from cluster")
 
 	// Unauthorize the members of this fragment
-	fragment, err := c.AppClusterDB.GetFragmentsApp(targetCluster, appInstanceId)
+	fragment, err := c.AppClusterDB.GetFragmentsApp(targetClusterId, appInstanceId)
 	if err != nil {
 		log.Error().Msg("impossible to get deployment fragment to unauthorize")
 	}
@@ -1083,45 +1082,50 @@ func (c *Manager) undeployFragment(organizationId string, appInstanceId string, 
 		}
 	}
 
-	errUpdate := c.ConnHelper.UpdateClusterConnections(organizationId)
-	if errUpdate != nil {
-		log.Error().Err(err).Str("organizationID", organizationId).Msg("error updating connections for organization")
-		return err
-	}
-	if len(c.ConnHelper.ClusterReference) == 0 {
-		log.Error().Msgf("no clusters found for organization %s", organizationId)
-		return nil
-	}
+	// When cluster is offline, skip this section
+	if !clusterOffline {
 
-	clusterEntry, found := c.ConnHelper.ClusterReference[targetCluster]
-	if !found {
-		log.Error().Str("clusterId", targetCluster).Str("clusterHost", clusterEntry.Hostname).Msg("unknown clusterHost for the clusterId")
-		return errors.New(fmt.Sprintf("unknown host for cluster id %s", targetCluster))
-	}
+		errUpdate := c.ConnHelper.UpdateClusterConnections(organizationId)
+		if errUpdate != nil {
+			log.Error().Err(err).Str("organizationID", organizationId).Msg("error updating connections for organization")
+			return err
+		}
+		if len(c.ConnHelper.ClusterReference) == 0 {
+			log.Error().Msgf("no clusters found for organization %s", organizationId)
+			return nil
+		}
 
-	log.Debug().Str("targetCluster", targetCluster).Str("clusterHost", clusterEntry.Hostname).Msg("conductor query deployment-manager cluster")
+		clusterEntry, found := c.ConnHelper.ClusterReference[targetClusterId]
+		if !found {
+			log.Error().Str("clusterId", targetClusterId).Str("clusterHost", clusterEntry.Hostname).Msg("unknown clusterHost for the clusterId")
+			return errors.New(fmt.Sprintf("unknown host for cluster id %s", targetClusterId))
+		}
 
-	clusterAddress := fmt.Sprintf("%s:%d", clusterEntry.Hostname, utils.APP_CLUSTER_API_PORT)
-	conn, errUpdate := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
-	if err != nil {
-		log.Error().Err(err).Str("clusterHost", clusterEntry.Hostname).Msg("impossible to get connection for the host")
-		return err
-	}
+		log.Debug().Str("targetClusterId", targetClusterId).Str("clusterHost", clusterEntry.Hostname).Msg("conductor query deployment-manager cluster")
 
-	dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
+		clusterAddress := fmt.Sprintf("%s:%d", clusterEntry.Hostname, utils.APP_CLUSTER_API_PORT)
+		conn, errUpdate := c.ConnHelper.GetClusterClients().GetConnection(clusterAddress)
+		if err != nil {
+			log.Error().Err(err).Str("clusterHost", clusterEntry.Hostname).Msg("impossible to get connection for the host")
+			return err
+		}
 
-	undeployFragmentRequest := pbDeploymentManager.UndeployFragmentRequest{
-		OrganizationId:       organizationId,
-		DeploymentFragmentId: fragmentId,
-		AppInstanceId:        appInstanceId,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*ConductorAppTimeout)
-	defer cancel()
-	_, errUpdate = dmClient.UndeployFragment(ctx, &undeployFragmentRequest)
+		dmClient := pbAppClusterApi.NewDeploymentManagerClient(conn)
 
-	if err != nil {
-		log.Error().Str("app_instance_id", appInstanceId).Msg("could not undeploy app")
-		return err
+		undeployFragmentRequest := pbDeploymentManager.UndeployFragmentRequest{
+			OrganizationId:       organizationId,
+			DeploymentFragmentId: fragmentId,
+			AppInstanceId:        appInstanceId,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*ConductorAppTimeout)
+		defer cancel()
+		_, errUpdate = dmClient.UndeployFragment(ctx, &undeployFragmentRequest)
+
+		if err != nil {
+			log.Error().Str("app_instance_id", appInstanceId).Msg("could not undeploy app")
+			return err
+		}
+		log.Debug().Str("fragment id", fragmentId).Msg("fragment undeployed")
 	}
 
 	return nil
@@ -1333,18 +1337,36 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 		Int("numFragmentsToReschedule", len(toReschedule)).
 		Msg("schedule drained operations to be scheduled again...")
 
-	observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
-	// Run an observer in a separated thread to send the schedule to the queue when is terminating
-	go observer.ObserveOrganizationLevel(ConductorDrainClusterAppTimeout, entities.FRAGMENT_TERMINATING,
-		drainRequest.ClusterId.OrganizationId, c.scheduleDeploymentFragment, nil)
-
-	log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
 
 	if !drainRequest.ClusterOffline {
+		observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
+		// Run an observer in a separated thread to send the schedule to the queue when is terminating
+		go observer.ObserveOrganizationLevel(ConductorDrainClusterAppTimeout, entities.FRAGMENT_TERMINATING,
+			drainRequest.ClusterId.OrganizationId, c.scheduleDeploymentFragment, nil)
 		// Drain the whole cluster
 		log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("start cluster drain operation...")
 		for _, fragment := range toReschedule {
-			c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId)
+			c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId, drainRequest.ClusterOffline)
+		}
+		log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
+	} else {
+		// The observer will fail as no events will be sent by the deployment manager
+		for _, fragment := range toReschedule{
+			log.Debug().Msg("calling undeploy fragment")
+			c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId, drainRequest.ClusterOffline)
+
+			// retrieve fragment
+			toRedeploy, err := c.AppClusterDB.GetDeploymentFragment(fragment.ClusterId, fragment.FragmentId)
+			if err != nil{
+				log.Error().Err(err).Str("clusterID", fragment.ClusterId).Str("fragmentID", fragment.FragmentId).Msg("unable to redeploy fragment")
+			}else{
+				log.Debug().Msg("scheduling fragment")
+				err := c.scheduleDeploymentFragment(toRedeploy)
+				if err != nil{
+					log.Error().Interface("fragment", toRedeploy).Msg("unable to redeploy")
+				}
+				log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
+			}
 		}
 	}
 
