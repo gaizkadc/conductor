@@ -73,7 +73,7 @@ func (cuo *ClusterInfrastructureTrigger) ObserveChanges(organizationId string, c
 
     // Remove the fragments
     for _, fragment := range toReallocate {
-        cuo.baton.undeployFragment(organizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId)
+        cuo.baton.undeployFragment(organizationId,fragment.AppInstanceId,fragment.FragmentId,fragment.ClusterId, false)
     }
 
     log.Info().Str("clusterId", clusterId).Msg("cluster update changes observation done")

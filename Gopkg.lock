@@ -379,7 +379,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6bc893aa405c23d33962570fd3c21dc1212a1f7b7c3f5c2cedbebb24f4d784af"
+  digest = "1:06b7cccfee63df90268c3ae14cc2d23bb85f290f5c603787da622c20fa9d1a01"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -392,7 +392,7 @@
     "pkg/queue/network/ops",
   ]
   pruneopts = ""
-  revision = "69bde926441735c239bb4462de2b67e50ac7b54c"
+  revision = "da880b4818ad15c5e226b65baa8f0e77a571cae7"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -570,11 +570,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:19c0f90f7eff54a72fb07c6b783bbdd92a89d58966d891d7382583a00b98d719"
+  digest = "1:f7859b24c4f7a2c384c3d6ef5cdd15641e26a22b3649a52b0ac08d35e518a0de"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "742c48ecaeb7c624c475e02f3eb0827ebb4970d4"
+  revision = "3e7259c5e7c2076bb2728047a3df75adb1bad8e5"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"
