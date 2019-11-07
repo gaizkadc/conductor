@@ -366,7 +366,7 @@
   version = "v0.0.32"
 
 [[projects]]
-  digest = "1:347aace88c837e2b1b65a7c603e1b74066e3ad9c26343a2001649e3a2354591b"
+  digest = "1:0261633894934ecc23f9b2551c21676dc5e89554d76aafd8ccb84aff21196799"
   name = "github.com/nalej/grpc-utils"
   packages = [
     "pkg/conversions",
@@ -374,12 +374,11 @@
     "pkg/tools",
   ]
   pruneopts = ""
-  revision = "926e5152669ee71c0e6904055ebe6cfb5492b599"
-  version = "v1.4.0"
+  revision = "f47f46a9b4002710e515fe04b3287585e1736a3f"
+  version = "v1.5.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:06b7cccfee63df90268c3ae14cc2d23bb85f290f5c603787da622c20fa9d1a01"
+  digest = "1:cd071d6113a8350e21eecf854e9099acf283ca35243756f37520531c0eb721fe"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -392,7 +391,8 @@
     "pkg/queue/network/ops",
   ]
   pruneopts = ""
-  revision = "da880b4818ad15c5e226b65baa8f0e77a571cae7"
+  revision = "526de5214c7a4656f514fb834ebbecf0f986a28f"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"

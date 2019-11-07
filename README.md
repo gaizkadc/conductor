@@ -1,97 +1,84 @@
 # Conductor
 
-Conductor is an application super-orchestrator for the Nalej platform.
+Conductor is the application super-orchestrator for the Nalej platform. This component
+elaborates deployment plans and controls the lifecycle of any application deployed using
+Nalej.  
 
-The current solution has two components: conductor and musician. Conductor is the central Nalej scheduler, while
-musicians are in-cluster services. Musicians must be accessible to conductor in order to ensure a correct
-behavior.
-
-This explanation assumes a minikube environment is up and running.
+Conductor works in conjunction with musicians deployed on every application cluster. 
 
 ## Musician
 
-Musicians use Prometheus available cluster monitoring data through `metrics-collector`. The Prometheus deployment
-hence is managed from the `monitoring` repository and `musician` solely uses the `MetricsCollector` API.
+Musicians score how well they can deploy application fragments. In order to do this, musicians
+capture cluster metrics and evaluate the suitability of the deployment in the current cluster. 
+This information is collected by Conductor who decides what is the best deployment plan that
+satisfies existing application constraints. 
 
-For historic reasons, we have the original Prometheus deployment still available in `components/monitoring`. The
-status collector that uses this deployment is also still available; start `musician` with the `--prometheus` flag
-instead of the `--metrics` flag.
 
-### Deprecated minikube instructions
+## Getting Started
 
-```bash
-kubectl create namespace nalej
-kubect create -f components/monitoring/component.yaml
+Check the following entries before deploying Conductor.
+
+### Prerequisites
+
+* CA certificate shared among all clusters
+* Storage volume for local database
+* Nalej-bus 
+* Network manager
+* Unified logging
+* System model 
+
+
+
+### Build and compile
+
+In order to build and compile this repository use the provided Makefile:
+
 ```
-Check the port and ip address of the service with
-```bash
-minikube service list
-|-------------|----------------------|-----------------------------|
-|  NAMESPACE  |         NAME         |             URL             |
-|-------------|----------------------|-----------------------------|
-| default     | kubernetes           | No node port                |
-| kube-system | kube-dns             | No node port                |
-| kube-system | kubernetes-dashboard | http://192.168.99.100:30000 |
-| nalej       | prometheus           | http://192.168.99.100:31080 |
-|-------------|----------------------|-----------------------------|
-```
-
-The cluster identifier must be available in an environment variable called CLUSTER_ID. If the variable is not set
-an error will be displayed and the musician will not start. If the onboard conductor demo is used, it will display
-a plausible clusterid to be used in the deployment process.
-
-```bash
-./bin/conductor demo
-...
-{"level":"info","time":1540915189,"message":"The output instance works with id: bd3e31c6-4d48-48d0-9206-49c3592716b6"}
-...
-```
-Now use the id for musician to identify its clusterid.
-```bash
-export CLUSTER_ID="9c9ccc95-f7c3-436b-8d43-953640ba6724"
+make all
 ```
 
+This operation generates the binaries for this repo, download dependencies,
+run existing tests and generate ready-to-deploy Kubernetes files.
 
-Execute a musician pointing the Nalej prometheus service.
-```bash
-./bin/conductor musician -o http://192.168.99.100:31080 --consoleLogging
-2018-10-23T15:51:14+02:00 |INFO| launching musician...
-2018-10-23T15:51:14+02:00 |INFO| Running server...
-2018-10-23T15:51:14+02:00 |INFO| starting Prometheus status collector...
-2018-10-23T15:51:14+02:00 |INFO| Launching gRPC server port=5100
+### Run tests
+
+Tests are executed using Ginkgo. To run all the available tests:
+
+```
+make test
 ```
 
-## Conductor
+### Update dependencies
 
-In order to run conductor, a system model service must be up and running.
-```bash
-./bin/conductor run --debug --consoleLogging -s localhost:8800
-2018-10-23T15:50:48+02:00 |INFO| launching conductor...
-2018-10-23T15:50:48+02:00 |INFO| gRPC port port=5000
-2018-10-23T15:50:48+02:00 |INFO| System Model URL=localhost:8800
-2018-10-23T15:50:48+02:00 |DEBUG| add new connection address=localhost:8800
-2018-10-23T15:50:48+02:00 |INFO| Connected to address at localhost:8800
-2018-10-23T15:50:48+02:00 |DEBUG| connection successfully added address=localhost:8800
-2018-10-23T15:50:48+02:00 |INFO| Running server...
-2018-10-23T15:50:48+02:00 |INFO| Launching gRPC server port=5000
+Dependencies are managed using Godep. For an automatic dependencies download use:
+
+```
+make dep
 ```
 
-Conductor should be now up and listening to incoming grpc connections in port 5000. For manual testing, use grpc_cli
-with the following example:
+In order to have all dependencies up-to-date run:
 
-```bash
-grpc_cli call localhost:5000 conductor.Conductor.Deploy "request_id: 'req_001', app_id: {organization_id: 'org_001', app_descriptor_id: 'app_001'}, cpu:0.3, disk:2000, memory:3000"
+```
+dep ensure -update -v
 ```
 
-# Integration tests
-Many tests run by conductor require of other Nalej environment components to be up and running. The following table
-summarizes the set of expected testing variables.
+## Known issues
+* Slow Prometheus startup times may delay Musicians bootstrapping.
+* Musicians score deployments using temporal metrics. If a recently deployed musician is 
+requested to score a deployment, it may result in inaccurate scores due to the lack of references.
 
-| Variable  | Example Value | Description |
-| ------------- | ------------- |------------- |
-| RUN_INTEGRATION_TEST  | true | Run integration tests |
-| IT_SYSTEM_MODEL | localhost:8800 | Address of an available system model server |
-| CLUSTER_ID | 28602103-1462-43cf-bb38-44e880fa1933 | Cluster id where musician is running |
-| IT_NETWORKING_MANAGER | localhost:8000 | Address of an available networking manager |
-
-
+## Contributing
+​
+Please read [contributing.md](contributing.md) for details on our code of conduct, and the process for submitting pull requests to us.
+​
+​
+## Versioning
+​
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+​
+## Authors
+​
+See also the list of [contributors](https://github.com/nalej/grpc-utils/contributors) who participated in this project.
+​
+## License
+This project is licensed under the Apache 2.0 License - see the [LICENSE-2.0.txt](LICENSE-2.0.txt) file for details.
