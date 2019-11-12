@@ -1,119 +1,128 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright 2019 Nalej
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
-
 
 package cmd
 
 import (
-    "os"
+	"os"
 
-    "github.com/spf13/cobra"
-    "github.com/spf13/viper"
-    "github.com/rs/zerolog/log"
-    "github.com/nalej/conductor/pkg/musician/statuscollector"
-    "github.com/nalej/conductor/pkg/musician/service"
-    "github.com/nalej/conductor/pkg/musician/scorer"
-    "github.com/nalej/conductor/pkg/utils"
+	"github.com/nalej/conductor/pkg/musician/scorer"
+	"github.com/nalej/conductor/pkg/musician/service"
+	"github.com/nalej/conductor/pkg/musician/statuscollector"
+	"github.com/nalej/conductor/pkg/utils"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
-    "github.com/nalej/grpc-monitoring-go"
-    "google.golang.org/grpc"
+	"github.com/nalej/grpc-monitoring-go"
+	"google.golang.org/grpc"
 )
 
 var musicianCmd = &cobra.Command{
-    Use: "musician",
-    Short: "Run a musician service",
-    Long: "Run a musician service for the cluster this node belongs to",
-    Run: func(cmd *cobra.Command, args [] string) {
-        SetupLogging()
-        RunMusician()
-    },
+	Use:   "musician",
+	Short: "Run a musician service",
+	Long:  "Run a musician service for the cluster this node belongs to",
+	Run: func(cmd *cobra.Command, args []string) {
+		SetupLogging()
+		RunMusician()
+	},
 }
-
 
 func init() {
 
-    RootCmd.AddCommand(musicianCmd)
+	RootCmd.AddCommand(musicianCmd)
 
-    musicianCmd.Flags().Uint32P("musician-port", "u",utils.MUSICIAN_PORT,"musician endpoint")
-    musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
-    musicianCmd.Flags().StringP("metrics", "m", "", "metrics api endpoint")
-    // 60s is default Prometheus scrape time - no use in collecting status more often
-    musicianCmd.Flags().Uint32P("sleep", "s",60000,"time to sleep between queries in milliseconds")
+	musicianCmd.Flags().Uint32P("musician-port", "u", utils.MUSICIAN_PORT, "musician endpoint")
+	musicianCmd.Flags().StringP("prometheus", "o", "", "prometheus endpoint")
+	musicianCmd.Flags().StringP("metrics", "m", "", "metrics api endpoint")
+	// 60s is default Prometheus scrape time - no use in collecting status more often
+	musicianCmd.Flags().Uint32P("sleep", "s", 60000, "time to sleep between queries in milliseconds")
 
-    viper.BindPFlags(musicianCmd.Flags())
+	viper.BindPFlags(musicianCmd.Flags())
 }
 
 // Entrypoint for a musician service.
 func RunMusician() {
-    // Prometheus URL
-    var prometheus string
-    // Metrics collector address
-    var metrics string
-    // Time to sleep between monitoring queries
-    var sleepTime uint32
-    // Application port
-    var port uint32
-    // Debug flag
-    var debug bool
+	// Prometheus URL
+	var prometheus string
+	// Metrics collector address
+	var metrics string
+	// Time to sleep between monitoring queries
+	var sleepTime uint32
+	// Application port
+	var port uint32
+	// Debug flag
+	var debug bool
 
+	port = uint32(viper.GetInt32("musician-port"))
+	prometheus = viper.GetString("prometheus")
+	metrics = viper.GetString("metrics")
+	sleepTime = uint32(viper.GetInt32("sleep"))
+	debug = viper.GetBool("debug")
 
-    port = uint32(viper.GetInt32("musician-port"))
-    prometheus = viper.GetString("prometheus")
-    metrics = viper.GetString("metrics")
-    sleepTime = uint32(viper.GetInt32("sleep"))
-    debug = viper.GetBool("debug")
+	log.Info().Msg("launching musician...")
 
-    log.Info().Msg("launching musician...")
+	if prometheus != "" && metrics != "" {
+		log.Fatal().Msg("only one of 'prometheus' and 'metrics' can be set")
+	}
+	if prometheus == "" && metrics == "" {
+		log.Fatal().Msg("one of 'prometheus' or 'metrics' should be set")
+	}
 
-    if prometheus != "" && metrics != "" {
-        log.Fatal().Msg("only one of 'prometheus' and 'metrics' can be set")
-    }
-    if prometheus == "" && metrics == "" {
-        log.Fatal().Msg("one of 'prometheus' or 'metrics' should be set")
-    }
+	var collector statuscollector.StatusCollector
 
-    var collector statuscollector.StatusCollector
+	if prometheus != "" {
+		collector = statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
+	}
 
-    if prometheus != "" {
-        collector = statuscollector.NewPrometheusStatusCollector(prometheus, sleepTime)
-    }
+	if metrics != "" {
+		metricsConn, err := grpc.Dial(metrics, grpc.WithInsecure())
+		if err != nil {
+			log.Fatal().Err(err).Str("metricsAddress", metrics).Msg("cannot create connection with the metrics collector")
+		}
+		metricsClient := grpc_monitoring_go.NewMetricsCollectorClient(metricsConn)
 
-    if metrics != "" {
-        metricsConn, err := grpc.Dial(metrics, grpc.WithInsecure())
-        if err != nil {
-            log.Fatal().Err(err).Str("metricsAddress", metrics).Msg("cannot create connection with the metrics collector")
-        }
-        metricsClient := grpc_monitoring_go.NewMetricsCollectorClient(metricsConn)
+		organizationId := os.Getenv("ORGANIZATION_ID")
+		clusterId := os.Getenv("CLUSTER_ID")
+		if organizationId == "" || clusterId == "" {
+			log.Fatal().Msg("ORGANIZATION_ID or CLUSTER_ID environment not set")
+		}
 
-        organizationId := os.Getenv("ORGANIZATION_ID")
-        clusterId := os.Getenv("CLUSTER_ID")
-        if organizationId == "" || clusterId == "" {
-            log.Fatal().Msg("ORGANIZATION_ID or CLUSTER_ID environment not set")
-        }
+		collector = statuscollector.NewMetricsAPICollector(metricsClient, organizationId, clusterId, sleepTime)
+	}
 
-        collector = statuscollector.NewMetricsAPICollector(metricsClient, organizationId, clusterId, sleepTime)
-    }
+	go collector.Run()
 
-    go collector.Run()
+	scorer := scorer.NewSimpleScorer(collector)
 
-    scorer := scorer.NewSimpleScorer(collector)
+	conf := &service.MusicianConfig{
+		Port:      port,
+		Scorer:    &scorer,
+		Collector: &collector,
+		Debug:     debug,
+	}
 
-    conf := &service.MusicianConfig{
-        Port: port,
-        Scorer: &scorer,
-        Collector: &collector,
-        Debug: debug,
-    }
+	musicianService, err := service.NewMusicianService(conf)
 
-    musicianService, err := service.NewMusicianService(conf)
+	if err != nil {
+		log.Fatal().AnErr("error", err).Msg("impossible to start service")
+		os.Exit(1)
+	}
 
-    if err!=nil{
-        log.Fatal().AnErr("error",err).Msg("impossible to start service")
-        os.Exit(1)
-    }
-
-    musicianService.Run()
+	musicianService.Run()
 
 }

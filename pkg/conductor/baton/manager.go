@@ -1,5 +1,17 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright 2019 Nalej
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -1065,7 +1077,6 @@ func (c *Manager) undeployFragment(organizationId string, appInstanceId string, 
 		return derrors.NewFailedPreconditionError("a deployment fragment could not be found. We cannot unauthorize fragment entries")
 	}
 
-
 	// unauthorize every service contained in the fragment
 	for _, stage := range targetFragment.Stages {
 		for _, serv := range stage.Services {
@@ -1338,7 +1349,6 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 		Int("numFragmentsToReschedule", len(toReschedule)).
 		Msg("schedule drained operations to be scheduled again...")
 
-
 	if !drainRequest.ClusterOffline {
 		observer := observer.NewDeploymentFragmentsObserver(toReschedule, c.AppClusterDB)
 		// Run an observer in a separated thread to send the schedule to the queue when is terminating
@@ -1352,18 +1362,18 @@ func (c *Manager) DrainCluster(drainRequest *pbConductor.DrainClusterRequest) {
 		log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")
 	} else {
 		// The observer will fail as no events will be sent by the deployment manager
-		for _, fragment := range toReschedule{
+		for _, fragment := range toReschedule {
 			log.Debug().Msg("calling undeploy fragment")
 			c.undeployFragment(drainRequest.ClusterId.OrganizationId, fragment.AppInstanceId, fragment.FragmentId, drainRequest.ClusterId.ClusterId, drainRequest.ClusterOffline)
 
 			// retrieve fragment
 			toRedeploy, err := c.AppClusterDB.GetDeploymentFragment(fragment.ClusterId, fragment.FragmentId)
-			if err != nil{
+			if err != nil {
 				log.Error().Err(err).Str("clusterID", fragment.ClusterId).Str("fragmentID", fragment.FragmentId).Msg("unable to redeploy fragment")
-			}else{
+			} else {
 				log.Debug().Msg("scheduling fragment")
 				err := c.scheduleDeploymentFragment(toRedeploy)
-				if err != nil{
+				if err != nil {
 					log.Error().Interface("fragment", toRedeploy).Msg("unable to redeploy")
 				}
 				log.Info().Str("clusterId", drainRequest.ClusterId.ClusterId).Msg("schedule drained operations to be scheduled again done")

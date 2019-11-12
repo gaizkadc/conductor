@@ -1,5 +1,17 @@
 /*
- * Copyright (C) 2018 Nalej Group - All Rights Reserved
+ * Copyright 2019 Nalej
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -24,8 +36,8 @@ import (
 	"github.com/nalej/conductor/pkg/conductor/requirementscollector"
 	"github.com/nalej/conductor/pkg/utils"
 	"github.com/nalej/nalej-bus/pkg/bus/pulsar-comcast"
-	queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
 	queueAppEvents "github.com/nalej/nalej-bus/pkg/queue/application/events"
+	queueAppOps "github.com/nalej/nalej-bus/pkg/queue/application/ops"
 	queueInfrEvents "github.com/nalej/nalej-bus/pkg/queue/infrastructure/events"
 	queueInfrOps "github.com/nalej/nalej-bus/pkg/queue/infrastructure/ops"
 	queueNetOps "github.com/nalej/nalej-bus/pkg/queue/network/ops"
@@ -213,7 +225,6 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 		log.Panic().Err(err).Msg("impossible to initialize application events queue client")
 	}
 	log.Info().Msg("done")
-
 
 	log.Info().Msg("initialize infrastructure ops client...")
 	infrOpsConfig := queueInfrOps.NewConfigInfrastructureOpsConsumer(1,

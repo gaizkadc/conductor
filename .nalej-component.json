@@ -8,7 +8,6 @@
     "conductor"
   ],
   "tools": [
-    "azure",
     "k8s",
     "docker"
   ]
