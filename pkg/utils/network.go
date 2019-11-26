@@ -19,8 +19,8 @@ package utils
 
 import (
 	"fmt"
-	"github.com/nalej/deployment-manager/pkg/common"
 	"net"
+	"strings"
 )
 
 // Compute the next consecutive IP address
@@ -48,7 +48,16 @@ func NextIP(ip net.IP, inc uint) net.IP {
 // return:
 //  the fqdn
 func GetVSAName(serviceName string, organizationId string, appInstanceId string) string {
-	value := fmt.Sprintf("%s-%s-%s", common.FormatName(serviceName), organizationId[0:10],
+	value := fmt.Sprintf("%s-%s-%s", formatName(serviceName), organizationId[0:10],
 		appInstanceId[0:10])
 	return value
+}
+
+
+// Format a string removing white spaces and going lowercase
+func formatName(name string) string {
+	aux := strings.ToLower(name)
+	// replace any space
+	aux = strings.Replace(aux, " ", "", -1)
+	return aux
 }

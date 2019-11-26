@@ -58,6 +58,8 @@ func init() {
 		"host:port address for the Nalej management queue")
 	runCmd.Flags().StringP("dbFolder", "f", "/data/",
 		"path for the folder used to store the local database")
+	runCmd.Flags().StringP("networkMode","t", service.ConductorNetworkingModeZT,
+		"Indicate the kind of networking solution conductor will work on top of (zt, istio)")
 
 	viper.BindPFlags(runCmd.Flags())
 }
@@ -88,6 +90,8 @@ func RunConductor() {
 	var queueAddress string
 	// Database folder path
 	var dbFolder string
+	// Networking mode
+	var networkingMode string
 	// Debug flag
 	var debug bool
 
@@ -103,9 +107,16 @@ func RunConductor() {
 	unifiedLoggingService = viper.GetString("unifiedLogging")
 	queueAddress = viper.GetString("queueAddress")
 	dbFolder = viper.GetString("dbFolder")
+	networkingMode = viper.GetString("networkMode")
 	debug = viper.GetBool("debug")
 
 	log.Info().Msg("launching conductor...")
+
+	netMode, err := service.ConductorNetworkingModeFromString(networkingMode)
+	if err != nil{
+		log.Panic().Err(err).Msg("configuration error... leaving")
+		return
+	}
 
 	config := service.ConductorConfig{
 		Port:                     port,
@@ -120,6 +131,7 @@ func RunConductor() {
 		UnifiedLoggingURL:        unifiedLoggingService,
 		QueueURL:                 queueAddress,
 		DBFolder:                 dbFolder,
+		NetworkingMode:           netMode,
 		Debug:                    debug,
 	}
 	config.Print()

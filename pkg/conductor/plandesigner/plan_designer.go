@@ -22,7 +22,6 @@ import (
 	"github.com/nalej/conductor/internal/entities"
 	"github.com/nalej/conductor/pkg/utils"
 	"strings"
-	"time"
 )
 
 // Basic interface to be follow by any plan designer.
@@ -51,10 +50,9 @@ const (
 	NalejServiceSuffix = "service.nalej"
 	// Suffix to add to the outbound FQDNs
 	OutboundSuffix = "-OUT-"
-	// Timeout for GRPC operations
-	PlanDesignerGRPCTimeout = 5 * time.Second
 )
 
+/*
 // Generate the tuple key and value for a nalej service to be represented.
 // params:
 //  serviceName
@@ -67,6 +65,7 @@ func GetDeploymentVariableForService(serviceName string, appInstanceId string, o
 	value := fmt.Sprintf("%s.%s", utils.GetVSAName(serviceName, organizationId, appInstanceId), NalejServiceSuffix)
 	return key, value
 }
+*/
 
 func GetDeploymentVariableForOutbound(serviceName string, outboundName string, appInstanceId string, organizationId string) (string, string) {
 	if outboundName == "" {
@@ -78,6 +77,7 @@ func GetDeploymentVariableForOutbound(serviceName string, outboundName string, a
 	return key, value
 }
 
+/*
 // Format a string removing white spaces and going lowercase
 func formatName(name string) string {
 	aux := strings.ToLower(name)
@@ -85,3 +85,4 @@ func formatName(name string) string {
 	aux = strings.Replace(aux, " ", "", -1)
 	return aux
 }
+*/

@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/nalej/conductor/internal/structures"
+	"github.com/nalej/conductor/pkg/conductor/network"
 	"github.com/nalej/conductor/pkg/conductor/plandesigner"
 	"github.com/nalej/conductor/pkg/conductor/requirementscollector"
 	"github.com/nalej/conductor/pkg/conductor/scorer"
@@ -158,7 +159,7 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 		listener = test.GetDefaultListener()
 		server = grpc.NewServer()
 		scorerMethod := scorer.NewSimpleScorer(connHelper)
-		designer := plandesigner.NewSimpleReplicaPlanDesigner(connHelper)
+		designer := plandesigner.NewSimpleReplicaPlanDesigner(connHelper, network.NewIstioNetworkingOperator())
 		reqcoll := requirementscollector.NewSimpleRequirementsCollector()
 		q = structures.NewMemoryRequestQueue()
 		plans = structures.NewPendingPlans()
@@ -171,7 +172,8 @@ var _ = ginkgo.Describe("Deployment server API", func() {
 		appClient = pbApplication.NewApplicationsClient(connSM)
 		orgClient = pbOrganization.NewOrganizationsClient(connSM)
 
-		cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer, plans, nil, nil)
+		cond = NewManager(connHelper, q, scorerMethod, reqcoll, designer, plans, nil, nil,
+			network.NewIstioNetworkingOperator())
 		test.LaunchServer(server, listener)
 
 		// Register the service.

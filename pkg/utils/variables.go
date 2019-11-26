@@ -17,6 +17,7 @@
 
 package utils
 
+
 // This a common list of global variables
 
 const (
