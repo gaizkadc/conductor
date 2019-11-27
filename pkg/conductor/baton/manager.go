@@ -592,11 +592,11 @@ func (c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragmen
 	for _, sg := range fragment.Stages {
 		for _, s := range sg.Services {
 			if _, found := serviceGroupsMap[s.ServiceGroupId]; !found {
-				log.Debug().Str("groupName", s.Name).Str("serviceGroupId", s.ServiceGroupId).Msg("services contained in running service group")
+				log.Debug().Str("groupName", s.ServiceName).Str("serviceGroupId", s.ServiceGroupId).Msg("services contained in running service group")
 				serviceGroupsMap[s.ServiceGroupId] = true
 				serviceGroupIds = append(serviceGroupIds, s.ServiceGroupId)
 			} else {
-				log.Debug().Str("groupName", s.Name).Str("serviceGroupId", s.ServiceGroupId).Msg("excluded from the list")
+				log.Debug().Str("groupName", s.ServiceName).Str("serviceGroupId", s.ServiceGroupId).Msg("excluded from the list")
 			}
 		}
 	}

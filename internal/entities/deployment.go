@@ -138,6 +138,8 @@ type DeploymentFragment struct {
 	OrganizationName string `json:"organization_name,omitempty"`
 	// AppDescriptorId
 	AppDescriptorId string `json:"app_descriptor_id,omitempty"`
+	// AppDescriptorName with the name of the descriptor
+	AppDescriptorName string `json:"app_descriptor_name,omitempty"`
 	// AppInstanceId for the instance of the application to run
 	AppInstanceId string `json:"app_instance_id,omitempty"`
 	// AppNamed for the instance of the application to run
@@ -167,9 +169,10 @@ func (df *DeploymentFragment) ToGRPC() *pbConductor.DeploymentFragment {
 		OrganizationId:   df.OrganizationId,
 		FragmentId:       df.FragmentId,
 		AppDescriptorId:  df.AppDescriptorId,
+		AppDescriptorName:df.AppDescriptorName,
 		AppInstanceId:    df.AppInstanceId,
 		OrganizationName: df.OrganizationName,
-		AppName:          df.AppName,
+		AppInstanceName:  df.AppName,
 		DeploymentId:     df.DeploymentId,
 		NalejVariables:   df.NalejVariables,
 		Stages:           convertedStages,
@@ -306,9 +309,9 @@ type DeploymentStage struct {
 }
 
 func (ds *DeploymentStage) ToGRPC() *pbConductor.DeploymentStage {
-	convertedServices := make([]*pbApplication.ServiceInstance, len(ds.Services))
+	convertedServices := make([]*pbConductor.ServiceInstance, len(ds.Services))
 	for i, serv := range ds.Services {
-		convertedServices[i] = serv.ToGRPC()
+		convertedServices[i] = serv.toConductorGRPC()
 	}
 	publicRules := make([]*pbConductor.PublicSecurityRuleInstance, len(ds.PublicRules))
 	for i, rules := range ds.PublicRules {

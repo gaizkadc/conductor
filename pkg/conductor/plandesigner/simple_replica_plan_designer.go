@@ -237,15 +237,16 @@ func (p *SimpleReplicaPlanDesigner) buildFragmentsPerCluster(
 
 			// one fragment per group
 			fragment := entities.DeploymentFragment{
-				ClusterId:       cluster,
-				OrganizationId:  org.OrganizationId,
-				AppInstanceId:   app.AppInstanceId,
-				AppDescriptorId: app.AppDescriptorId,
+				ClusterId:         cluster,
+				OrganizationId:    org.OrganizationId,
+				AppInstanceId:     app.AppInstanceId,
+				AppName:           app.Name,
+				AppDescriptorId:   app.AppDescriptorId,
+				AppDescriptorName: desc.Name,
 				// To be filled in global instances
 				//NalejVariables: ,
 				FragmentId:       fragmentUUID,
 				Stages:           stages,
-				AppName:          app.Name,
 				DeploymentId:     planId,
 				OrganizationName: org.Name,
 			}
@@ -317,8 +318,10 @@ func (p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescri
 	// follow the sequence and add instances following this dependency order
 	for _, serv := range sequence {
 		for _, instance := range group.ServiceInstances {
-			if instance.Name == serv.Name {
+			if instance.ServiceName == serv.Name {
 				serviceNames[serv.Name] = instance.ToGRPC()
+				// NP-2433 add service group name
+				instance.ServiceGroupName = group.Name
 				serviceInstances = append(serviceInstances, instance)
 			}
 		}
