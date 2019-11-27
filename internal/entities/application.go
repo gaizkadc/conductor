@@ -19,6 +19,7 @@ package entities
 
 import (
 	"github.com/nalej/grpc-application-go"
+	"github.com/nalej/grpc-conductor-go"
 )
 
 var DefaultSpec = &grpc_application_go.ServiceGroupDeploymentSpecs{
@@ -780,7 +781,7 @@ func (s *Service) ToServiceInstance(appInstanceID string) *ServiceInstance {
 		AppDescriptorId:      s.AppDescriptorId,
 		AppInstanceId:        appInstanceID,
 		ServiceId:            s.ServiceId,
-		Name:                 s.Name,
+		ServiceName:          s.Name,
 		Type:                 s.Type,
 		Image:                s.Image,
 		Credentials:          s.Credentials,
@@ -839,8 +840,10 @@ type ServiceInstance struct {
 	ServiceGroupInstanceId string `json:"service_group_instance_id,omitempty"`
 	// ServiceGroupId with the service group identifier.
 	ServiceGroupId string `json:"service_group_id,omitempty"`
-	// Name of the service.
-	Name string `json:"name,omitempty"`
+	// ServiceGroupName with the name of the service_group
+	ServiceGroupName string `json:"service_group_name,omitempty"`
+	// ServiceName with the name of the service
+	ServiceName string `json:"service_name,omitempty"`
 	// ServiceType represents the underlying technology of the service to be launched.
 	Type ServiceType `json:"type,omitempty"`
 	// Image contains the URL/name of the image to be executed.
@@ -898,7 +901,7 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 		AppDescriptorId:        si.AppDescriptorId,
 		AppInstanceId:          si.AppInstanceId,
 		ServiceId:              si.ServiceId,
-		Name:                   si.Name,
+		Name:                   si.ServiceName,
 		Type:                   serviceType,
 		Image:                  si.Image,
 		Credentials:            si.Credentials.ToGRPC(),
@@ -919,6 +922,53 @@ func (si *ServiceInstance) ToGRPC() *grpc_application_go.ServiceInstance {
 		DeployedOnClusterId:    si.DeployedOnClusterID,
 	}
 
+}
+
+func (si *ServiceInstance) toConductorGRPC() *grpc_conductor_go.ServiceInstance {
+	serviceType, _ := ServiceTypeToGRPC[si.Type]
+	serviceStatus, _ := ServiceStatusToGRPC[si.Status]
+	storage := make([]*grpc_application_go.Storage, 0)
+	for _, s := range si.Storage {
+		storage = append(storage, s.ToGRPC())
+	}
+	exposedPorts := make([]*grpc_application_go.Port, 0)
+	for _, ep := range si.ExposedPorts {
+		exposedPorts = append(exposedPorts, ep.ToGRPC())
+	}
+	configs := make([]*grpc_application_go.ConfigFile, 0)
+	for _, c := range si.Configs {
+		configs = append(configs, c.ToGRPC())
+	}
+	endpoints := make([]*grpc_application_go.EndpointInstance, 0)
+	for _, e := range si.Endpoints {
+		endpoints = append(endpoints, e.ToGRPC())
+	}
+	return &grpc_conductor_go.ServiceInstance{
+		OrganizationId:         si.OrganizationId,
+		AppDescriptorId:        si.AppDescriptorId,
+		AppInstanceId:          si.AppInstanceId,
+		ServiceId:              si.ServiceId,
+		ServiceName:            si.ServiceName,
+		Type:                   serviceType,
+		Image:                  si.Image,
+		Credentials:            si.Credentials.ToGRPC(),
+		Specs:                  si.Specs.ToGRPC(),
+		Storage:                storage,
+		ExposedPorts:           exposedPorts,
+		EnvironmentVariables:   si.EnvironmentVariables,
+		Configs:                configs,
+		Labels:                 si.Labels,
+		DeployAfter:            si.DeployAfter,
+		Status:                 serviceStatus,
+		RunArguments:           si.RunArguments,
+		ServiceGroupInstanceId: si.ServiceGroupInstanceId,
+		Info:                   si.Info,
+		Endpoints:              endpoints,
+		ServiceInstanceId:      si.ServiceInstanceId,
+		ServiceGroupName:       si.ServiceGroupName,
+		ServiceGroupId:         si.ServiceGroupId,
+		DeployedOnClusterId:    si.DeployedOnClusterID,
+	}
 }
 
 func NewServiceInstanceFromGRPC(ins *grpc_application_go.ServiceInstance) ServiceInstance {
@@ -950,7 +1000,7 @@ func NewServiceInstanceFromGRPC(ins *grpc_application_go.ServiceInstance) Servic
 		ServiceGroupInstanceId: ins.ServiceGroupInstanceId,
 		ServiceGroupId:         ins.ServiceGroupId,
 		Labels:                 ins.Labels,
-		Name:                   ins.Name,
+		ServiceName:            ins.Name,
 		Specs:                  NewDeploySpecsFromGRPC(ins.Specs),
 		EnvironmentVariables:   ins.EnvironmentVariables,
 		ServiceInstanceId:      ins.ServiceInstanceId,
