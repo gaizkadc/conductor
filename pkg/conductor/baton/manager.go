@@ -25,16 +25,16 @@ import (
 	"github.com/nalej/conductor/internal/entities"
 	"github.com/nalej/conductor/internal/persistence/app_cluster"
 	"github.com/nalej/conductor/internal/structures"
+	"github.com/nalej/conductor/pkg/conductor"
 	"github.com/nalej/conductor/pkg/conductor/observer"
 	"github.com/nalej/conductor/pkg/conductor/plandesigner"
 	"github.com/nalej/conductor/pkg/conductor/requirementscollector"
 	"github.com/nalej/conductor/pkg/conductor/scorer"
 	"github.com/nalej/conductor/pkg/utils"
-	grpc_application_network_go "github.com/nalej/grpc-application-network-go"
-	//"github.com/nalej/deployment-manager/pkg/network"
 	"github.com/nalej/derrors"
 	pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
 	pbApplication "github.com/nalej/grpc-application-go"
+	"github.com/nalej/grpc-application-network-go"
 	pbConductor "github.com/nalej/grpc-conductor-go"
 	pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
 	pbNetwork "github.com/nalej/grpc-network-go"
@@ -43,7 +43,6 @@ import (
 	"github.com/nalej/grpc-utils/pkg/conversions"
 	"github.com/nalej/nalej-bus/pkg/queue/network/ops"
 	"github.com/rs/zerolog/log"
-	"net"
 	"time"
 )
 
@@ -60,10 +59,6 @@ const (
 	ConductorDrainClusterAppTimeout = time.Second * 60
 	// Timeout when sending messages to the queue
 	ConductorQueueTimeout = time.Second * 5
-	// Initial address to use during the definition of VSA
-	ConductorBaseVSA = "172.16.0.1"
-	// Initial address to use during the definition of VSA
-	ConductorOutboundVSA = "172.18.0.1"
 )
 
 type Manager struct {
@@ -91,11 +86,14 @@ type Manager struct {
 	AppClusterDB *app_cluster.AppClusterDB
 	// NetworkOps queue producer
 	NetworkOpsProducer *ops.NetworkOpsProducer
+	// NetworkOperator
+	NetworkOperator conductor.NetworkOperator
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
 	reqColl requirementscollector.RequirementsCollector, designer plandesigner.PlanDesigner,
-	pendingPlans *structures.PendingPlans, appClusterDB *app_cluster.AppClusterDB, networkOpsProducer *ops.NetworkOpsProducer) *Manager {
+	pendingPlans *structures.PendingPlans, appClusterDB *app_cluster.AppClusterDB, networkOpsProducer *ops.NetworkOpsProducer,
+	networkOperator conductor.NetworkOperator) *Manager {
 	// initialize clients
 	pool := connHelper.GetSystemModelClients()
 	if pool != nil && len(pool.GetConnections()) == 0 {
@@ -124,7 +122,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
 	return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
 		Designer: designer, AppClient: appClient, PendingPlans: pendingPlans, NetClient: netClient,
 		DNSClient: dnsClient, UnifiedLoggingClient: ulClient, AppClusterDB: appClusterDB,
-		NetworkOpsProducer: networkOpsProducer}
+		NetworkOpsProducer: networkOpsProducer, NetworkOperator: networkOperator}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -299,6 +297,13 @@ func (c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derr
 		return derrors.AsError(err, fmt.Sprintf("plan design failed for descriptor %s", err.Error()))
 	}
 
+	// Prepare Networks
+	networkId, err := c.NetworkOperator.PrepareNetwork(appDescriptor, retrievedAppInstance)
+	if err != nil {
+        log.Error().Err(err).Msg("there was an error preparing the network")
+        return derrors.NewInternalError("there was an error preparing the network", err)
+	}
+	/*
 	// 4) Create the virtual service addresses
 	vsa, err := c.createVSA(entities.NewParametrizedDescriptorFromGRPC(appDescriptor), appInstance.AppInstanceId)
 	if err != nil {
@@ -316,10 +321,11 @@ func (c *Manager) ProcessDeploymentRequest(req *entities.DeploymentRequest) derr
 		log.Error().Err(ztErr).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
 		return err
 	}
+	*/
 
 	// 6) deploy fragments
 	// Tell deployment managers to execute plans
-	errDeploy := c.DeployPlan(plan, ztNetworkId, req.NumRetries)
+	errDeploy := c.DeployPlan(plan, networkId, req.NumRetries)
 	if errDeploy != nil {
 		err := derrors.NewGenericError("error deploying plan request", errDeploy)
 		log.Error().Err(errDeploy).Str("requestId", req.RequestId).Str("appDescriptorId", retrievedAppInstance.AppDescriptorId)
@@ -494,6 +500,7 @@ func (c *Manager) scheduleServiceGroups(serviceGroupIds []string, appInstance en
 		return
 	}
 
+	/*
 	// 4) deploy fragments
 	// Tell deployment managers to execute plans
 
@@ -508,10 +515,19 @@ func (c *Manager) scheduleServiceGroups(serviceGroupIds []string, appInstance en
 		log.Error().Err(err).Msg("service groups could not be deployed. The network id was not found")
 		return
 	}
+	*/
 
-	err_deploy := c.DeployPlan(plan, network.NetworkId, 0)
+	// 4) Deploy fragments
+	// Get the network id
+	networkId, err := c.NetworkOperator.GetNetworkId(&appInstance)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting network id for deployment")
+		return
+	}
+
+
+	err_deploy := c.DeployPlan(plan, networkId, 0)
 	if err_deploy != nil {
-		//err := derrors.NewGenericError("error deploying plan request", err_deploy)
 		log.Error().Err(err_deploy).Str("requestId", req.RequestId).Str("appDescriptorId", appInstance.AppDescriptorId)
 		return
 	}
@@ -662,6 +678,7 @@ func (c *Manager) ProcessDeploymentFragment(fragment *entities.DeploymentFragmen
 	return nil
 }
 
+/*
 // Create a new zero tier network and return the corresponding network id.
 // params:
 //  name of the network
@@ -685,6 +702,7 @@ func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanc
 	}
 	return ztNetworkId.NetworkId, err
 }
+*/
 
 // For a given collection of plans, tell the corresponding deployment managers to run the deployment.
 // params:
@@ -693,7 +711,7 @@ func (c *Manager) CreateZTNetwork(name string, organizationId string, appInstanc
 //  numRetry number of retry of this plan
 // returns:
 //  error if any
-func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, numRetry int32) error {
+func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, vpnNetworkId string, numRetry int32) error {
 	// Add this plan to the list of pending entries
 	c.PendingPlans.AddPendingPlan(plan)
 
@@ -748,7 +766,7 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 		request := pbDeploymentManager.DeploymentFragmentRequest{
 			RequestId:      uuid.New().String(),
 			Fragment:       fragment.ToGRPC(),
-			ZtNetworkId:    ztNetworkId,
+			ZtNetworkId:    vpnNetworkId,
 			RollbackPolicy: pbDeploymentManager.RollbackPolicy_NONE,
 			NumRetry:       numRetry,
 		}
@@ -772,8 +790,8 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 		}
 
 		// update the db of fragments deployed on that cluster
-		// update the value of the ztNetworkId in the local entity
-		fragment.ZtNetworkID = ztNetworkId
+		// update the value of the vpnNetworkId in the local entity
+		fragment.ZtNetworkID = vpnNetworkId
 		err = c.AppClusterDB.AddDeploymentFragment(&fragment)
 		if err != nil {
 			log.Error().Err(err).Msg("there was a problem when storing information about a deployment fragment")
@@ -807,12 +825,6 @@ func (c *Manager) DeployPlan(plan *entities.DeploymentPlan, ztNetworkId string, 
 
 // Undeploy
 func (c *Manager) Undeploy(request *entities.UndeployRequest) error {
-	/*
-	   err := c.PendingPlans.RemovePendingPlanByApp(request.AppInstanceId)
-	   if err != nil {
-	       log.Error().Err(err).Msg("impossible to remove a pending pending plan")
-	   }
-	*/
 	return c.HardUndeploy(request.OrganizationId, request.AppInstanceId)
 }
 
@@ -1238,6 +1250,7 @@ func (c *Manager) unauthorizeEntries(organizationId string, appInstanceId string
 	}
 }
 
+/*
 // Create the virtual application addresses for a given application descriptor
 // params:
 //  appDescriptor requiring the VAS entries
@@ -1317,6 +1330,7 @@ func (c *Manager) createVSA(appDescriptor entities.AppDescriptor, appInstanceId 
 
 	return vsa, nil
 }
+*/
 
 // Drain a cluster if and only if it is already cordoned, removed all the running applications and schedule the removed
 // fragments.

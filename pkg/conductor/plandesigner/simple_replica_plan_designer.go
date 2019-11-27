@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nalej/conductor/internal/entities"
 	"github.com/nalej/conductor/internal/structures"
+	"github.com/nalej/conductor/pkg/conductor"
 	"github.com/nalej/conductor/pkg/utils"
 	"github.com/nalej/derrors"
 	pbApplication "github.com/nalej/grpc-application-go"
@@ -46,15 +47,18 @@ type SimpleReplicaPlanDesigner struct {
 	connHelper *utils.ConnectionsHelper
 	// Authx client
 	authxClient pbAuthx.AuthxClient
+	// Network operator
+	networkOperator conductor.NetworkOperator
 }
 
-func NewSimpleReplicaPlanDesigner(connHelper *utils.ConnectionsHelper) PlanDesigner {
+func NewSimpleReplicaPlanDesigner(connHelper *utils.ConnectionsHelper, networkOperator conductor.NetworkOperator) PlanDesigner {
 	connectionsSM := connHelper.GetSystemModelClients()
 	appClient := pbApplication.NewApplicationsClient(connectionsSM.GetConnections()[0])
 	orgClient := pbOrganization.NewOrganizationsClient(connectionsSM.GetConnections()[0])
 	connectionsAuthx := connHelper.GetAuthxClients()
 	authxClient := pbAuthx.NewAuthxClient(connectionsAuthx.GetConnections()[0])
-	return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper, authxClient: authxClient}
+	return &SimpleReplicaPlanDesigner{appClient: appClient, orgClient: orgClient, connHelper: connHelper,
+		authxClient: authxClient, networkOperator: networkOperator}
 }
 
 func (p *SimpleReplicaPlanDesigner) DesignPlan(app entities.AppInstance,
@@ -371,7 +375,8 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
 	for _, g := range appDescriptor.Groups {
 		// Create the service entries we need for this fragment
 		for _, s := range g.Services {
-			key, value := GetDeploymentVariableForService(s.Name, appInstanceId, s.OrganizationId)
+			//key, value := GetDeploymentVariableForService(s.Name, appInstanceId, s.OrganizationId)
+			key, value := p.networkOperator.GetDeploymentVariableForService(s.Name, appInstanceId, s.OrganizationId)
 			variables[key] = value
 		}
 	}
@@ -387,7 +392,6 @@ func (p *SimpleReplicaPlanDesigner) fillVariables(fragmentsToDeploy []entities.D
 	for i := range fragmentsToDeploy {
 		fragmentsToDeploy[i].NalejVariables = variables
 	}
-
 	return fragmentsToDeploy
 }
 

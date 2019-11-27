@@ -21,11 +21,14 @@ import (
 	"errors"
 	"github.com/nalej/conductor/internal/persistence/app_cluster"
 	"github.com/nalej/conductor/internal/structures"
+	"github.com/nalej/conductor/pkg/conductor"
 	"github.com/nalej/conductor/pkg/conductor/baton"
+	"github.com/nalej/conductor/pkg/conductor/network"
 	"github.com/nalej/conductor/pkg/conductor/scorer"
 	"github.com/nalej/conductor/pkg/provider/kv"
+	"github.com/nalej/derrors"
 	pbConductor "github.com/nalej/grpc-conductor-go"
-	"github.com/nalej/grpc-utils/pkg/tools"
+    "github.com/nalej/grpc-utils/pkg/tools"
 	"github.com/nalej/nalej-bus/pkg/queue/network/ops"
 	"google.golang.org/grpc"
 
@@ -46,6 +49,28 @@ import (
 	"net"
 	"strconv"
 )
+
+const (
+	ConductorNetworkingModeZT = "zt"
+	ConductorNetworkingModeIstio = "istio"
+	ConductorNetworkingModeError = ""
+)
+
+// Type of networking solution to use in the installation
+type ConductorNetworkingMode string
+
+func ConductorNetworkingModeFromString(mode string) (ConductorNetworkingMode, error) {
+	switch mode {
+	case ConductorNetworkingModeZT:
+		return ConductorNetworkingModeZT, nil
+	case ConductorNetworkingModeIstio:
+		return ConductorNetworkingModeIstio, nil
+	default:
+		return ConductorNetworkingModeError, derrors.NewInternalError("unknown networking type")
+	}
+}
+
+
 
 type ConductorConfig struct {
 	// incoming port
@@ -72,6 +97,8 @@ type ConductorConfig struct {
 	QueueURL string
 	// Folder for the local database
 	DBFolder string
+	// Networking mode to use
+	NetworkingMode ConductorNetworkingMode
 	// Debugging flag
 	Debug bool
 }
@@ -90,6 +117,7 @@ func (conf *ConductorConfig) Print() {
 	log.Info().Bool("SkipServerCertValidation", conf.SkipServerCertValidation).Msg("SkipServerCertValidation enabled")
 	log.Info().Str("CACertPath", conf.CACertPath).Msg("CA cert path")
 	log.Info().Str("ClientCertPath", conf.ClientCertPath).Msg("Client cert path")
+	log.Info().Str("NetworkingMode", string(conf.NetworkingMode)).Msg("Networking mode")
 }
 
 type ConductorService struct {
@@ -261,10 +289,6 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 	scr := scorer.NewSimpleScorer(connectionsHelper)
 	reqColl := requirementscollector.NewSimpleRequirementsCollector()
 
-	log.Info().Msg("instantiate plan designer...")
-	designer := plandesigner.NewSimpleReplicaPlanDesigner(connectionsHelper)
-	log.Info().Msg("done")
-
 	log.Info().Msg("instantiate local app cluster db...")
 
 	boltProvider, err := kv.NewLocalDB(config.DBFolder + "/appcluster.db")
@@ -275,7 +299,20 @@ func NewConductorService(config *ConductorConfig) (*ConductorService, error) {
 	appClusterDB := app_cluster.NewAppClusterDB(boltProvider)
 	log.Info().Msg("done")
 
-	batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer, pendingPlans, appClusterDB, netOpsProducer)
+
+	var networkOperator conductor.NetworkOperator
+    switch config.NetworkingMode {
+    case ConductorNetworkingModeZT:
+        networkOperator =  network.NewZtNetworkingOperator(connectionsHelper, netOpsProducer)
+    case ConductorNetworkingModeIstio:
+        networkOperator = network.NewIstioNetworkingOperator()
+    }
+
+	log.Info().Msg("instantiate plan designer...")
+	designer := plandesigner.NewSimpleReplicaPlanDesigner(connectionsHelper, networkOperator)
+	log.Info().Msg("done")
+
+	batonMgr := baton.NewManager(connectionsHelper, q, scr, reqColl, designer, pendingPlans, appClusterDB, netOpsProducer, networkOperator)
 	if batonMgr == nil {
 		log.Panic().Msg("impossible to create baton service")
 		return nil, errors.New("impossible to create baton service")
