@@ -43,7 +43,7 @@ spec:
           - "--caCertPath=/nalej/ca-certificate/ca.crt"
           - "--clientCertPath=/nalej/tls-client-certificate/"
           - "--skipServerCertValidation=false"
-          - "--networkMode=istio"
+          - "--networkMode=zt"
         ports:
         - name: api-port
           containerPort: 5000
