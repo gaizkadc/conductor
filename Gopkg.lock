@@ -150,14 +150,6 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:4bc382a76fc85eaea5a9a8c7c79d6e8285a1dc1b346c91e8287bdf70558b1d90"
-  name = "github.com/nalej/deployment-manager"
-  packages = ["pkg/common"]
-  pruneopts = ""
-  revision = "c4bcc5b63851087037708490931411b28bfd33a2"
-  version = "v0.4.0"
-
-[[projects]]
   digest = "1:b651ba0ea8155a78a3a2b23e4cc86f85c44ce62856a565632444eb418d0d960e"
   name = "github.com/nalej/derrors"
   packages = ["."]
@@ -238,12 +230,12 @@
   version = "v0.0.38"
 
 [[projects]]
-  digest = "1:c2ab0c51eed3e768bc06ac62357569a0c0b511acdb14b2d4d8cba3662437b21e"
+  digest = "1:442429f610e3934106628ab549ddce78c45195ded6ba88ad76339b2a7756dc27"
   name = "github.com/nalej/grpc-conductor-go"
   packages = ["."]
   pruneopts = ""
-  revision = "c45dccf8ff6751f1cf0b11493b1b45806e06a733"
-  version = "v0.0.95"
+  revision = "9cbe44351c8dbd004186abc61dff0430d497022a"
+  version = "v0.0.96"
 
 [[projects]]
   digest = "1:6c44fce64e0e1fa5ca893e885458956a89269dc56b8ac3b7284b9671f59151ca"
@@ -713,7 +705,6 @@
   input-imports = [
     "github.com/boltdb/bolt",
     "github.com/google/uuid",
-    "github.com/nalej/deployment-manager/pkg/common",
     "github.com/nalej/derrors",
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-app-cluster-api-go",
