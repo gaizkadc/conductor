@@ -265,6 +265,8 @@ type PublicSecurityRuleInstance struct {
 	TargetServiceInstanceId string `json:"target_service_instance_id,omitempty"`
 	// TargetPort defining the port that is affected by the current rule.
 	TargetPort int32 `json:"target_port,omitempty"`
+	// ServiceName sets the name of the service.
+	ServiceName string `json:"service_name,omitempty"`
 }
 
 func NewPublicSercurityRuleInstance(service pbApplication.ServiceInstance, rule SecurityRule) *PublicSecurityRuleInstance {
@@ -278,6 +280,7 @@ func NewPublicSercurityRuleInstance(service pbApplication.ServiceInstance, rule 
 		TargetServiceId:              service.ServiceId,
 		TargetServiceInstanceId:      service.ServiceInstanceId,
 		TargetPort:                   rule.TargetPort,
+		ServiceName:				  service.Name,
 	}
 }
 
@@ -291,6 +294,7 @@ func (pr *PublicSecurityRuleInstance) ToGRPC() *pbConductor.PublicSecurityRuleIn
 		TargetServiceId:              pr.TargetServiceId,
 		TargetServiceInstanceId:      pr.TargetServiceInstanceId,
 		TargetPort:                   pr.TargetPort,
+		ServiceName:                  pr.ServiceName,
 	}
 }
 

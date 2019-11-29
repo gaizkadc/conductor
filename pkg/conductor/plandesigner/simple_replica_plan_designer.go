@@ -352,6 +352,20 @@ func (p *SimpleReplicaPlanDesigner) buildDeploymentStage(desc entities.AppDescri
 				}
 				deviceSecurityRules = append(deviceSecurityRules, *entities.NewDeviceGroupSecurityRuleInstance(*service, rule, sgJwtSecrets))
 			}
+		} else {
+			// Create a public security rule without specifying the service id
+			publicSecurityRules = append(publicSecurityRules, entities.PublicSecurityRuleInstance{
+				ServiceName: rule.TargetServiceName,
+				TargetPort: rule.TargetPort,
+				RuleId: rule.RuleId,
+				OrganizationId: rule.OrganizationId,
+				AppDescriptorId: rule.AppDescriptorId,
+				// These fields are not set because we cannot know the ids of the instances yet
+				//TargetServiceInstanceId: "",
+				//TargetServiceGroupId: "",
+				//TargetServiceId: "",
+				//TargetServiceGroupInstanceId: "",
+			})
 		}
 	}
 	log.Debug().Int("services", len(serviceInstances)).Int("public rules", len(publicSecurityRules)).
