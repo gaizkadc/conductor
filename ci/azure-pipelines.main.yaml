@@ -69,7 +69,7 @@ stages:
 
     - template: k8s/statefulsets/claim_to_emptydirs.yaml@ci_templates
       parameters:
-        yamlPath: $(system.defaultWorkingDirectory)/dist/yaml/$(stagingDockerRegistry)/mngtcluster
+        yamlPath: $(system.defaultWorkingDirectory)/dist/yaml/staging/mngtcluster
         yamlFile: conductor.deployment.yaml
 
     - template: k8s/configmaps/cluster-config.yaml@ci_templates
