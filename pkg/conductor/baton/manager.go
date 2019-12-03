@@ -34,6 +34,7 @@ import (
 	"github.com/nalej/derrors"
 	pbAppClusterApi "github.com/nalej/grpc-app-cluster-api-go"
 	pbApplication "github.com/nalej/grpc-application-go"
+	pbApplicationHistory "github.com/nalej/grpc-application-history-logs-go"
 	"github.com/nalej/grpc-application-network-go"
 	pbConductor "github.com/nalej/grpc-conductor-go"
 	pbDeploymentManager "github.com/nalej/grpc-deployment-manager-go"
@@ -88,6 +89,8 @@ type Manager struct {
 	NetworkOpsProducer *ops.NetworkOpsProducer
 	// NetworkOperator
 	NetworkOperator conductor.NetworkOperator
+	// Application History Logs Client
+	AppHistoryClient pbApplicationHistory.ApplicationHistoryLogsClient
 }
 
 func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQueue, scorer scorer.Scorer,
@@ -103,6 +106,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
 	conn := pool.GetConnections()[0]
 	// Create associated clients
 	appClient := pbApplication.NewApplicationsClient(conn)
+	appHistoryClient := pbApplicationHistory.NewApplicationHistoryLogsClient(conn)
 	// Network client
 	netPool := connHelper.GetNetworkingClients()
 	if netPool != nil && len(netPool.GetConnections()) == 0 {
@@ -122,7 +126,7 @@ func NewManager(connHelper *utils.ConnectionsHelper, queue structures.RequestsQu
 	return &Manager{ConnHelper: connHelper, Queue: queue, ScorerMethod: scorer, ReqCollector: reqColl,
 		Designer: designer, AppClient: appClient, PendingPlans: pendingPlans, NetClient: netClient,
 		DNSClient: dnsClient, UnifiedLoggingClient: ulClient, AppClusterDB: appClusterDB,
-		NetworkOpsProducer: networkOpsProducer, NetworkOperator: networkOperator}
+		NetworkOpsProducer: networkOpsProducer, NetworkOperator: networkOperator, AppHistoryClient:appHistoryClient}
 }
 
 // Check iteratively if there is anything to be processed in the queue.
@@ -977,6 +981,7 @@ func (c *Manager) HardUndeploy(organizationId string, appInstanceId string) erro
 			// call Rollback
 			c.Rollback(organizationId, appInstanceId, clusterIds)
 
+			// TODO: we should send to the bus a message to remove the instance, application-manager should consume it and removes the instance and all the service_instance_log
 			// Remove any entry from the system model
 			instID := &pbApplication.AppInstanceId{
 				OrganizationId: organizationId,
@@ -989,6 +994,17 @@ func (c *Manager) HardUndeploy(organizationId string, appInstanceId string) erro
 			if err != nil {
 				log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove instance from system model")
 			}
+
+			ctxHistory, cancelHistory := context.WithTimeout(context.Background(), ConductorQueueTimeout)
+			defer cancelHistory()
+			_, err = c.AppHistoryClient.Remove(ctxHistory, &pbApplicationHistory.RemoveLogsRequest{
+				OrganizationId: organizationId,
+				AppInstanceId: appInstanceId,
+			})
+			if err != nil {
+				log.Error().Err(err).Str("app_instance_id", appInstanceId).Msg("could not remove service history logs from system model")
+			}
+
 		})
 
 	// terminate execution
