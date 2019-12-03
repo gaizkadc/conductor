@@ -96,7 +96,7 @@ stages:
         kubeconfig: $(kubeconfig)
         namespace: $(namespace)
 
-- template: k8s/resources/create.yaml@ci_templates
+    - template: k8s/resources/create.yaml@ci_templates
       parameters:
         kubeconfig: $(kubeconfig)
         platform: appcluster
