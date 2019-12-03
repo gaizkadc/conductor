@@ -9,7 +9,7 @@
     "conductor"
   ],
   "component_list": [
-    "conductor"
+    "conductor musician monitoring"
   ],
   "tools": [
     "k8s",
