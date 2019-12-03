@@ -8,6 +8,9 @@
   "image_list": [
     "conductor"
   ],
+  "component_list": [
+    "conductor"
+  ],
   "tools": [
     "k8s",
     "docker"
