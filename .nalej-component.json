@@ -3,10 +3,16 @@
   "language_version": "1.13",
   "version": "v0.5.0",
   "application_list": [
-    "conductor musician"
+    "conductor", 
+    "musician"
   ],
   "image_list": [
     "conductor"
+  ],
+  "component_list": [
+    "conductor",
+    "musician",
+    "monitoring"
   ],
   "tools": [
     "k8s",
