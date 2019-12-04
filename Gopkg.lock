@@ -190,6 +190,14 @@
   version = "v0.0.86"
 
 [[projects]]
+  digest = "1:0a59039a032ea25d8febb1a3730cb55f5a0dc87af71748d885ab9a7752a1dcc2"
+  name = "github.com/nalej/grpc-application-history-logs-go"
+  packages = ["."]
+  pruneopts = ""
+  revision = "072dd6a1b05cd6b9289e7b21faa2b0d8dd7b252e"
+  version = "v0.0.1"
+
+[[projects]]
   digest = "1:91d68907774a954e8652f0086fe9284838315ff04cbcf44f73cc1fa24b2df565"
   name = "github.com/nalej/grpc-application-network-go"
   packages = ["."]
@@ -342,12 +350,12 @@
   version = "v0.0.3"
 
 [[projects]]
-  digest = "1:3414f6c72a327bfcf0f2604a2ef0d3f2bf936e82b8d94f97fe2112dd5364713d"
+  digest = "1:18d316170b65da520a335ae2e11818ed9a481cb57d8fb6c72ee2dc437bb148c4"
   name = "github.com/nalej/grpc-unified-logging-go"
   packages = ["."]
   pruneopts = ""
-  revision = "2dd16708ab59deaf60fc4a1b564e3f6f87c63429"
-  version = "v0.0.8"
+  revision = "206ef6835662f9ab80271758948b247756d9284b"
+  version = "v0.0.11"
 
 [[projects]]
   digest = "1:3c48d4db5e7f6c3cda75e4fc1f9b061eb121ec26587bec82059eba37bac619be"
@@ -371,7 +379,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c8e342b6de258bb8b3f5a3c801deb240593c73f378a30d989d955727a2ac46dc"
+  digest = "1:dd766528d3ced759913f33959e0f759dbf4c7bde3228ae111b68b233f9864e62"
   name = "github.com/nalej/nalej-bus"
   packages = [
     "pkg/bus",
@@ -384,7 +392,7 @@
     "pkg/queue/network/ops",
   ]
   pruneopts = ""
-  revision = "68ef91b8277602c1da4d3af549a1f6c27aec11ae"
+  revision = "dbed3aa209cfddf356f7003ad4b54c3ce8b5b09a"
 
 [[projects]]
   digest = "1:29ce2243f2fe4f22f1ce316ed342f75b9c452038f0165dc53691f5fb05bfac29"
@@ -570,11 +578,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a269e5fdd70aeaa38e64e852729cd20cd6631fb34f44a1896adedbfc3907b441"
+  digest = "1:6530ff3e6639af9bab7d2cf1e141c348e63af92058fa64d0660a6e8817d41640"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = ""
-  revision = "63cb32ae39b28d6bb8e7e215c1fc39dd80dcdb02"
+  revision = "6d18c012aee9febd81bbf9806760c8c4480e870d"
 
 [[projects]]
   digest = "1:740b51a55815493a8d0f2b1e0d0ae48fe48953bf7eaf3fcc4198823bf67768c0"
@@ -615,7 +623,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a51a58f22fcdcf4238ee8b2a3a9637cbdb73320183038ce20c104f682563c640"
+  digest = "1:1b028a8d750789d0723ab886c8b2853ee2d00539da8ce19a7ef77952900936b6"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
@@ -625,7 +633,7 @@
     "protobuf/field_mask",
   ]
   pruneopts = ""
-  revision = "83cc0476cb11ea0da33dacd4c6354ab192de6fe6"
+  revision = "049a07e0debe1a8cd87b6d392cfdb5ac558c7ddf"
 
 [[projects]]
   digest = "1:ec89356e95f2a8983928a7872f71f0f934f97932353af4fe1a76d322db5eaf7b"
@@ -709,6 +717,7 @@
     "github.com/nalej/golang-template/version",
     "github.com/nalej/grpc-app-cluster-api-go",
     "github.com/nalej/grpc-application-go",
+    "github.com/nalej/grpc-application-history-logs-go",
     "github.com/nalej/grpc-application-network-go",
     "github.com/nalej/grpc-authx-go",
     "github.com/nalej/grpc-common-go",
