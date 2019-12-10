@@ -498,20 +498,23 @@ const (
 	ClusterLocal
 	ClusterReplica
 	CloudPersistent
+	ExperimentalClusterReplica
 )
 
 var StorageTypeToGRPC = map[StorageType]grpc_application_go.StorageType{
-	Ephemeral:       grpc_application_go.StorageType_EPHEMERAL,
-	ClusterLocal:    grpc_application_go.StorageType_CLUSTER_LOCAL,
-	ClusterReplica:  grpc_application_go.StorageType_CLUSTER_REPLICA,
-	CloudPersistent: grpc_application_go.StorageType_CLOUD_PERSISTENT,
+	Ephemeral:                  grpc_application_go.StorageType_EPHEMERAL,
+	ClusterLocal:               grpc_application_go.StorageType_CLUSTER_LOCAL,
+	ClusterReplica:             grpc_application_go.StorageType_CLUSTER_REPLICA,
+	CloudPersistent:            grpc_application_go.StorageType_CLOUD_PERSISTENT,
+	ExperimentalClusterReplica: grpc_application_go.StorageType_EXPERIMENTAL_CLUSTER_REPLICA,
 }
 
 var StorageTypeFromGRPC = map[grpc_application_go.StorageType]StorageType{
-	grpc_application_go.StorageType_EPHEMERAL:        Ephemeral,
-	grpc_application_go.StorageType_CLUSTER_LOCAL:    ClusterLocal,
-	grpc_application_go.StorageType_CLUSTER_REPLICA:  ClusterReplica,
-	grpc_application_go.StorageType_CLOUD_PERSISTENT: CloudPersistent,
+	grpc_application_go.StorageType_EPHEMERAL:                    Ephemeral,
+	grpc_application_go.StorageType_CLUSTER_LOCAL:                ClusterLocal,
+	grpc_application_go.StorageType_CLUSTER_REPLICA:              ClusterReplica,
+	grpc_application_go.StorageType_CLOUD_PERSISTENT:             CloudPersistent,
+	grpc_application_go.StorageType_EXPERIMENTAL_CLUSTER_REPLICA: ExperimentalClusterReplica,
 }
 
 type Storage struct {
