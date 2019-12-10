@@ -37,7 +37,7 @@
 
 [[constraint]]
     name="github.com/nalej/grpc-application-go"
-    version="=v0.0.86"
+    version="=v0.0.91"
 
 [[constraint]]
     name="github.com/nalej/grpc-application-history-logs-go"
