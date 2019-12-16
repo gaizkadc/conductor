@@ -11,8 +11,7 @@
   ],
   "component_list": [
     "conductor",
-    "musician",
-    "monitoring"
+    "musician"
   ],
   "tools": [
     "k8s",
