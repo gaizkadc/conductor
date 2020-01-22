@@ -155,6 +155,7 @@ stages:
 
 - stage: 'SlackFinish'
   condition: always()
+  dependsOn: 'AssetPublish'
   jobs:
   - job: 
     pool:
